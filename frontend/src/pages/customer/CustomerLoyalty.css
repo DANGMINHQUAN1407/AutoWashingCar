@@ -1,0 +1,511 @@
+/* ─── Customer Loyalty Layout ─── */
+.loyalty-page-container {
+  margin: 0 auto;
+}
+
+.loyalty-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .loyalty-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.loyalty-hero-section,
+.loyalty-data-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── Section Typography ─── */
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--color-heading);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border-dim);
+  padding-bottom: 12px;
+}
+
+/* ─── Loading State ─── */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 16px;
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  border-top-color: var(--color-primary);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── VIP Membership Cards ─── */
+.membership-vip-card {
+  position: relative;
+  height: 230px;
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  color: #ffffff;
+}
+
+.membership-vip-card:hover {
+  transform: translateY(-5px) rotate(0.5deg);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* Metallic Gradients */
+.tier-bronze {
+  background: linear-gradient(135deg, #a0522d 0%, #cd7f32 40%, #8b4513 100%);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+}
+
+.tier-silver {
+  background: linear-gradient(135deg, #708090 0%, #c0c0c0 45%, #e6e6e6 55%, #708090 100%);
+  border: 1px solid rgba(192, 192, 192, 0.5);
+  color: #1e293b;
+}
+.tier-silver .vip-card-brand,
+.tier-silver .vip-card-holder,
+.tier-silver .pts-lbl {
+  color: #334155;
+}
+.tier-silver .vip-card-tier-label,
+.tier-silver .pts-num,
+.tier-silver .holder-name {
+  color: #0f172a;
+}
+.tier-silver .vip-card-insignia {
+  color: rgba(15, 23, 42, 0.15);
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+.tier-gold {
+  background: linear-gradient(135deg, #b8860b 0%, #ffd700 35%, #fffacd 50%, #daa520 70%, #8b6508 100%);
+  border: 1px solid rgba(218, 165, 32, 0.5);
+  color: #451a03;
+}
+.tier-gold .vip-card-brand,
+.tier-gold .vip-card-holder,
+.tier-gold .pts-lbl {
+  color: #78350f;
+}
+.tier-gold .vip-card-tier-label,
+.tier-gold .pts-num,
+.tier-gold .holder-name {
+  color: #451a03;
+}
+.tier-gold .vip-card-insignia {
+  color: rgba(69, 26, 3, 0.18);
+  border-color: rgba(69, 26, 3, 0.18);
+}
+
+.tier-platinum {
+  background: linear-gradient(135deg, #0f172a 0%, #334155 30%, #94a3b8 50%, #475569 75%, #0f172a 100%);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+/* Card Glow Reflection Overlay */
+.vip-card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    30deg,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.12) 48%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.12) 52%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  transform: rotate(-10deg);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.membership-vip-card:hover .vip-card-glow {
+  transform: translate(25%, 25%) rotate(-10deg);
+}
+
+/* VIP Card Details Layout */
+.vip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vip-card-brand {
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.vip-card-brand .brand-accent {
+  opacity: 0.8;
+}
+
+.vip-card-chip {
+  width: 38px;
+  height: 28px;
+  background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #aa7c11 100%);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.vip-card-body {
+  margin-top: 10px;
+}
+
+.vip-card-tier-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  opacity: 0.85;
+}
+
+.vip-card-points-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pts-num {
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pts-lbl {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.vip-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.vip-card-holder .holder-lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+
+.vip-card-holder .holder-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.vip-card-insignia {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  opacity: 0.25;
+  border: 2px solid currentColor;
+  padding: 2px 10px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+/* ─── Progress Bar ─── */
+.progress-card {
+  padding: 24px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.92rem;
+  margin-bottom: 12px;
+  color: var(--color-text-muted);
+}
+
+.progress-header strong {
+  color: var(--color-heading);
+}
+
+.points-remaining {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.progress-bar-bg {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-dim);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--grad-primary);
+  border-radius: 99px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(30, 144, 255, 0.4);
+}
+
+.progress-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  margin-top: 6px;
+}
+
+/* ─── Benefits Card ─── */
+.benefits-card {
+  padding: 24px;
+}
+
+.benefit-info-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: flex-start;
+}
+
+.benefit-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.benefit-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.benefit-text {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.benefit-text strong {
+  color: var(--color-heading);
+}
+
+/* ─── Point History Ledger ─── */
+.history-card {
+  padding: 24px;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-muted);
+}
+
+.empty-history p {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.empty-history span {
+  font-size: 0.85rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.history-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-desc {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.history-date {
+  font-size: 0.78rem;
+  color: var(--color-text-dim);
+}
+
+.history-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.history-points {
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+}
+
+.points-credit {
+  color: var(--color-success);
+}
+
+.points-debit {
+  color: var(--color-danger);
+}
+
+.history-balance {
+  font-size: 0.80rem;
+  color: var(--color-text-muted);
+}
+
+.history-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-dim);
+}
+
+.page-indicator {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* ─── Membership Tiers Comparison ─── */
+.tiers-list-card {
+  padding: 24px;
+}
+
+.tier-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.tier-compare-card {
+  position: relative;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tier-compare-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.current-compare-tier {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  box-shadow: 0 0 15px rgba(30, 144, 255, 0.1);
+}
+
+.current-badge {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(30,144,255,0.4);
+}
+
+.tier-compare-card h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.tier-req, .tier-rate {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.tier-req strong, .tier-rate strong {
+  color: var(--color-heading);
+}
+
+.tier-benefits {
+  font-size: 0.82rem;
+  color: var(--color-text-dim);
+  line-height: 1.4;
+  margin-top: 4px;
+  border-top: 1px dashed var(--color-border-dim);
+  padding-top: 8px;
+}
+
+/* Light Theme Support */
+[data-theme="light"] .membership-vip-card {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .membership-vip-card.tier-silver {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 45%, #f1f5f9 55%, #94a3b8 100%);
+}
+[data-theme="light"] .history-item {
+  background: #f8fafc;
+}
+[data-theme="light"] .history-item:hover {
+  background: #f1f5f9;
+}
+[data-theme="light"] .tier-compare-card {
+  background: #f8fafc;
+}
+[data-theme="light"] .current-compare-tier {
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.06) 0%, #f8fafc 100%);
+}

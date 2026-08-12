@@ -1,0 +1,243 @@
+/* ─── Admin Dashboard ──────────────────────────────────────── */
+.adm-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Main 2-col grid ────────────────────────────────────────── */
+.adm-main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .adm-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.adm-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Network Summary Card ───────────────────────────────────── */
+.adm-network-card {
+  position: relative;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.adm-network-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(0, 210, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.adm-network-card h3 {
+  margin: 0 0 20px;
+  color: #e2e2e8;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.adm-network-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.adm-network-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  outline: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.adm-network-label {
+  color: #bbc9cf;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.adm-network-val {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.adm-network-val--green { color: #00ffc2; }
+.adm-network-val--red   { color: #ff4b4b; }
+
+/* Health bar */
+.adm-health-bar-wrap {
+  margin-bottom: 20px;
+}
+
+.adm-health-bar-label {
+  display: flex;
+  justify-content: space-between;
+  color: #bbc9cf;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.adm-health-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.adm-health-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0072ff 0%, #00ffc2 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 10px rgba(0, 255, 194, 0.4);
+  transition: width 0.6s ease;
+}
+
+/* Bottom stats row */
+.adm-network-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.adm-network-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.adm-network-stat-label {
+  color: #bbc9cf;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.adm-network-stat-val {
+  color: #e2e2e8;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ── Alerts Card ─────────────────────────────────────────────── */
+.adm-alerts-card {
+  overflow: hidden;
+}
+
+.adm-alert-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 178, 41, 0.15);
+  color: #ffb229;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.adm-alerts-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.adm-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+}
+
+.adm-alert-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.adm-alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.adm-alert-item--warning .adm-alert-dot  { background: #ffb229; box-shadow: 0 0 6px #ffb229; }
+.adm-alert-item--success .adm-alert-dot  { background: #00ffc2; box-shadow: 0 0 6px #00ffc2; }
+.adm-alert-item--info    .adm-alert-dot  { background: #a5e7ff; box-shadow: 0 0 6px #a5e7ff; }
+
+.adm-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-alert-title {
+  color: #e2e2e8;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adm-alert-msg {
+  color: #bbc9cf;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.adm-alert-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  align-self: center;
+}
+
+.adm-alert-badge--warning {
+  background: rgba(255, 178, 41, 0.12);
+  color: #ffb229;
+}
+
+.adm-alert-badge--success {
+  background: rgba(0, 255, 194, 0.12);
+  color: #00ffc2;
+}
+
+.adm-alert-badge--info {
+  background: rgba(165, 231, 255, 0.12);
+  color: #a5e7ff;
+}

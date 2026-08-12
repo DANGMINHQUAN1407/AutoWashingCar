@@ -1,0 +1,373 @@
+/* ─── Manager Customers Layout ─── */
+.manager-customers-container {
+  margin: 0 auto;
+}
+
+.search-card {
+  padding: 24px;
+}
+
+.customer-search-form {
+  display: flex;
+  width: 100%;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.search-input-wrapper .form-input {
+  flex-grow: 1;
+}
+
+.search-submit-btn {
+  white-space: nowrap;
+}
+
+/* Alert Banner */
+.alert-banner {
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Workspace Layout */
+.manager-loyalty-workspace {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 28px;
+  margin-top: 4px;
+}
+
+@media (max-width: 1024px) {
+  .manager-loyalty-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workspace-left,
+.workspace-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.workspace-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--color-heading);
+  border-bottom: 1px solid var(--color-border-dim);
+  padding-bottom: 12px;
+}
+
+/* Profile details */
+.customer-details-card,
+.loyalty-summary-card,
+.adjustment-card,
+.ledger-history-card,
+.tiers-reference-card {
+  padding: 24px;
+}
+
+.profile-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 20px;
+}
+
+@media (max-width: 500px) {
+  .profile-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-lbl {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-val {
+  font-size: 1rem;
+  color: var(--color-heading);
+  word-break: break-all;
+}
+
+.customer-vehicles-section {
+  margin-top: 20px;
+  border-top: 1px dashed var(--color-border-dim);
+  padding-top: 16px;
+}
+
+.vehicle-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vehicle-pill {
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-dim);
+  padding: 6px 12px;
+  border-radius: 99px;
+  color: var(--color-text);
+}
+
+/* Loyalty summary */
+.loyalty-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.loyalty-stat-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-lbl {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.stat-val-tier {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-val-points {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.stat-val-sub {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.card-loading {
+  text-align: center;
+  padding: 20px 0;
+  color: var(--color-text-muted);
+}
+
+/* Adjustment Form */
+.adjustment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.adjustment-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.toggle-option {
+  background: transparent;
+  border: none;
+  padding: 10px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-option.active-add {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.toggle-option.active-deduct {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}
+
+.quick-adjust-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.text-area-input {
+  resize: vertical;
+}
+
+/* Ledger history */
+.empty-ledger {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-muted);
+}
+
+.ledger-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ledger-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 10px;
+}
+
+.ledger-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ledger-desc {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.ledger-date {
+  font-size: 0.78rem;
+  color: var(--color-text-dim);
+}
+
+.ledger-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ledger-points {
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+}
+
+.ledger-balance {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.ledger-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-dim);
+}
+
+.ledger-page-indicator {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Tiers Reference */
+.reference-tiers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reference-tier-item {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 10px;
+}
+
+.ref-tier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ref-tier-header h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.ref-tier-points {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.ref-tier-body {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.ref-tier-benefits {
+  font-size: 0.82rem;
+  color: var(--color-text-dim);
+  margin-top: 4px;
+  border-top: 1px dashed var(--color-border-dim);
+  padding-top: 6px;
+}
+
+/* Light Theme overrides */
+[data-theme="light"] .ledger-item,
+[data-theme="light"] .loyalty-stat-box,
+[data-theme="light"] .reference-tier-item,
+[data-theme="light"] .vehicle-pill {
+  background: #f8fafc;
+}
+[data-theme="light"] .adjustment-type-toggle {
+  background: #f1f5f9;
+}
+[data-theme="light"] .toggle-option.active-add {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .toggle-option.active-deduct {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}

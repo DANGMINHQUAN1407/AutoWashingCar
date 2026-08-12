@@ -1,0 +1,274 @@
+/* ─── Admin Branches Page Styles ────────────────────────── */
+
+.branches-page {
+  animation: fadeIn 0.4s var(--ease) both;
+}
+
+/* Branch Grid Layout */
+.branches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Premium Branch Card */
+.branch-card-premium {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-dim);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--t-normal) var(--ease), 
+              border-color var(--t-normal) var(--ease), 
+              box-shadow var(--t-normal) var(--ease);
+}
+
+.branch-card-premium:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card), 0 10px 30px -10px rgba(6, 182, 212, 0.15);
+}
+
+.branch-card-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: background var(--t-normal) var(--ease);
+}
+
+.branch-card-premium.active-branch::before {
+  background: var(--grad-primary);
+}
+
+.branch-card-premium.inactive-branch::before {
+  background: var(--color-text-dim);
+}
+
+.branch-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.branch-title-area h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 4px;
+}
+
+.branch-code-badge {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.branch-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+  margin-bottom: 20px;
+}
+
+.branch-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.branch-detail-row svg {
+  color: var(--color-text-dim);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.branch-manager-info {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--color-border-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+
+.branch-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border-dim);
+  padding-top: 16px;
+}
+
+.branch-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Service Catalog Selection Grid */
+.services-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding: 4px;
+  margin-bottom: 10px;
+}
+
+.service-selection-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-dim);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+  position: relative;
+  user-select: none;
+}
+
+.service-selection-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.service-selection-card.selected {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
+}
+
+.service-selection-card input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--color-primary);
+}
+
+.service-selection-info h4 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.service-selection-info p {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.service-selection-info .price-tag {
+  font-size: 0.82rem;
+  color: var(--color-cyan);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Double column form layouts */
+.form-row-double {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .form-row-double {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Address Autocomplete Dropdown & Spinner */
+.address-suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  margin-top: 6px;
+  background: rgba(18, 24, 38, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-dim);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.5), 
+              0 0 0 1px rgba(99, 102, 241, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+  animation: fadeIn var(--t-fast) var(--ease) both;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background var(--t-fast) var(--ease), 
+              color var(--t-fast) var(--ease),
+              padding-left var(--t-fast) var(--ease);
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-heading);
+  padding-left: 18px; /* Micro-animation shift */
+}
+
+.suggestion-icon {
+  color: var(--color-cyan);
+  flex-shrink: 0;
+}
+
+.suggestion-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.address-loader-spinner {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--color-cyan);
+  border-radius: 50%;
+  animation: addressSpin 0.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes addressSpin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Disabled/Deleted Branch Card styling */
+.branch-card-premium.deleted-branch {
+  opacity: 0.6;
+  filter: grayscale(0.85);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.branch-card-premium.deleted-branch::before {
+  background: var(--color-danger) !important;
+}

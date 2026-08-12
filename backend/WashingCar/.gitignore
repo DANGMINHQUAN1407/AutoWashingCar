@@ -1,0 +1,11 @@
+bin/
+obj/
+WashingCar_Tests/
+
+.vs/
+.idea/
+
+*.user
+*.suo
+
+.git.backup/
