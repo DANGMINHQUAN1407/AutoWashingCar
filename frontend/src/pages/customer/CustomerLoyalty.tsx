@@ -135,7 +135,7 @@ export default function CustomerLoyalty() {
 
           {/* Benefits Info Card */}
           <div className="card benefits-card">
-            <h3 className="section-title">✨ Current Tier Benefits ({tierName})</h3>
+            <h3 className="section-title">Current Tier Benefits ({tierName})</h3>
             <div className="benefit-info-row">
               <div className="benefit-icon">🪙</div>
               <div className="benefit-text">
@@ -163,7 +163,7 @@ export default function CustomerLoyalty() {
         <div className="loyalty-data-section">
           {/* Point History Ledger */}
           <div className="card history-card">
-            <h3 className="section-title">📜 Points Transaction History</h3>
+            <h3 className="section-title">Points Transaction History</h3>
             
             {history.length === 0 ? (
               <div className="empty-history">
@@ -216,7 +216,7 @@ export default function CustomerLoyalty() {
 
           {/* Membership Tier List */}
           <div className="card tiers-list-card">
-            <h3 className="section-title">🏆 Membership Tier Comparison</h3>
+            <h3 className="section-title">Membership Tier Comparison</h3>
             <div className="tier-comparison-grid">
               {tiers.map((t) => {
                 const isCurrent = t.tierId === currentTier?.tierId || t.tierName === currentTier?.tierName
