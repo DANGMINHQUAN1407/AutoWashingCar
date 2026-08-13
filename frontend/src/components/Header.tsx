@@ -60,23 +60,23 @@ export default function Header() {
       <div className="navbar-inner container">
         {/* Logo */}
         <Link to="/" className="navbar-logo">
-          <span className="navbar-logo-text">AutoWash<span>Pro</span></span>
+          <span className="navbar-logo-text" style={{ fontSize: '1.25rem', letterSpacing: '-0.05em' }}>M-PERFORMANCE WASH</span>
         </Link>
 
         {/* Navigation Links */}
         <nav className="navbar-nav">
-          <a href="/#hero" className={`nav-link ${location.pathname === '/' && activeSection === 'hero' ? 'active' : ''}`}>Home</a>
-          <a href="/#services" className={`nav-link ${location.pathname === '/' && activeSection === 'services' ? 'active' : ''}`}>Services</a>
-          <a href="/#process" className={`nav-link ${location.pathname === '/' && activeSection === 'process' ? 'active' : ''}`}>Process</a>
-          <a href="/#reviews" className={`nav-link ${location.pathname === '/' && activeSection === 'reviews' ? 'active' : ''}`}>Reviews</a>
+          <a href="/#hero" className={`nav-link ${location.pathname === '/' && activeSection === 'hero' ? 'active' : ''}`}>SERVICES</a>
+          <a href="/#services" className={`nav-link ${location.pathname === '/' && activeSection === 'services' ? 'active' : ''}`}>STATIONS</a>
+          <a href="/#process" className={`nav-link ${location.pathname === '/' && activeSection === 'process' ? 'active' : ''}`}>PROCESS</a>
+          <a href="/#reviews" className={`nav-link ${location.pathname === '/' && activeSection === 'reviews' ? 'active' : ''}`}>REVIEWS</a>
         </nav>
 
         {/* Actions */}
         <div className="navbar-actions">
           {user ? (
             <>
-              <Link to={dashboardPath} className="btn btn-ghost btn-sm">Dashboard</Link>
-              <button onClick={handleLogout} className="btn btn-primary btn-sm">Sign Out</button>
+              <Link to={dashboardPath} className="btn btn-ghost btn-sm">DASHBOARD</Link>
+              <button onClick={handleLogout} className="btn btn-primary btn-sm">SIGN OUT</button>
             </>
           ) : (() => {
             const isAuthPage = location.pathname === '/auth'
@@ -91,14 +91,16 @@ export default function Header() {
                 <Link 
                   to="/auth" 
                   className={`btn btn-sm ${isSignInActive ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ borderRadius: 0 }}
                 >
-                  Sign In
+                  LOGIN
                 </Link>
                 <Link 
                   to="/auth?tab=signup" 
                   className={`btn btn-sm ${isGetStartedActive ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ borderRadius: 0 }}
                 >
-                  Get Started
+                  BOOK NOW
                 </Link>
               </>
             )
