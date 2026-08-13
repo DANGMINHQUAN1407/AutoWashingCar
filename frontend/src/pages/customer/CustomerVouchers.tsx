@@ -183,7 +183,6 @@ export default function CustomerVouchers() {
           <p>Xem danh sách quà tặng và đổi mã giảm giá bằng điểm tích lũy của bạn.</p>
         </div>
         <div className="points-display-badge card">
-          <div className="points-badge-icon">🪙</div>
           <div className="points-badge-text">
             <span>Điểm tích lũy hiện có</span>
             <strong>{customerPoints.toLocaleString('vi-VN')} điểm</strong>
@@ -193,7 +192,6 @@ export default function CustomerVouchers() {
 
       {feedbackMsg && (
         <div className={`feedback-alert animate-fade-in ${feedbackMsg.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-          <span className="alert-icon">{feedbackMsg.type === 'success' ? '✅' : '❌'}</span>
           <span className="alert-text">{feedbackMsg.text}</span>
           <button type="button" className="alert-close" onClick={() => setFeedbackMsg(null)}>&times;</button>
         </div>
@@ -206,14 +204,14 @@ export default function CustomerVouchers() {
           className={`tab-btn ${activeTab === 'my-vouchers' ? 'active' : ''}`}
           onClick={() => { setActiveTab('my-vouchers'); setMyPage(1); }}
         >
-          🎫 Voucher của tôi
+          Voucher của tôi
         </button>
         <button 
           type="button" 
           className={`tab-btn ${activeTab === 'redeem' ? 'active' : ''}`}
           onClick={() => setActiveTab('redeem')}
         >
-          🎁 Đổi Quà Tặng
+          Đổi Quà Tặng
         </button>
       </div>
 
@@ -251,7 +249,6 @@ export default function CustomerVouchers() {
             </div>
           ) : myVouchers.length === 0 ? (
             <div className="empty-statecard card">
-              <div className="empty-state-icon">🎟️</div>
               <h3>Không tìm thấy voucher nào</h3>
               <p>Bạn chưa có voucher thuộc nhóm này. Hãy tích cực đặt lịch và đổi thưởng nhé!</p>
               {myStatus === 1 && (
@@ -334,7 +331,7 @@ export default function CustomerVouchers() {
           {/* Branch Filter */}
           <div className="cv-branch-selector-wrapper">
             <label htmlFor="cv-branch-select" className="branch-select-label">
-              <span>📍</span> Chọn chi nhánh:
+              Chọn chi nhánh:
             </label>
             <div className="branch-select-container">
               <select

@@ -117,7 +117,7 @@ export default function CustomerDashboard() {
     <div className="portal-page">
       <div className="dash-header">
         <div>
-          <h2>Welcome back, {firstName} 👋</h2>
+          <h2>Welcome back, {firstName}</h2>
           <p>Here's what's happening with your vehicles today.</p>
         </div>
         <div className="dash-header-actions">

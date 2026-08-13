@@ -1,6 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import { UserRole } from '../constants/userRoles'
 import { getRoleLabel } from '../utils/roleUtils'
 import './PortalLayout.css'
@@ -169,44 +168,6 @@ const ROLE_BADGE: Record<UserRole, string> = {
   [UserRole.Admin]: 'System Admin',
 }
 
-function ThemeToggleButton() {
-  const { theme, toggleTheme } = useTheme()
-  const isDark = theme === 'dark'
-
-  return (
-    <button
-      type="button"
-      className="theme-toggle-btn"
-      onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Light mode' : 'Dark mode'}
-    >
-      <span className={`theme-toggle-track ${isDark ? '' : 'theme-toggle-track--light'}`}>
-        <span className="theme-toggle-thumb">
-          {isDark ? (
-            /* Moon icon */
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          ) : (
-            /* Sun icon */
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          )}
-        </span>
-      </span>
-    </button>
-  )
-}
 
 type PortalLayoutProps = {
   role: UserRole
@@ -258,31 +219,16 @@ function PortalLayout({ role }: PortalLayoutProps) {
             } 
             className="portal-logo"
           >
-            <div className="portal-logo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M19 7H5C3.34 7 2 8.34 2 10v6c0 1.66 1.34 3 3 3h1a2 2 0 0 0 4 0h4a2 2 0 0 0 4 0h1c1.66 0 3-1.34 3-3v-6c0-1.66-1.34-3-3-3z" fill="url(#portalCarGrad)"/>
-                <defs>
-                  <linearGradient id="portalCarGrad" x1="2" y1="7" x2="22" y2="20" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#1e90ff"/><stop offset="1" stopColor="#00d4ff"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
             <span>AutoWash<span className="gradient-text">Pro</span></span>
           </Link>
 
           <div className="portal-topbar-meta">
             {role === UserRole.Customer && (
-              <Link to="/" className="btn btn-ghost btn-sm" style={{ marginRight: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                  <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
+              <Link to="/" className="btn btn-ghost btn-sm" style={{ marginRight: '12px', display: 'inline-flex', alignItems: 'center' }}>
                 Home
               </Link>
             )}
             <span className="portal-role-badge">{getRoleLabel(role)}</span>
-            <ThemeToggleButton />
             <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout}>
               Sign Out
             </button>
@@ -308,7 +254,6 @@ function PortalLayout({ role }: PortalLayoutProps) {
                 end={item.end}
                 className={({ isActive }) => `portal-nav-link${isActive ? ' active' : ''}`}
               >
-                {item.icon}
                 {item.label}
               </NavLink>
             ))}

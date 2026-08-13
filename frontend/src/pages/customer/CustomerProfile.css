@@ -1,13 +1,15 @@
+/* ─── BMW M Customer Profile ─────────────────────────────── */
+
 .profile-page-container {
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 24px;
 }
 
 .profile-grid {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 2rem;
-  margin-top: 1.5rem;
+  gap: 24px;
+  margin-top: 24px;
 }
 
 @media (max-width: 992px) {
@@ -21,71 +23,67 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2.5rem 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
+  padding: 40px 24px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+  box-shadow: none;
+  backdrop-filter: none;
   text-align: center;
   position: sticky;
-  top: 2rem;
+  top: 24px;
 }
 
 .profile-avatar-large {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1e90ff 0%, #00d4ff 100%);
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full); /* Circular exception for avatar */
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  font-size: 32px;
   font-weight: 700;
-  color: white;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 4px 15px rgba(30, 144, 255, 0.4);
+  color: var(--color-heading);
+  margin-bottom: 20px;
+  box-shadow: none;
 }
 
 .profile-card-overview h3 {
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .profile-tier-badge {
   display: inline-block;
-  padding: 0.35rem 1rem;
-  background: linear-gradient(90deg, #d4af37, #f3e5ab);
-  color: #1a1a1a;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 6px 16px;
+  background: transparent;
+  color: var(--color-heading);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+  letter-spacing: 1.5px;
+  margin-bottom: 32px;
+  box-shadow: none;
 }
 
-/* If Bronze/Đồng or other tiers, style them */
-.profile-tier-badge:has(input) /* future-proof */,
-.profile-tier-badge {
-  background: linear-gradient(135deg, #a0522d 0%, #cd7f32 100%); /* Default Bronze */
-  color: white;
-}
-
-/* Make it look nice based on text content via JS or CSS matching */
 .profile-meta-info-list {
   width: 100%;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border-dim);
+  padding-top: 24px;
 }
 
 .profile-meta-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.85rem;
-  font-size: 0.95rem;
+  margin-bottom: 12px;
+  font-size: 14px;
 }
 
 .profile-meta-row:last-child {
@@ -93,59 +91,65 @@
 }
 
 .meta-label {
-  color: var(--text-secondary, #a0aec0);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .meta-val {
-  font-weight: 500;
-  color: var(--text-primary, #ffffff);
+  font-weight: 300;
+  color: var(--color-text);
 }
 
 .status-active {
-  color: #00e676;
-  font-weight: 600;
+  color: var(--color-success);
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 /* Right Columns Forms */
 .profile-right-column {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 24px;
 }
 
 .profile-form-card {
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 32px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .form-card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 24px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-dim);
 }
 
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
 .form-group-row {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
 .form-group-row.two-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 24px;
 }
 
 @media (max-width: 576px) {
@@ -157,80 +161,73 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 6px;
   text-align: left;
 }
 
 .form-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary, #a0aec0);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-heading);
 }
 
 .req-star {
-  color: #ff3366;
+  color: var(--m-red);
 }
 
 .form-group input {
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  color: white;
-  font-size: 0.95rem;
-  transition: all 0.2s ease-in-out;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--color-heading);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+  padding: 12px 16px;
+  height: 48px;
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #1e90ff;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.25);
+  border-color: var(--color-heading);
+  background: var(--color-bg);
+  box-shadow: none;
 }
 
 .form-group input:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn-save {
   align-self: flex-start;
   min-width: 150px;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-  transition: transform 0.15s ease;
-}
-
-.btn-save:hover {
-  transform: translateY(-1px);
-}
-
-.btn-save:active {
-  transform: translateY(0);
 }
 
 /* Alerts */
 .profile-alert {
-  padding: 0.85rem 1.25rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  font-size: 0.95rem;
+  padding: 12px 16px;
+  border-radius: 0px;
+  margin-bottom: 24px;
+  font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   text-align: left;
   line-height: 1.4;
 }
 
 .alert-success {
-  background: rgba(0, 230, 118, 0.15);
-  border: 1px solid rgba(0, 230, 118, 0.3);
-  color: #00e676;
+  background: rgba(15, 163, 54, 0.1);
+  border: 1px solid rgba(15, 163, 54, 0.25);
+  color: var(--color-success);
 }
 
 .alert-error {
-  background: rgba(255, 51, 102, 0.15);
-  border: 1px solid rgba(255, 51, 102, 0.3);
-  color: #ff3366;
+  background: rgba(226, 39, 24, 0.1);
+  border: 1px solid rgba(226, 39, 24, 0.25);
+  color: var(--m-red);
 }

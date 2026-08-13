@@ -9,6 +9,10 @@ interface AnimatedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEleme
   showArrow?: boolean
 }
 
+/**
+ * BMW M-style button: flat, rectangular, UPPERCASE letterspaced labels.
+ * Arrow is a simple → chevron appended after the label text.
+ */
 export default function AnimatedButton({
   variant = 'primary',
   size = 'md',
@@ -17,23 +21,38 @@ export default function AnimatedButton({
   className = '',
   ...props
 }: AnimatedButtonProps) {
-  const sizeClass = size === 'sm' ? 'anim-btn--sm' : size === 'lg' ? 'anim-btn--lg' : ''
+  const sizeClass = size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : ''
+  
+  // Map variant names to btn classes
+  const variantMap: Record<ButtonVariant, string> = {
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    danger: 'btn-danger',
+    success: 'btn-success',
+    ghost: 'btn-ghost',
+    premium: 'btn-primary', // premium maps to primary in BMW M
+  }
 
   return (
     <button
       {...props}
-      className={`anim-btn anim-btn--${variant} ${sizeClass} ${className}`}
+      className={`btn ${variantMap[variant]} ${sizeClass} ${className}`}
     >
+      <span>{children}</span>
       {showArrow && (
-        <svg viewBox="0 0 24 24" className="anim-btn__arr anim-btn__arr--2" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z" />
-        </svg>
-      )}
-      <span className="anim-btn__text">{children}</span>
-      <span className="anim-btn__circle" />
-      {showArrow && (
-        <svg viewBox="0 0 24 24" className="anim-btn__arr anim-btn__arr--1" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z" />
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ marginLeft: '4px' }}
+        >
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
         </svg>
       )}
     </button>

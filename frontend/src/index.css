@@ -1,276 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ─── Premium 2025 Design Tokens ────────────────────────── */
+/* ─── BMW M Design System — AutoWashPro ──────────────────── */
+/* Based on DESIGN.md: Near-black canvas, white type, sharp   */
+/* rectangles, M tricolor stripe, Inter 700/300 weight pair.   */
+
 :root {
   color-scheme: dark;
-  /* Colors - Obsidian Dark Mode (Stripe/Linear Slate Tone) */
-  --color-bg:           #09090b; /* Zinc 950 */
-  --color-bg-1:         #0c0c0e;
-  --color-bg-2:         #18181b; /* Zinc 900 */
-  --color-bg-card:      #121214; /* Muted Obsidian Card */
-  --color-bg-card-2:    #1c1c1f;
 
-  --color-primary:      #6366f1; /* Premium Violet/Indigo */
-  --color-primary-glow: rgba(99, 102, 241, 0.15);
-  --color-primary-dim:  rgba(99, 102, 241, 0.08);
-  --color-cyan:         #06b6d4; /* Electric Cyan */
-  --color-cyan-glow:    rgba(6, 182, 212, 0.1);
+  /* ── Surface Colors ── */
+  --color-bg:           #000000; /* Canvas — true black */
+  --color-bg-1:         #0d0d0d; /* Surface soft */
+  --color-bg-2:         #1a1a1a; /* Surface card */
+  --color-bg-card:      #1a1a1a; /* Surface card */
+  --color-bg-card-2:    #262626; /* Surface elevated */
+  --color-bg-alt:       #0d0d0d; /* Alternate section bg */
+  --color-carbon:       #2b2b2b; /* Carbon-fiber surface */
 
-  --color-text:         #a1a1aa; /* Zinc 400 */
-  --color-text-muted:   #71717a; /* Zinc 500 */
-  --color-text-dim:     #52525b; /* Zinc 600 */
-  --color-heading:      #f4f4f5; /* Zinc 100 */
+  /* ── Brand & Accent (M Tricolor) ── */
+  --color-primary:      #ffffff; /* White — the primary CTA color */
+  --color-primary-glow: rgba(255, 255, 255, 0.08);
+  --color-primary-dim:  rgba(255, 255, 255, 0.04);
+  --m-blue-light:       #0066b1; /* M stripe stop 1 */
+  --m-blue-dark:        #1c69d4; /* M stripe stop 2 / BMW blue */
+  --m-red:              #e22718; /* M stripe stop 3 */
+  --color-bmw-blue:     #1c69d4; /* Heritage corporate blue */
+  --color-electric-blue:#0653b6; /* Electric vehicle accent */
+
+  /* ── Text Colors ── */
+  --color-text:         #bbbbbb; /* Body text */
+  --color-text-muted:   #7e7e7e; /* Muted / captions */
+  --color-text-dim:     #555555; /* Dimmed text */
+  --color-heading:      #ffffff; /* Ink / all headings */
+  --color-body-strong:  #e6e6e6; /* Emphasized body */
   --color-white:        #ffffff;
 
-  --color-border:       rgba(255, 255, 255, 0.08);
-  --color-border-dim:   rgba(255, 255, 255, 0.04);
+  /* ── Borders & Hairlines ── */
+  --color-border:       #3c3c3c; /* Hairline — section dividers, card outlines */
+  --color-border-dim:   #262626; /* Hairline strong — subtle separators */
 
-  --color-success:      #10b981; /* Emerald 500 */
-  --color-warning:      #f59e0b; /* Amber 500 */
-  --color-danger:       #ef4444; /* Rose/Red 500 */
+  /* ── Semantic Colors ── */
+  --color-success:      #0fa336;
+  --color-warning:      #f4b400;
+  --color-danger:       #e22718; /* Reusing M red */
 
-  /* Gradients */
-  --grad-primary:       linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  --grad-hero:          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99, 102, 241, 0.07) 0%, transparent 80%);
-  --grad-card:          linear-gradient(180deg, #18181b 0%, #09090b 100%);
-  --grad-glow:          none;
+  /* ── Typography ── */
+  --font-sans:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display:       'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Typography */
-  --font-sans:          'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-display:       'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-
-  /* Spacing */
+  /* ── Spacing (4px base grid) ── */
   --nav-h:              64px;
   --section-px:         clamp(16px, 4vw, 48px);
-  --section-py:         clamp(48px, 6vw, 96px);
+  --section-py:         96px; /* Section spacing per DESIGN.md */
+  --spacing-xxs:        4px;
+  --spacing-xs:         8px;
+  --spacing-sm:         12px;
+  --spacing-md:         16px;
+  --spacing-lg:         24px;
+  --spacing-xl:         40px;
+  --spacing-xxl:        64px;
 
-  /* Radius */
-  --radius-sm:          6px;
-  --radius-md:          10px;
-  --radius-lg:          14px;
-  --radius-xl:          20px;
-  --radius-full:        9999px;
+  /* ── Border Radius (almost always 0) ── */
+  --radius-none:        0px;
+  --radius-sm:          0px;
+  --radius-md:          0px;
+  --radius-lg:          0px;
+  --radius-xl:          0px;
+  --radius-full:        9999px; /* Circular icon buttons only */
 
-  /* Shadows */
-  --shadow-card:        0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  /* ── Shadows (none in BMW M system) ── */
+  --shadow-card:        none;
   --shadow-glow:        none;
-  --shadow-btn:         0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-btn:         none;
 
-  /* Transitions */
+  /* ── Transitions ── */
   --ease:               cubic-bezier(0.16, 1, 0.3, 1);
   --ease-bounce:        cubic-bezier(0.34, 1.56, 0.64, 1);
   --t-fast:             100ms;
   --t-normal:           200ms;
   --t-slow:             300ms;
 
+  /* ── M Stripe Gradient ── */
+  --m-stripe:           linear-gradient(90deg, var(--m-blue-light) 0%, var(--m-blue-light) 33.33%, var(--m-blue-dark) 33.33%, var(--m-blue-dark) 66.66%, var(--m-red) 66.66%, var(--m-red) 100%);
+
+  /* ── Legacy compat (used by some components) ── */
+  --grad-primary:       none;
+  --grad-hero:          none;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-/* ─── Premium Light Theme ────────────────────────────────── */
-[data-theme="light"] {
-  color-scheme: light;
-  --color-bg:           #fafafa; /* Zinc 50 */
-  --color-bg-1:         #f4f4f5; /* Zinc 100 */
-  --color-bg-2:         #e4e4e7; /* Zinc 200 */
-  --color-bg-card:      #ffffff;
-  --color-bg-card-2:    #fafafa;
-
-  --color-primary:      #4f46e5; /* Indigo 600 */
-  --color-primary-glow: rgba(79, 70, 229, 0.08);
-  --color-primary-dim:  rgba(79, 70, 229, 0.04);
-  --color-cyan:         #0284c7; /* Sky 600 */
-  --color-cyan-glow:    rgba(2, 132, 199, 0.05);
-
-  --color-text:         #3f3f46; /* Zinc 700 */
-  --color-text-muted:   #71717a; /* Zinc 500 */
-  --color-text-dim:     #a1a1aa; /* Zinc 400 */
-  --color-heading:      #09090b; /* Zinc 950 */
-  --color-white:        #ffffff;
-
-  --color-border:       rgba(9, 9, 11, 0.08);
-  --color-border-dim:   rgba(9, 9, 11, 0.04);
-
-  --color-success:      #10b981; /* Emerald 500 */
-  --color-warning:      #f59e0b; /* Amber 500 */
-  --color-danger:       #ef4444; /* Red 500 */
-
-  --grad-primary:       linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  --grad-hero:          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(79, 70, 229, 0.03) 0%, transparent 80%);
-  --grad-card:          linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  --grad-glow:          none;
-
-  --shadow-card:        0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-  --shadow-glow:        none;
-  --shadow-btn:         0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-/* Light theme overrides for Body & Portal */
-[data-theme="light"] body {
-  background-color: var(--color-bg);
-}
-
-[data-theme="light"] .portal-layout {
-  background: var(--color-bg);
-}
-
-[data-theme="light"] .portal-layout.portal-layout--customer {
-  background: transparent;
-}
-
-[data-theme="light"] .portal-topbar {
-  background: var(--color-bg);
-  border-bottom-color: var(--color-border);
-}
-
-[data-theme="light"] .portal-sidebar {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
-}
-
-[data-theme="light"] .portal-nav-link {
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .portal-nav-link:hover {
-  background: var(--color-bg-1);
-  color: var(--color-heading);
-}
-
-[data-theme="light"] .portal-nav-link.active {
-  background: var(--color-primary-dim);
-  color: var(--color-primary);
-  border-color: var(--color-border);
-}
-
-[data-theme="light"] .portal-avatar {
-  background: var(--grad-primary);
-}
-
-[data-theme="light"] .portal-user-info h3 {
-  color: var(--color-heading);
-}
-
-[data-theme="light"] .portal-user-info p {
-  color: var(--color-primary);
-}
-
-[data-theme="light"] .portal-role-badge {
-  background: var(--color-primary-dim);
-  color: var(--color-primary);
-  border-color: var(--color-border);
-}
-
-/* Light theme manager/admin panel overrides */
-[data-theme="light"] .mgr-dashboard,
-[data-theme="light"] .adm-dashboard,
-[data-theme="light"] .mgr-branches {
-  color: var(--color-text);
-}
-
-[data-theme="light"] .mgr-dash-header h2 { color: var(--color-heading); }
-[data-theme="light"] .mgr-dash-header p  { color: var(--color-text-muted); }
-
-[data-theme="light"] .mgr-stat-card {
-  background: var(--color-bg-card);
-  outline-color: var(--color-border);
-  box-shadow: var(--shadow-card);
-}
-
-[data-theme="light"] .mgr-stat-label { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-stat-value { color: var(--color-heading); }
-
-[data-theme="light"] .mgr-panel {
-  background: var(--color-bg-card);
-  outline-color: var(--color-border);
-  box-shadow: var(--shadow-card);
-}
-
-[data-theme="light"] .mgr-panel-header h3   { color: var(--color-heading); }
-[data-theme="light"] .mgr-panel-header       { border-bottom-color: var(--color-border-dim); }
-[data-theme="light"] .mgr-table th          { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-table td          { color: var(--color-text); border-top-color: var(--color-border-dim); }
-[data-theme="light"] .mgr-table td.muted    { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-branch-code       { color: var(--color-primary); }
-[data-theme="light"] .mgr-link-btn          { color: var(--color-primary); }
-
-[data-theme="light"] .mgr-branches-table-wrap,
-[data-theme="light"] .mgr-branches-filters,
-[data-theme="light"] .mgr-bento-card,
-[data-theme="light"] .mgr-branch-detail-card,
-[data-theme="light"] .adm-network-card,
-[data-theme="light"] .adm-alerts-card {
-  background: var(--color-bg-card);
-  outline-color: var(--color-border);
-  box-shadow: var(--shadow-card);
-}
-
-[data-theme="light"] .mgr-bento-label         { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-bento-value         { color: var(--color-heading); }
-[data-theme="light"] .mgr-bento-trend--muted  { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-branches-table th   { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-branches-table td   { color: var(--color-text); border-top-color: var(--color-border-dim); }
-[data-theme="light"] .mgr-branch-name         { color: var(--color-heading); }
-[data-theme="light"] .mgr-branch-id           { color: var(--color-text-muted); }
-
-[data-theme="light"] .mgr-branch-detail-title h3 { color: var(--color-heading); }
-[data-theme="light"] .mgr-field-label             { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-field-value             { color: var(--color-text); }
-[data-theme="light"] .mgr-branch-section-header h3 { color: var(--color-heading); }
-[data-theme="light"] .mgr-branch-section-header    { border-bottom-color: var(--color-border-dim); }
-
-[data-theme="light"] .mgr-branches-input,
-[data-theme="light"] .mgr-branches-select {
-  background: var(--color-bg-card-2);
-  border-color: var(--color-border);
-  color: var(--color-heading);
-}
-
-[data-theme="light"] .mgr-chart-bar {
-  background: linear-gradient(0deg, rgba(79,70,229,0.04) 0%, rgba(79,70,229,0.22) 100%);
-}
-
-[data-theme="light"] .mgr-chart-legend-dot { background: var(--color-primary); box-shadow: none; }
-[data-theme="light"] .mgr-chart-header h3  { color: var(--color-heading); }
-[data-theme="light"] .mgr-chart-legend     { color: var(--color-text-muted); }
-[data-theme="light"] .mgr-chart-labels span { color: var(--color-text-muted); }
-
-[data-theme="light"] .adm-network-card h3         { color: var(--color-heading); }
-[data-theme="light"] .adm-network-label           { color: var(--color-text-muted); }
-[data-theme="light"] .adm-network-item            { background: var(--color-bg-card-2); outline-color: var(--color-border); }
-[data-theme="light"] .adm-health-bar-label        { color: var(--color-text-muted); }
-[data-theme="light"] .adm-health-bar              { background: var(--color-border-dim); }
-[data-theme="light"] .adm-network-stat-label      { color: var(--color-text-muted); }
-[data-theme="light"] .adm-network-stat-val        { color: var(--color-heading); }
-[data-theme="light"] .adm-alert-title             { color: var(--color-heading); }
-[data-theme="light"] .adm-alert-msg               { color: var(--color-text); }
-[data-theme="light"] .adm-alert-item              { border-top-color: var(--color-border-dim); }
-[data-theme="light"] .adm-alert-item:hover        { background: var(--color-bg-card-2); }
-
-[data-theme="light"] .mgr-quick-action-btn {
-  background: var(--color-bg-card-2);
-  border-color: var(--color-border);
-  color: var(--color-heading);
-}
-[data-theme="light"] .mgr-quick-action-btn:hover {
-  background: var(--color-bg-1);
-}
-
-[data-theme="light"] .mgr-status-badge--open {
-  background: rgba(16, 185, 129, 0.08);
-  color: var(--color-success);
-  outline-color: rgba(16, 185, 129, 0.16);
-  box-shadow: none;
-}
-[data-theme="light"] .mgr-status-badge--closed {
-  background: rgba(239, 68, 68, 0.06);
-  color: var(--color-danger);
-}
-
-[data-theme="light"] ::-webkit-scrollbar-track { background: var(--color-bg); }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.08); }
 
 /* ─── Reset & Base ──────────────────────────────────────── */
 *, *::before, *::after {
@@ -285,12 +105,11 @@ html {
 
 body {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 300; /* BMW M: body uses Light weight */
   line-height: 1.5;
   color: var(--color-text);
   background-color: var(--color-bg);
-  background-image: var(--grad-hero);
-  background-attachment: fixed;
   min-height: 100vh;
 }
 
@@ -301,105 +120,139 @@ body {
 }
 
 /* ─── Typography ────────────────────────────────────────── */
+/* BMW M: Display = 700 (stamped), Body = 300 (engineered)  */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   color: var(--color-heading);
-  line-height: 1.25;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
-h1 { font-size: clamp(2rem, 4vw, 3rem); }
-h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); }
-h3 { font-size: clamp(1.1rem, 1.8vw, 1.35rem); }
+h1 {
+  font-size: clamp(48px, 6vw, 80px);
+  text-transform: uppercase;
+}
 
-p { color: var(--color-text); }
-a { color: var(--color-primary); text-decoration: none; transition: color var(--t-fast) var(--ease); }
-a:hover { color: var(--color-heading); }
+h2 {
+  font-size: clamp(32px, 4vw, 56px);
+  text-transform: uppercase;
+}
 
-img, svg { display: block; max-width: 100%; }
+h3 {
+  font-size: clamp(20px, 2.5vw, 24px);
+}
+
+p {
+  color: var(--color-text);
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-heading);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
+}
+
+a:hover {
+  color: var(--color-body-strong);
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
 
 /* ─── Utility Classes ───────────────────────────────────── */
 .container {
   width: 100%;
-  max-width: 100%;
+  max-width: 1440px; /* BMW M: wider for photography breathing room */
   margin: 0 auto;
   padding: 0 var(--section-px);
 }
 
+/* M Stripe — The brand signature divider */
+.m-stripe {
+  width: 100%;
+  height: 4px;
+  background: var(--m-stripe);
+  border: none;
+  margin: 0;
+}
+
 .gradient-text {
-  background: var(--grad-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-heading);
+  /* BMW M: no gradients on text — just white */
 }
 
 .section-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--color-primary);
-  background: var(--color-primary-dim);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  padding: 4px 14px;
+  color: var(--color-heading);
+  background: transparent;
+  border: none;
+  padding: 0;
   margin-bottom: 16px;
 }
 
-/* ─── Button System (SaaS minimal style) ─────────────────────────────────── */
+/* ─── Button System (BMW M: flat, rectangular, uppercase) ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 0px; /* Sharp rectangles IS the brand */
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
   white-space: nowrap;
   text-decoration: none;
   outline: none;
   position: relative;
-  border: 1px solid transparent;
-  padding: 8px 16px;
+  border: 1px solid var(--color-heading);
+  padding: 16px 32px;
+  height: 48px;
 }
 
 .btn:active {
   transform: scale(0.985);
 }
 
+/* Primary: white outline on black */
 .btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: var(--shadow-btn);
+  background: transparent;
+  color: var(--color-heading);
+  border-color: var(--color-heading);
 }
 
 .btn-primary:hover {
-  background: #4f46e5; /* Indigo 600 */
+  background: var(--color-heading);
+  color: var(--color-bg);
 }
 
+/* Secondary: surface card bg */
 .btn-secondary {
-  background: var(--color-bg-2);
+  background: var(--color-bg-card);
   color: var(--color-heading);
   border-color: var(--color-border);
 }
 
 .btn-secondary:hover {
   background: var(--color-bg-card-2);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--color-heading);
 }
 
-[data-theme="light"] .btn-secondary:hover {
-  background: var(--color-bg-2);
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
+/* Ghost: no border, transparent */
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
@@ -407,54 +260,78 @@ img, svg { display: block; max-width: 100%; }
 }
 
 .btn-ghost:hover {
-  background: var(--color-border-dim);
+  color: var(--color-heading);
+  border-color: var(--color-border);
+}
+
+/* Danger */
+.btn-danger {
+  background: transparent;
+  color: var(--m-red);
+  border-color: var(--m-red);
+}
+
+.btn-danger:hover {
+  background: var(--m-red);
   color: var(--color-heading);
 }
 
-.btn-premium-glow {
-  background: var(--grad-primary);
-  color: #fff;
-  box-shadow: 0px 4px 12px rgba(99, 102, 241, 0.25);
+/* Success */
+.btn-success {
+  background: transparent;
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
-.btn-premium-glow:hover {
-  opacity: 0.95;
-  box-shadow: 0px 6px 16px rgba(99, 102, 241, 0.35);
+.btn-success:hover {
+  background: var(--color-success);
+  color: var(--color-heading);
 }
 
-.btn-lg { padding: 12px 24px; font-size: 0.95rem; }
-.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+/* Sizes */
+.btn-lg { padding: 16px 32px; font-size: 14px; height: 48px; }
+.btn-sm { padding: 8px 16px; font-size: 12px; height: 36px; letter-spacing: 1px; }
 .btn-icon {
-  padding: 8px;
-  border-radius: var(--radius-sm);
+  padding: 0;
+  border-radius: var(--radius-full); /* Circular — BMW exception */
+  width: 48px;
+  height: 48px;
   aspect-ratio: 1;
+  border-color: var(--color-border);
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
   transform: none !important;
 }
 
-/* ─── Card System ───────────────────────────────────────── */
+/* Legacy premium glow — redirect to primary */
+.btn-premium-glow {
+  background: transparent;
+  color: var(--color-heading);
+  border-color: var(--color-heading);
+}
+
+.btn-premium-glow:hover {
+  background: var(--color-heading);
+  color: var(--color-bg);
+}
+
+/* ─── Card System (flat, sharp, no shadow) ──────────────── */
 .card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 0px;
   padding: 24px;
-  box-shadow: var(--shadow-card);
-  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--color-body-strong);
 }
 
-[data-theme="light"] .card:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-}
-
-/* ─── Form System (Minimal SaaS styling) ─────────────────────────────────── */
+/* ─── Form System ───────────────────────────────────────── */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -462,29 +339,35 @@ img, svg { display: block; max-width: 100%; }
 }
 
 .form-label {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   color: var(--color-heading);
 }
 
 .form-input {
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 16px;
+  font-weight: 300;
   color: var(--color-heading);
-  background: var(--color-bg-1);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  border-radius: 0px;
+  padding: 12px 16px;
+  height: 48px;
   width: 100%;
-  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  transition: border-color var(--t-fast) var(--ease);
   outline: none;
 }
 
-.form-input::placeholder { color: var(--color-text-dim); }
+.form-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
 
 .form-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-glow);
+  border-color: var(--color-heading);
 }
 
 .form-input option {
@@ -493,29 +376,50 @@ img, svg { display: block; max-width: 100%; }
 }
 
 .form-input.error {
-  border-color: var(--color-danger);
+  border-color: var(--m-red);
 }
 
-/* ─── Badge / Chip ──────────────────────────────────────── */
+/* ─── Badge / Chip (sharp, no rounding) ─────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
-  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 0px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-.badge-success { background: rgba(16, 185, 129, 0.08); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.16); }
-.badge-warning { background: rgba(245, 158, 11, 0.08); color: var(--color-warning); border: 1px solid rgba(245, 158, 11, 0.16); }
-.badge-danger  { background: rgba(239, 68, 68, 0.08); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.16); }
-.badge-primary { background: var(--color-primary-dim); color: var(--color-primary); border: 1px solid var(--color-border); }
+.badge-success {
+  background: rgba(15, 163, 54, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(15, 163, 54, 0.25);
+}
+
+.badge-warning {
+  background: rgba(244, 180, 0, 0.1);
+  color: var(--color-warning);
+  border: 1px solid rgba(244, 180, 0, 0.25);
+}
+
+.badge-danger {
+  background: rgba(226, 39, 24, 0.1);
+  color: var(--m-red);
+  border: 1px solid rgba(226, 39, 24, 0.25);
+}
+
+.badge-primary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-heading);
+  border: 1px solid var(--color-border);
+}
 
 /* ─── Divider ───────────────────────────────────────────── */
 .divider {
   height: 1px;
-  background: var(--color-border-dim);
+  background: var(--color-border);
   border: none;
   margin: 16px 0;
 }
@@ -523,10 +427,10 @@ img, svg { display: block; max-width: 100%; }
 /* ─── Scroll Bar ────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: var(--color-text-dim); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 0px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
-/* ─── Animations ────────────────────────────────────────── */
+/* ─── Animations (minimal — BMW M is restrained) ────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -537,23 +441,12 @@ img, svg { display: block; max-width: 100%; }
   to   { opacity: 1; }
 }
 
-@keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-4px); }
-}
-
 .animate-fade-up    { animation: fadeUp var(--t-normal) var(--ease) both; }
 .animate-fade-in    { animation: fadeIn var(--t-normal) var(--ease) both; }
-.animate-float      { animation: float 4s ease-in-out infinite; }
 .animate-spin       { animation: spin 0.8s linear infinite; }
 
 .delay-1 { animation-delay: 50ms; }
@@ -561,3 +454,204 @@ img, svg { display: block; max-width: 100%; }
 .delay-3 { animation-delay: 150ms; }
 .delay-4 { animation-delay: 200ms; }
 .delay-5 { animation-delay: 250ms; }
+
+/* ─── Utility ───────────────────────────────────────────── */
+.w-full { width: 100%; }
+
+/* ─── Spinner ───────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-heading);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── Link button ───────────────────────────────────────── */
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-heading);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
+  padding: 0;
+}
+
+.link-btn:hover {
+  color: var(--color-body-strong);
+}
+
+/* ─── Form label row ────────────────────────────────────── */
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-label-row .form-link {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.form-label-row .form-link:hover {
+  color: var(--color-heading);
+}
+
+/* ─── Input wrapper (for password toggle etc.) ──────────── */
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper .form-input {
+  padding-right: 44px;
+}
+
+.input-icon-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.input-icon-btn:hover {
+  color: var(--color-heading);
+}
+
+/* ─── Theme toggle (nav) ────────────────────────────────── */
+.theme-toggle-track {
+  display: flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  background: var(--color-bg-card-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.theme-toggle-track--light {
+  background: var(--color-border);
+}
+
+.theme-toggle-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--color-heading);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-bg);
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.theme-toggle-track--light .theme-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ─── App routes wrapper (Automatic smooth fade-in on load) ────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.app-routes-wrapper {
+  animation: pageFadeIn 0.8s var(--ease) both;
+}
+
+/* ─── Premium Card Animations ───────────────────────────── */
+
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card,
+.dash-stat-card,
+.service-card,
+.step-card,
+.ticket-card,
+.booking-card,
+.vehicle-card,
+.mgr-stat-card,
+.membership-vip-card {
+  animation: cardFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform var(--t-normal) var(--ease), 
+              border-color var(--t-normal) var(--ease),
+              box-shadow var(--t-normal) var(--ease) !important;
+}
+
+.card:nth-child(1),
+.dash-stat-card:nth-child(1),
+.service-card:nth-child(1),
+.step-card:nth-child(1),
+.ticket-card:nth-child(1),
+.booking-card:nth-child(1),
+.vehicle-card:nth-child(1) {
+  animation-delay: 100ms;
+}
+
+.card:nth-child(2),
+.dash-stat-card:nth-child(2),
+.service-card:nth-child(2),
+.step-card:nth-child(2),
+.ticket-card:nth-child(2),
+.booking-card:nth-child(2),
+.vehicle-card:nth-child(2) {
+  animation-delay: 200ms;
+}
+
+.card:nth-child(3),
+.dash-stat-card:nth-child(3),
+.service-card:nth-child(3),
+.step-card:nth-child(3),
+.ticket-card:nth-child(3),
+.booking-card:nth-child(3),
+.vehicle-card:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+.card:nth-child(4),
+.step-card:nth-child(4),
+.booking-card:nth-child(4) {
+  animation-delay: 400ms;
+}
+
+.card:hover,
+.dash-stat-card:hover,
+.service-card:hover,
+.step-card:hover,
+.ticket-card:hover,
+.booking-card:hover,
+.vehicle-card:hover,
+.mgr-stat-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: var(--color-heading) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}

@@ -439,6 +439,7 @@ export default function Auth() {
                   <label className="form-label" htmlFor="login-email">Email address</label>
                   <input
                     id="login-email"
+                    name="email"
                     type="email"
                     className="form-input"
                     placeholder="you@example.com"
@@ -457,6 +458,7 @@ export default function Auth() {
                   <div className="input-wrapper">
                     <input
                       id="login-password"
+                      name="password"
                       type={showPass ? 'text' : 'password'}
                       className="form-input"
                       placeholder="••••••••"
