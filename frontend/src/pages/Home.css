@@ -1067,3 +1067,10 @@
 .stat-item:not(:last-child)::after { background: var(--color-border); }
 .stat-value { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; }
 .stat-label { font-size: 14px; font-weight: 300; color: var(--color-text) !important; }
+
+/* ── M-Stripe Divider ── */
+.m-stripe-divider {
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #0099da, #0040a1, #e22718);
+}

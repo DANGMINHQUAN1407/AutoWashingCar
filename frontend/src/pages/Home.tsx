@@ -34,50 +34,11 @@ function MapController({ center, zoom }: { center: [number, number]; zoom: numbe
 /* ── Data ── */
 
 const steps = [
-  {
-    title: 'Book Online',
-    desc: 'Select your service, choose a convenient branch, pick an available time slot, and apply vouchers.',
-    icon: (
-      <svg className="step-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-        <path d="M9 16l2 2 4-4" />
-      </svg>
-    )
-  },
-  {
-    title: 'Branch Check-in',
-    desc: 'Drive to your selected branch. Our staff will check you in instantly by scanning your booking code or license plate.',
-    icon: (
-      <svg className="step-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    )
-  },
-  {
-    title: 'Expert Cleaning',
-    desc: 'Our certified technicians wash and care for your vehicle in designated wash bays using premium products.',
-    icon: (
-      <svg className="step-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z" />
-        <path d="M19 4l2 2-2 2M4 7l2 2-2 2" />
-      </svg>
-    )
-  },
-  {
-    title: 'Collect & Rate',
-    desc: 'Pick up your spotless car, earn loyalty points for your tier, and rate your experience to help us improve.',
-    icon: (
-      <svg className="step-icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 2l-2 2" />
-        <circle cx="7" cy="17" r="5" />
-        <path d="M11 13l4-4M15 9l3 3M15 9L18 6" />
-      </svg>
-    )
-  },
+  { stepNum: 1, title: 'Phun nước áp lực' },
+  { stepNum: 2, title: 'Phủ bọt tuyết' },
+  { stepNum: 3, title: 'Chải mút xốp mềm' },
+  { stepNum: 4, title: 'Phủ Wax bóng' },
+  { stepNum: 5, title: 'Sấy khô tự động' }
 ]
 
 
@@ -266,7 +227,12 @@ export default function Home() {
       </div>
 
       {/* ── Hero ── */}
-      <section id="hero" className="hero">
+      <section id="hero" className="hero" style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuCJJSC727lz-r6cVbyz1znhEVTZvf-WLPG_0ONdUM4o6LRLP4T45lgyrKs_KDWqJLMdNrBSKixS-grW5wTP6Lx4LVm59ZgE-DW_TcPbhw3RDd73yayBp9xsuo0j872_oI1NaTjbtoNi_zudLBjgRR5Lj4ycWrTE6H5fFwwoCtQ6BEPW1DI1KT9TjG8GeQWrWLkb7iERJnILlPACrPsE2S-MLkfHZsjL26KYM5wDhjbycoWa2bXTUKUi5w')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: '600px'
+      }}>
         <div className="hero-bg-grid" />
         <div className="hero-glow hero-glow-1" />
         <div className="hero-glow hero-glow-2" />
@@ -274,29 +240,28 @@ export default function Home() {
         <div className="container hero-inner">
           <div className="hero-content animate-fade-up">
             <div className="section-label">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5" /></svg>
-              Now available in your city
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginRight: '6px' }}><circle cx="5" cy="5" r="5" /></svg>
+              NOW AVAILABLE IN YOUR CITY
             </div>
 
             <h1 className="hero-title">
-              Your Car Deserves<br />
-              <span className="gradient-text">5-Star Treatment</span>
+              Rửa xe tự động<br />
+              <span className="gradient-text">Công nghệ 4.0</span>
             </h1>
 
             <p className="hero-subtitle">
-              Professional car wash service. Premium quality,
-              certified technicians, eco-friendly products — all at the tap of a button.
+              Trải nghiệm dịch vụ làm sạch nhanh chóng, an toàn và sáng bóng vượt trội với hệ thống máy móc tự động hoàn toàn mới.
             </p>
 
             <div className="hero-cta">
               <Link to="/customer/bookings?startBooking=true">
                 <AnimatedButton variant="premium" size="lg">
-                  Book a Wash Now
+                  Đặt lịch ngay
                 </AnimatedButton>
               </Link>
               <a href="#process">
                 <AnimatedButton variant="ghost" size="lg" showArrow={false}>
-                  See How It Works
+                  Tìm hiểu thêm
                 </AnimatedButton>
               </a>
             </div>
@@ -389,6 +354,35 @@ export default function Home() {
         </div>
       </section>
 
+      <div className="m-stripe-divider" />
+
+      {/* ── Why Choose Us ── */}
+      <section className="section" style={{ background: '#000000', padding: '5rem 0' }}>
+        <div className="container animate-fade-up">
+          <div className="section-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div className="section-label">AuraWash</div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>Tại sao chọn AutoWashPro?</h2>
+            <p style={{ color: '#bbbbbb', marginTop: '0.5rem' }}>Hiệu suất tối đa, bảo vệ tối ưu.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Tốc độ siêu tốc</h3>
+              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Chỉ mất 5 phút cho một quy trình rửa xe hoàn chỉnh, tiết kiệm thời gian quý báu của bạn.</p>
+            </div>
+            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Tiết kiệm nước</h3>
+              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Công nghệ tái chế nước tiên tiến giúp tiết kiệm đến 80% lượng nước so với rửa thủ công.</p>
+            </div>
+            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Không trầy xước</h3>
+              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Sử dụng chổi mút xốp siêu mềm và bọt tuyết chuyên dụng, bảo vệ lớp sơn xe tuyệt đối.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="m-stripe-divider" />
 
       {/* ── Services ── */}
       <section id="services" className="section">
@@ -593,29 +587,20 @@ export default function Home() {
       </section>
 
       {/* ── How It Works ── */}
-      <section id="process" className="section section-alt">
-        <div className="container">
-          <div className="section-header">
+      <section id="process" className="section section-alt" style={{ background: '#000000', padding: '5rem 0' }}>
+        <div className="container animate-fade-up">
+          <div className="section-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="section-label">Process</div>
-            <h2>How AutoWashPro <span className="gradient-text">Works</span></h2>
-            <p>Getting your car washed has never been easier. Four simple steps to a spotless vehicle.</p>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>Quy trình 5 bước chuẩn quốc tế</h2>
           </div>
 
-          <div className="steps-grid">
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', gap: '24px' }}>
             {steps.map((step, i) => (
-              <div
-                key={i}
-                className="step-card"
-                style={{
-                  backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url(/process-bg-${i + 1}.jpg)`
-                }}
-              >
-                <span className="step-number-badge">{String(i + 1).padStart(2, '0')}</span>
-                <div className="step-icon-wrapper">
-                  {step.icon}
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: '1', minWidth: '150px' }}>
+                <div style={{ width: '48px', height: '48px', border: '1px solid #3c3c3c', background: '#1a1a1a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 700, marginBottom: '12px' }}>
+                  {step.stepNum}
                 </div>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{step.title}</h4>
               </div>
             ))}
           </div>
