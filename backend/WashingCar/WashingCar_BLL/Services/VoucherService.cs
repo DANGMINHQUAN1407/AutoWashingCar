@@ -8,6 +8,8 @@ using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
 using WashingCar_Domain.DTOs;
 using WashingCar_Domain.DTOs.Voucher;
+using WashingCar_Common.Helpers;
+
 
 namespace WashingCar_BLL.Services;
 
@@ -30,7 +32,9 @@ public class VoucherService(
     /// </remarks>
     public async Task<VoucherDto> CreateDraftAsync(Guid creatorId, CreateVoucherRequest request, CancellationToken ct = default)
     {
-        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, request.StartUtc, request.EndUtc);
+        var (startUtc, endUtc) = NormalizeVoucherValidityRange(request.StartUtc, request.EndUtc);
+        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, startUtc, endUtc);
+
 
         var code = request.VoucherCode.Trim().ToUpperInvariant();
         if (await _voucherRepo.ExistsCodeAsync(code, null, ct))
@@ -61,8 +65,8 @@ public class VoucherService(
             MaxDiscountAmount = request.DiscountType == 2 ? null : request.MaxDiscountAmount,
             Quantity          = request.Quantity,
             UsedCount         = 0,
-            StartUtc          = request.StartUtc,
-            EndUtc            = request.EndUtc,
+            StartUtc          = startUtc,
+            EndUtc            = endUtc,
             IsActive          = false, // Mặc định chưa được duyệt thì bắt buộc hoạt động = false
             ApprovalStatus    = VoucherApprovalStatus.Pending, // Chờ duyệt
             RequiredPoints    = request.RequiredPoints,
@@ -88,7 +92,9 @@ public class VoucherService(
     /// </remarks>
     public async Task<VoucherDto> CreateAdminVoucherAsync(Guid adminId, CreateVoucherRequest request, CancellationToken ct = default)
     {
-        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, request.StartUtc, request.EndUtc);
+        var (startUtc, endUtc) = NormalizeVoucherValidityRange(request.StartUtc, request.EndUtc);
+        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, startUtc, endUtc);
+
 
         var code = request.VoucherCode.Trim().ToUpperInvariant();
         if (await _voucherRepo.ExistsCodeAsync(code, null, ct))
@@ -112,8 +118,8 @@ public class VoucherService(
             MaxDiscountAmount = request.DiscountType == 2 ? null : request.MaxDiscountAmount,
             Quantity          = request.Quantity,
             UsedCount         = 0,
-            StartUtc          = request.StartUtc,
-            EndUtc            = request.EndUtc,
+            StartUtc          = startUtc,
+            EndUtc            = endUtc,
             IsActive          = true, // Admin tạo là active luôn
             ApprovalStatus    = VoucherApprovalStatus.Approved, // Đã duyệt luôn
             RequiredPoints    = request.RequiredPoints,
@@ -159,7 +165,9 @@ public class VoucherService(
                 throw AppException.Forbidden(ValidationMessage.Voucher.OnlyUpdateOwnBranchVoucher);
         }
 
-        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, request.StartUtc, request.EndUtc);
+        var (startUtc, endUtc) = NormalizeVoucherValidityRange(request.StartUtc, request.EndUtc);
+        ValidateVoucherRequest(request.DiscountType, request.DiscountValue, request.MaxDiscountAmount, startUtc, endUtc);
+
 
         var code = request.VoucherCode.Trim().ToUpperInvariant();
         if (await _voucherRepo.ExistsCodeAsync(code, voucherId, ct))
@@ -175,8 +183,8 @@ public class VoucherService(
         voucher.MinOrderAmount    = request.MinOrderAmount;
         voucher.MaxDiscountAmount = request.DiscountType == 2 ? null : request.MaxDiscountAmount;
         voucher.Quantity          = request.Quantity;
-        voucher.StartUtc          = request.StartUtc;
-        voucher.EndUtc            = request.EndUtc;
+        voucher.StartUtc          = startUtc;
+        voucher.EndUtc            = endUtc;
         voucher.RequiredPoints    = request.RequiredPoints;
         voucher.BranchId          = request.BranchId;
 
@@ -273,6 +281,15 @@ public class VoucherService(
         return (await _voucherRepo.GetByIdAsync(voucherId, ct))!.ToDto();
     }
 
+    /// <summary>
+    /// Chuẩn hóa ngày người dùng chọn theo lịch Việt Nam về khoảng UTC.
+    /// Voucher có hiệu lực từ đầu ngày bắt đầu đến cuối ngày kết thúc.
+    /// </summary>
+    private static (DateTime StartUtc, DateTime EndUtc) NormalizeVoucherValidityRange(DateTime start, DateTime end)
+        => (
+            VietnamTimeHelper.VietnamDateStartToUtc(start),
+            VietnamTimeHelper.VietnamDateEndToUtc(end)
+        );
 
 
     private static void ValidateVoucherRequest(byte discountType, decimal value, decimal? maxDiscount, DateTime start, DateTime end)

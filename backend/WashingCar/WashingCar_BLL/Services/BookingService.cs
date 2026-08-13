@@ -1102,7 +1102,7 @@ public class BookingService(
             throw AppException.BadRequest(ValidationMessage.Booking.VoucherNotActivatedOrApproved);
 
         var now = DateTime.UtcNow;
-        if (now < voucher.StartUtc || now > voucher.EndUtc)
+        if (now < voucher.StartUtc || now >= voucher.EndUtc)
             throw AppException.BadRequest(ValidationMessage.Booking.VoucherExpiredOrNotStarted);
 
         if (voucher.BranchId.HasValue && voucher.BranchId.Value != branchId)
