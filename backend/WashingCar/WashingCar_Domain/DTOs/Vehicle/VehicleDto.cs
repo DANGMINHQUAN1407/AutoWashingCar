@@ -8,5 +8,11 @@ public class VehicleDto
     public string      LicensePlate { get; set; } = null!;
     public VehicleType VehicleType  { get; set; }
     public string?     Brand        { get; set; }
+    public string?     Model        { get; set; }
+    public int?        ManufactureYear { get; set; }
+    public EngineType? EngineType   { get; set; }
+    public BodyStyle?  BodyStyle    { get; set; }
+    public string      VehicleCondition { get; set; } = null!;
+    public string?     PrimaryImageUrl { get; set; }
     public DateTime    CreatedAtUtc { get; set; }
 }

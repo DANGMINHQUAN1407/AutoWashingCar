@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using WashingCar_Common.Enum;
 using WashingCar_DAL.Entities;
 
 namespace WashingCar_DAL.Data;
@@ -54,6 +55,8 @@ public partial class WashingCarDbContext : DbContext
     public virtual DbSet<UserVoucher> UserVouchers { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
+
+    public virtual DbSet<VehicleImage> VehicleImages { get; set; }
 
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
@@ -188,6 +191,14 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.BookingDiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.BookingFinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.BookingSubtotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.VehicleConditionAtBooking)
+                .HasDefaultValue((byte)VehicleCondition.Standard);
+            entity.Property(e => e.VehicleSurchargeRate)
+                .HasColumnType("decimal(9, 4)")
+                .HasDefaultValue(0m);
+            entity.Property(e => e.VehicleSurchargeAmount)
+                .HasColumnType("decimal(18, 2)")
+                .HasDefaultValue(0m);
             entity.Property(e => e.CheckInAtUtc).HasPrecision(3);
             entity.Property(e => e.CheckInQrCode).HasMaxLength(500);
             entity.Property(e => e.CompletedAtUtc).HasPrecision(3);
@@ -606,6 +617,7 @@ public partial class WashingCarDbContext : DbContext
 
             entity.Property(e => e.VehicleId).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.Brand).HasMaxLength(100);
+            entity.Property(e => e.Model).HasMaxLength(100);
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(3)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -625,6 +637,28 @@ public partial class WashingCarDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vehicle_User");
+        });
+
+        modelBuilder.Entity<VehicleImage>(entity =>
+        {
+            entity.ToTable("VehicleImage");
+
+            entity.HasIndex(e => e.VehicleId, "IX_VehicleImage_VehicleId");
+
+            entity.HasIndex(e => e.VehicleId, "UX_VehicleImage_Primary")
+                .IsUnique()
+                .HasFilter("([IsPrimary]=(1))");
+
+            entity.Property(e => e.VehicleImageId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.UploadedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.VehicleImages)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_VehicleImage_Vehicle");
         });
 
         modelBuilder.Entity<Voucher>(entity =>

@@ -50,7 +50,11 @@ namespace WashingCar_BLL.Services
                 UserId = userId,
                 LicensePlate = plate,
                 VehicleType = (byte)request.VehicleType,
-                Brand = request.Brand,
+                Brand = NormalizeOptionalText(request.Brand),
+                Model = NormalizeOptionalText(request.Model),
+                ManufactureYear = request.ManufactureYear,
+                EngineType = request.EngineType.HasValue ? (byte)request.EngineType.Value : null,
+                BodyStyle = request.BodyStyle.HasValue ? (byte)request.BodyStyle.Value : null,
                 IsDeleted = false,
                 CreatedAtUtc = DateTime.UtcNow,
                 RowVersion = [],
@@ -75,7 +79,11 @@ namespace WashingCar_BLL.Services
 
             vehicle.LicensePlate = plate;
             vehicle.VehicleType = (byte)request.VehicleType;
-            vehicle.Brand = request.Brand;
+            vehicle.Brand = NormalizeOptionalText(request.Brand);
+            vehicle.Model = NormalizeOptionalText(request.Model);
+            vehicle.ManufactureYear = request.ManufactureYear;
+            vehicle.EngineType = request.EngineType.HasValue ? (byte)request.EngineType.Value : null;
+            vehicle.BodyStyle = request.BodyStyle.HasValue ? (byte)request.BodyStyle.Value : null;
 
             await _vehicleRepo.UpdateAsync(vehicle);
             _logger.LogInformation("User {UserId} updated vehicle {VehicleId}", userId, vehicleId);
@@ -83,8 +91,95 @@ namespace WashingCar_BLL.Services
 
         }
 
+        public async Task<List<VehicleImageDto>> GetImagesAsync(Guid userId, Guid vehicleId)
+        {
+            _ = await _vehicleRepo.GetByIdAsync(vehicleId, userId)
+                ?? throw AppException.NotFound(ValidationMessage.Vehicle.NotFound);
+
+            var images = await _vehicleRepo.GetImagesAsync(vehicleId, userId);
+            return images.Select(image => image.ToDto()).ToList();
+        }
+
+        public async Task<VehicleImageDto> AddImageAsync(Guid userId, Guid vehicleId, string imageUrl)
+        {
+            var vehicle = await _vehicleRepo.GetByIdAsync(vehicleId, userId)
+                ?? throw AppException.NotFound(ValidationMessage.Vehicle.NotFound);
+
+            if (vehicle.VehicleImages.Count >= 5)
+            {
+                throw AppException.Conflict("Mỗi xe chỉ được tải lên tối đa 5 ảnh.");
+            }
+
+            if (string.IsNullOrWhiteSpace(imageUrl))
+            {
+                throw AppException.BadRequest("Đường dẫn ảnh xe không hợp lệ.");
+            }
+
+            var image = new VehicleImage
+            {
+                VehicleImageId = Guid.NewGuid(),
+                VehicleId = vehicleId,
+                ImageUrl = imageUrl,
+                IsPrimary = vehicle.VehicleImages.Count == 0,
+                DisplayOrder = vehicle.VehicleImages.Count == 0
+                    ? 0
+                    : vehicle.VehicleImages.Max(existingImage => existingImage.DisplayOrder) + 1,
+                UploadedAtUtc = DateTime.UtcNow
+            };
+
+            var created = await _vehicleRepo.AddImageAsync(image);
+            _logger.LogInformation("User {UserId} uploaded vehicle image {ImageId} for vehicle {VehicleId}",
+                userId, created.VehicleImageId, vehicleId);
+            return created.ToDto();
+        }
+
+        public async Task<VehicleImageDto> SetPrimaryImageAsync(Guid userId, Guid vehicleId, Guid imageId)
+        {
+            var image = await _vehicleRepo.GetImageAsync(vehicleId, imageId, userId)
+                ?? throw AppException.NotFound("Không tìm thấy ảnh xe.");
+
+            await _vehicleRepo.SetPrimaryImageAsync(vehicleId, imageId);
+            image.IsPrimary = true;
+
+            _logger.LogInformation("User {UserId} set vehicle image {ImageId} as primary for vehicle {VehicleId}",
+                userId, imageId, vehicleId);
+            return image.ToDto();
+        }
+
+        public async Task<string> DeleteImageAsync(Guid userId, Guid vehicleId, Guid imageId)
+        {
+            var vehicle = await _vehicleRepo.GetByIdAsync(vehicleId, userId)
+                ?? throw AppException.NotFound(ValidationMessage.Vehicle.NotFound);
+
+            var image = vehicle.VehicleImages
+                .SingleOrDefault(existingImage => existingImage.VehicleImageId == imageId)
+                ?? throw AppException.NotFound("Không tìm thấy ảnh xe.");
+
+            if (image.IsPrimary)
+            {
+                var replacement = vehicle.VehicleImages
+                    .Where(existingImage => existingImage.VehicleImageId != imageId)
+                    .OrderBy(existingImage => existingImage.DisplayOrder)
+                    .ThenBy(existingImage => existingImage.UploadedAtUtc)
+                    .FirstOrDefault();
+
+                if (replacement is not null)
+                {
+                    await _vehicleRepo.SetPrimaryImageAsync(vehicleId, replacement.VehicleImageId);
+                }
+            }
+
+            await _vehicleRepo.DeleteImageAsync(image);
+            _logger.LogInformation("User {UserId} deleted vehicle image {ImageId} for vehicle {VehicleId}",
+                userId, imageId, vehicleId);
+            return image.ImageUrl;
+        }
+
         /// <summary>Xoá mềm — giữ lịch sử vì Booking.VehicleId còn tham chiếu tới xe đã "xoá".</summary>
         /// <remarks>Gọi: IVehicleRepository.GetByIdAsync → UpdateAsync.</remarks>
+        private static string? NormalizeOptionalText(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
         public async Task DeleteAsync(Guid userId, Guid vehicleId)
         {
             var vehicle = await _vehicleRepo.GetByIdAsync(vehicleId, userId)

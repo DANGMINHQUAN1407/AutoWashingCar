@@ -27,6 +27,12 @@ public partial class Booking
 
     public decimal BookingSubtotal { get; set; }
 
+    public byte VehicleConditionAtBooking { get; set; }
+
+    public decimal VehicleSurchargeRate { get; set; }
+
+    public decimal VehicleSurchargeAmount { get; set; }
+
     public decimal BookingDiscountAmount { get; set; }
 
     public decimal BookingFinalAmount { get; set; }

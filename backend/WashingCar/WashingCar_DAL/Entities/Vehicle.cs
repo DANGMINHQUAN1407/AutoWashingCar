@@ -15,6 +15,14 @@ public partial class Vehicle
 
     public string? Brand { get; set; }
 
+    public string? Model { get; set; }
+
+    public int? ManufactureYear { get; set; }
+
+    public byte? EngineType { get; set; }
+
+    public byte? BodyStyle { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAtUtc { get; set; }
@@ -26,6 +34,8 @@ public partial class Vehicle
     public byte[] RowVersion { get; set; } = null!;
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+    public virtual ICollection<VehicleImage> VehicleImages { get; set; } = new List<VehicleImage>();
 
     public virtual User? DeletedByUser { get; set; }
 
