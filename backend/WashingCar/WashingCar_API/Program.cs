@@ -22,6 +22,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 // Thứ tự middleware quan trọng:
 app.UseMiddleware<ExceptionHandlingMiddleware>(); // 1. bắt exception toàn bộ

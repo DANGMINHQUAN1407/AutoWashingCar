@@ -24,6 +24,7 @@ namespace WashingCar_API
             // Người thao tác hiện tại — interceptor AuditLog dùng để điền cột UserId
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
+            services.AddSingleton<IVehicleImageStorage, LocalVehicleImageStorage>();
 
             services.AddControllers();
             services.AddEndpointsApiExplorer();
