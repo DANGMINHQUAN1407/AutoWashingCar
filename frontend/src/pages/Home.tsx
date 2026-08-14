@@ -52,37 +52,6 @@ interface DisplayService {
   isActive: boolean
 }
 
-const defaultPromos = [
-  {
-    voucherCode: 'WELCOME20',
-    voucherType: 1, // System
-    discountType: 1, // Percentage
-    discountValue: 20,
-    minOrderAmount: 0,
-    maxDiscountAmount: 50000,
-    endUtc: '2026-12-31T23:59:59Z',
-    description: '20% off for newly registered accounts.'
-  },
-  {
-    voucherCode: 'WASHPRO50K',
-    voucherType: 1, // System
-    discountType: 2, // Fixed amount
-    discountValue: 50000,
-    minOrderAmount: 200000,
-    endUtc: '2026-12-31T23:59:59Z',
-    description: 'Get 50,000 VND off on bookings of 200,000 VND or more.'
-  },
-  {
-    voucherCode: 'SUMMER30K',
-    voucherType: 1,
-    discountType: 2,
-    discountValue: 30000,
-    minOrderAmount: 150000,
-    endUtc: '2026-09-30T23:59:59Z',
-    description: 'Summer special promotion.'
-  }
-]
-
 export default function Home() {
   const [apiServices, setApiServices] = useState<ServiceCatalogItem[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
@@ -120,6 +89,7 @@ export default function Home() {
   }, [selectedBranchId, branches])
   // Promo Vouchers states
   const [promoVouchers, setPromoVouchers] = useState<any[]>([])
+  const [loadingVouchers, setLoadingVouchers] = useState<boolean>(true)
   const [activeVoucherIndex, setActiveVoucherIndex] = useState<number>(0)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
@@ -146,17 +116,21 @@ export default function Home() {
       .finally(() => setLoadingServices(false))
 
     // Fetch active approved vouchers for home page banner promotion
-    api.getVouchers({ approvalStatus: 2, pageSize: 10 })
+    api.getVouchers({ approvalStatus: 2, pageSize: 10, isActive: true })
       .then(res => {
         if (res && res.items && res.items.length > 0) {
           const activeOnly = res.items.filter((v: any) => v.isActive)
-          setPromoVouchers(activeOnly.length > 0 ? activeOnly : defaultPromos)
+          setPromoVouchers(activeOnly)
         } else {
-          setPromoVouchers(defaultPromos)
+          setPromoVouchers([])
         }
       })
-      .catch(() => {
-        setPromoVouchers(defaultPromos)
+      .catch((err) => {
+        console.error('Failed to load vouchers', err)
+        setPromoVouchers([])
+      })
+      .finally(() => {
+        setLoadingVouchers(false)
       })
   }, [])
 
@@ -237,7 +211,7 @@ export default function Home() {
         <div className="hero-glow hero-glow-1" />
         <div className="hero-glow hero-glow-2" />
 
-        <div className="container hero-inner">
+        <div className={`container hero-inner ${(loadingVouchers || promoVouchers.length > 0) ? "" : "no-vouchers"}`}>
           <div className="hero-content animate-fade-up">
             <div className="section-label">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginRight: '6px' }}><circle cx="5" cy="5" r="5" /></svg>
@@ -269,88 +243,91 @@ export default function Home() {
 
           </div>
 
-          <div className="hero-visual animate-fade-up delay-2">
-            <div className="hero-voucher-showcase">
-              <div className="showcase-header">
-                <span className="sparkle-icon">✨</span>
-                <h4>FEATURED OFFERS</h4>
-                <span className="live-pulse"></span>
+          {(loadingVouchers || promoVouchers.length > 0) && (
+            <div className="hero-visual animate-fade-up delay-2">
+              <div className="hero-voucher-showcase">
+                <div className="showcase-header">
+                  <span className="sparkle-icon">✨</span>
+                  <h4>FEATURED OFFERS</h4>
+                  <span className="live-pulse"></span>
+                </div>
+
+                {loadingVouchers ? (
+                  <div className="showcase-loading">
+                    <div className="spinner-mini"></div>
+                    <span>Loading offers...</span>
+                  </div>
+                ) : (
+                  (() => {
+                    const item = promoVouchers[activeVoucherIndex]
+                    if (!item) return null
+                    const code = item.voucherCode || item.VoucherCode
+                    const discountVal = item.discountValue ?? item.DiscountValue ?? 0
+                    const type = item.discountType ?? item.DiscountType ?? 1
+                    const minOrder = item.minOrderAmount ?? item.MinOrderAmount
+                    const desc = item.description || (type === 1 ? `Get ${discountVal}% off services` : `Get ${discountVal.toLocaleString('en-US')} VND off your booking`)
+
+                    return (
+                      <div className="hero-ticket-wrapper">
+                        <div className="hero-ticket">
+                          <div className="hero-ticket-notch notch-l"></div>
+                          <div className="hero-ticket-notch notch-r"></div>
+
+                          <div className="hero-ticket-top">
+                            <div className="hero-ticket-discount">
+                              {type === 1 ? `${discountVal}%` : `${(discountVal / 1000).toLocaleString('en-US')}K`}
+                            </div>
+                            <div className="hero-ticket-off">DISCOUNT</div>
+                          </div>
+
+                          <div className="hero-ticket-divider"></div>
+
+                          <div className="hero-ticket-bottom">
+                            <div className="hero-ticket-desc">{desc}</div>
+                            <div className="hero-ticket-cond">
+                              {minOrder ? `Min booking: ${(minOrder / 1000).toLocaleString('en-US')}K` : 'No minimum booking'}
+                            </div>
+                            <div className="hero-ticket-code-row">
+                              <code className="hero-ticket-code">{code}</code>
+                              <button
+                                type="button"
+                                className="hero-copy-btn"
+                                onClick={() => handleCopyCode(code)}
+                              >
+                                {copiedCode === code ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {promoVouchers.length > 1 && (
+                          <div className="slider-dots">
+                            {promoVouchers.map((_, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                className={`dot ${idx === activeVoucherIndex ? 'active' : ''}`}
+                                onClick={() => setActiveVoucherIndex(idx)}
+                                aria-label={`Go to slide ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()
+                )}
               </div>
 
-              {promoVouchers.length === 0 ? (
-                <div className="showcase-loading">
-                  <div className="spinner-mini"></div>
-                  <span>Loading offers...</span>
-                </div>
-              ) : (
-                (() => {
-                  const item = promoVouchers[activeVoucherIndex]
-                  const code = item.voucherCode || item.VoucherCode
-                  const discountVal = item.discountValue ?? item.DiscountValue ?? 0
-                  const type = item.discountType ?? item.DiscountType ?? 1
-                  const minOrder = item.minOrderAmount ?? item.MinOrderAmount
-                  const desc = item.description || (type === 1 ? `Get ${discountVal}% off services` : `Get ${discountVal.toLocaleString('en-US')} VND off your booking`)
-
-                  return (
-                    <div className="hero-ticket-wrapper">
-                      <div className="hero-ticket">
-                        <div className="hero-ticket-notch notch-l"></div>
-                        <div className="hero-ticket-notch notch-r"></div>
-
-                        <div className="hero-ticket-top">
-                          <div className="hero-ticket-discount">
-                            {type === 1 ? `${discountVal}%` : `${(discountVal / 1000).toLocaleString('en-US')}K`}
-                          </div>
-                          <div className="hero-ticket-off">DISCOUNT</div>
-                        </div>
-
-                        <div className="hero-ticket-divider"></div>
-
-                        <div className="hero-ticket-bottom">
-                          <div className="hero-ticket-desc">{desc}</div>
-                          <div className="hero-ticket-cond">
-                            {minOrder ? `Min booking: ${(minOrder / 1000).toLocaleString('en-US')}K` : 'No minimum booking'}
-                          </div>
-                          <div className="hero-ticket-code-row">
-                            <code className="hero-ticket-code">{code}</code>
-                            <button
-                              type="button"
-                              className="hero-copy-btn"
-                              onClick={() => handleCopyCode(code)}
-                            >
-                              {copiedCode === code ? 'Copied!' : 'Copy'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {promoVouchers.length > 1 && (
-                        <div className="slider-dots">
-                          {promoVouchers.map((_, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              className={`dot ${idx === activeVoucherIndex ? 'active' : ''}`}
-                              onClick={() => setActiveVoucherIndex(idx)}
-                              aria-label={`Go to slide ${idx + 1}`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()
-              )}
+              {/* Floating badges */}
+              <div className="float-badge float-badge-1">
+                <span>✨</span> Hot Deals!
+              </div>
+              <Link to="/customer/bookings?startBooking=true" className="float-badge float-badge-2" style={{ textDecoration: 'none' }}>
+                <span>🔥</span> Book Now!
+              </Link>
             </div>
-
-            {/* Floating badges */}
-            <div className="float-badge float-badge-1">
-              <span>✨</span> Hot Deals!
-            </div>
-            <Link to="/customer/bookings?startBooking=true" className="float-badge float-badge-2" style={{ textDecoration: 'none' }}>
-              <span>🔥</span> Book Now!
-            </Link>
-          </div>
+          )}
         </div>
       </section>
 

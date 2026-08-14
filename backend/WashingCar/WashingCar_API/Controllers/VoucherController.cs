@@ -96,9 +96,12 @@ public class VoucherController(
     /// <summary>Duyệt danh sách voucher theo quyền của role hiện tại (Customer chỉ thấy approved+active).</summary>
     /// <remarks>Gọi: VoucherService.BrowseVouchersAsync → IUserRepository.GetByIdAsync (nếu Staff/Manager) → IVoucherRepository.GetPagedAsync.</remarks>
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> Browse([FromQuery] VoucherSearchFilter filter, CancellationToken ct)
     {
-        var result = await _voucherService.BrowseVouchersAsync(CurrentUserId, CurrentUserRole, filter, ct);
+        var role = User.Identity?.IsAuthenticated == true ? CurrentUserRole : UserRole.Customer;
+        var userId = User.Identity?.IsAuthenticated == true ? CurrentUserId : Guid.Empty;
+        var result = await _voucherService.BrowseVouchersAsync(userId, role, filter, ct);
         return Paged(result);
     }
 
