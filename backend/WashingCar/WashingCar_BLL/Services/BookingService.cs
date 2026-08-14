@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WashingCar_BLL.Interfaces;
 using WashingCar_BLL.Mappers;
+using WashingCar_BLL.Policies;
 using WashingCar_Common.Constant;
 using WashingCar_Common.Enum;
 using WashingCar_Common.Exceptions;
@@ -49,8 +50,19 @@ public class BookingService(
         var slot = await bookingRepo.GetSlotForReserveAsync(request.SlotInventoryId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
 
-        var lines    = await BuildLinesAsync(slot.BranchId, request.Services, ct);
-        var subtotal = lines.Sum(l => l.LineTotal);
+        Vehicle? vehicle = null;
+        if (request.VehicleId.HasValue)
+        {
+            vehicle = await vehicleRepo.GetByIdAsync(request.VehicleId.Value, userId)
+                ?? throw AppException.NotFound(ValidationMessage.Booking.MyVehicleNotFound);
+        }
+
+        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
+        var serviceSubtotal = lines.Sum(line => line.LineTotal);
+        var vehicleSurcharge = vehicle is null
+            ? (Condition: VehicleCondition.Standard, Rate: 0m, Amount: 0m)
+            : CalculateVehicleSurcharge(vehicle, serviceSubtotal);
+        var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
         var discount = 0m;
 
         if (request.UserVoucherId.HasValue || !string.IsNullOrWhiteSpace(request.VoucherCode))
@@ -68,11 +80,17 @@ public class BookingService(
 
         return new BookingQuoteDto
         {
-            Lines                = [.. lines.Select(l => l.ToDto())],
-            Subtotal             = subtotal,
-            DiscountAmount       = discount + redeemDiscount,
-            FinalAmount          = afterVoucher - redeemDiscount,
-            TotalDurationMinutes = lines.Sum(l => l.DurationMinutes * l.Quantity),
+            Lines                   = [.. lines.Select(line => line.ToDto())],
+            ServiceSubtotal          = serviceSubtotal,
+            VehicleCondition         = vehicle is null
+                ? null
+                : VehicleConditionPolicy.GetCondition(vehicle.ManufactureYear).ToString(),
+            VehicleSurchargeRate     = vehicleSurcharge.Rate,
+            VehicleSurchargeAmount   = vehicleSurcharge.Amount,
+            Subtotal                 = subtotal,
+            DiscountAmount           = discount + redeemDiscount,
+            FinalAmount              = afterVoucher - redeemDiscount,
+            TotalDurationMinutes     = lines.Sum(line => line.DurationMinutes * line.Quantity),
         };
     }
 
@@ -103,9 +121,11 @@ public class BookingService(
         var tierBenefits = await loyaltyService.GetActiveTierBenefitsAsync(userId, ct);
         ValidateAdvanceBookingWindow(slot.SlotDate, tierBenefits);
 
-        // 3. Dựng booking lines (snapshot giá) + tính tiền
-        var lines    = await BuildLinesAsync(slot.BranchId, request.Services, ct);
-        var subtotal = lines.Sum(l => l.LineTotal);
+        // 3. Dựng booking lines (snapshot giá) và phụ thu theo tình trạng xe.
+        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
+        var serviceSubtotal = lines.Sum(line => line.LineTotal);
+        var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
+        var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
         var discount = 0m;
         UserVoucher? userVoucher = null;
 
@@ -139,6 +159,9 @@ public class BookingService(
             BookingType           = BookingType.Online,
             BookingStatus         = BookingStatus.Pending,
             BookingSubtotal       = subtotal,
+            VehicleConditionAtBooking = (byte)vehicleSurcharge.Condition,
+            VehicleSurchargeRate  = vehicleSurcharge.Rate,
+            VehicleSurchargeAmount = vehicleSurcharge.Amount,
             BookingDiscountAmount = totalDiscount,
             BookingFinalAmount    = final,
             EarnedPoints          = 0,
@@ -224,9 +247,14 @@ public class BookingService(
         if (slot.SlotDate.ToDateTime(slot.SlotStartTime) <= DateTime.UtcNow.AddHours(VietnamUtcOffsetHours))
             throw AppException.BadRequest(ValidationMessage.Booking.SlotTimePast);
 
-        // 3. Dựng booking lines (snapshot giá) + tính tiền — validate dịch vụ trước
-        var lines    = await BuildLinesAsync(slot.BranchId, request.Services, ct);
-        var subtotal = lines.Sum(l => l.LineTotal);
+        // 3. Dựng booking lines trước để validate dịch vụ, sau đó resolve xe và phụ thu.
+        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
+        var serviceSubtotal = lines.Sum(line => line.LineTotal);
+
+        // 4. Xe của khách: chọn xe có sẵn hoặc tạo mới ad-hoc sau khi đã validate dịch vụ.
+        var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
+        var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
+        var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
         var discount = 0m;
         UserVoucher? userVoucher = null;
 
@@ -244,9 +272,6 @@ public class BookingService(
             customer.UserId, request.RedeemMode, request.RedeemPoints, afterVoucher, ct);
         var totalDiscount    = discount + redeemDiscount;
         var final            = subtotal - totalDiscount;
-
-        // 4. Xe của khách: chọn xe có sẵn hoặc tạo mới ad-hoc (sau khi đã validate dịch vụ)
-        var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
 
         // 5. Sinh mã booking + QR token duy nhất
         var code = await GenerateUniqueCodeAsync(ct);
@@ -266,6 +291,9 @@ public class BookingService(
             CheckInAtUtc          = DateTime.UtcNow,
             CheckedInByUserId     = staffId,
             BookingSubtotal       = subtotal,
+            VehicleConditionAtBooking = (byte)vehicleSurcharge.Condition,
+            VehicleSurchargeRate  = vehicleSurcharge.Rate,
+            VehicleSurchargeAmount = vehicleSurcharge.Amount,
             BookingDiscountAmount = totalDiscount,
             BookingFinalAmount    = final,
             EarnedPoints          = 0,
@@ -910,10 +938,28 @@ public class BookingService(
         };
     }
 
-    /// <summary>Tính lại subtotal + final (giữ ràng buộc final = subtotal - discount).</summary>
+    private static (VehicleCondition Condition, decimal Rate, decimal Amount) CalculateVehicleSurcharge(
+        Vehicle vehicle,
+        decimal serviceSubtotal)
+    {
+        var condition = VehicleConditionPolicy.GetCondition(vehicle.ManufactureYear);
+        var rate = VehicleConditionPolicy.GetSurchargeRate(condition);
+        var amount = Math.Round(serviceSubtotal * rate, 2, MidpointRounding.AwayFromZero);
+        return (condition, rate, amount);
+    }
+
+    /// <summary>
+    /// Tính lại tiền dịch vụ và phụ thu theo tỷ lệ snapshot đã chốt lúc tạo đơn.
+    /// Condition/rate không đổi khi xe bị sửa sau đó; amount được cập nhật nếu staff thay đổi danh sách dịch vụ.
+    /// </summary>
     private static void Recalculate(Booking booking)
     {
-        booking.BookingSubtotal    = booking.BookingLines.Sum(l => l.LineTotal);
+        var serviceSubtotal = booking.BookingLines.Sum(line => line.LineTotal);
+        booking.VehicleSurchargeAmount = Math.Round(
+            serviceSubtotal * booking.VehicleSurchargeRate,
+            2,
+            MidpointRounding.AwayFromZero);
+        booking.BookingSubtotal = serviceSubtotal + booking.VehicleSurchargeAmount;
         booking.BookingFinalAmount = booking.BookingSubtotal - booking.BookingDiscountAmount;
     }
 
@@ -944,7 +990,11 @@ public class BookingService(
             UserId       = customerId,
             LicensePlate = plate,
             VehicleType  = (byte)request.NewVehicle.VehicleType,
-            Brand        = request.NewVehicle.Brand,
+            Brand        = string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim(),
+            Model        = string.IsNullOrWhiteSpace(request.NewVehicle.Model) ? null : request.NewVehicle.Model.Trim(),
+            ManufactureYear = request.NewVehicle.ManufactureYear,
+            EngineType   = request.NewVehicle.EngineType.HasValue ? (byte)request.NewVehicle.EngineType.Value : null,
+            BodyStyle    = request.NewVehicle.BodyStyle.HasValue ? (byte)request.NewVehicle.BodyStyle.Value : null,
             IsDeleted    = false,
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion   = [],

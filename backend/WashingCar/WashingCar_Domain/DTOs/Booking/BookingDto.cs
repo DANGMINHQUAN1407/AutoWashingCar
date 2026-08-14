@@ -26,6 +26,10 @@ public class BookingDto
     public TimeOnly? SlotStartTime { get; set; }
     public TimeOnly? SlotEndTime   { get; set; }
 
+    public decimal  ServiceSubtotal       { get; set; }
+    public string   VehicleConditionAtBooking { get; set; } = null!;
+    public decimal  VehicleSurchargeRate  { get; set; }
+    public decimal  VehicleSurchargeAmount { get; set; }
     public decimal  BookingSubtotal       { get; set; }
     public decimal  BookingDiscountAmount { get; set; }
     public decimal  BookingFinalAmount    { get; set; }

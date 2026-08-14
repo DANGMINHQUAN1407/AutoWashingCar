@@ -13,6 +13,7 @@ public class BookingListItemDto
     public TimeOnly? SlotStartTime { get; set; }
     public decimal BookingFinalAmount { get; set; }
     public decimal BookingDiscountAmount { get; set; }
+    public decimal VehicleSurchargeAmount { get; set; }
     public decimal? DepositAmount { get; set; }
     public int RedeemedPoints { get; set; }
     public DateTime CreatedAtUtc { get; set; }
