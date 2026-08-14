@@ -44,6 +44,20 @@
   z-index: 5;
 }
 
+.hero-inner.no-vouchers {
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+
+.hero-inner.no-vouchers .hero-content {
+  align-items: center;
+  margin: 0 auto;
+}
+
+.hero-inner.no-vouchers .hero-cta {
+  justify-content: center;
+}
+
 .hero-content {
   display: flex;
   flex-direction: column;
