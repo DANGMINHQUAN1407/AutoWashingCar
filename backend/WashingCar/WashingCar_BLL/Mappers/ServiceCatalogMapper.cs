@@ -12,6 +12,10 @@ namespace WashingCar_BLL.Mappers
             Description = s.Description,
             BasePrice = s.BasePrice,
             DurationMinutes = s.DurationMinutes,
+            ServicePackageType = s.ServicePackageType,
+            ServicePackageTypeName = Enum.IsDefined(typeof(WashingCar_Common.Enum.ServicePackageType), s.ServicePackageType)
+                ? ((WashingCar_Common.Enum.ServicePackageType)s.ServicePackageType).ToString()
+                : "Unknown",
             IsActive = s.IsActive,
             CreatedAtUtc = s.CreatedAtUtc,
         };

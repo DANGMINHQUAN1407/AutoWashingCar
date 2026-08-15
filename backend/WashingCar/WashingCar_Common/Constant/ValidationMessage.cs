@@ -95,6 +95,10 @@ public static class ValidationMessage
         public const string OnlyCancelWhenPendingOrConfirmed      = "Chỉ huỷ được khi đơn ở Pending/Confirmed (trước check-in)";
         public const string PhoneRequired                         = "Vui lòng nhập số điện thoại";
         public const string MustSelectAtLeastOneService           = "Phải chọn ít nhất 1 dịch vụ";
+        public const string DuplicateServiceSelection             = "Không được chọn trùng cùng một dịch vụ trong booking";
+        public const string PremiumServiceExcludesOthers          = "Gói Premium không thể kết hợp với dịch vụ khác";
+        public const string StandardServiceSelectionConflict      = "Chỉ được chọn một gói Standard trong mỗi booking";
+        public const string InvalidServicePackageType              = "Loại gói dịch vụ không hợp lệ";
         public const string OnlyEditWhenEditableStatus            = "Chỉ thêm/sửa dịch vụ khi booking ở trạng thái Confirmed/CheckedIn/InProgress";
         public const string CustomerVehicleNotFound               = "Không tìm thấy xe của khách";
         public const string MustChooseOrCreateVehicle              = "Cần chọn xe có sẵn hoặc khai báo xe mới cho khách";

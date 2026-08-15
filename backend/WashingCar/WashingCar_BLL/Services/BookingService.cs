@@ -906,10 +906,22 @@ public class BookingService(
         if (selections is null || selections.Count == 0)
             throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
 
-        var lines = new List<BookingLine>();
-        foreach (var sel in selections)
-            lines.Add(await BuildLineAsync(branchId, sel.ServiceCatalogItemId, sel.Quantity, ct));
-        return lines;
+        var loaded = new List<(BookingServiceSelection Selection, ServiceCatalogItem Service)>();
+        foreach (var selection in selections)
+        {
+            var service = await LoadServiceForBookingAsync(branchId, selection.ServiceCatalogItemId, ct);
+            loaded.Add((selection, service));
+        }
+
+        ServicePackagePolicy.Validate(
+            loaded.Select(item => (
+                item.Service.ServiceCatalogItemId,
+                PackageType: (ServicePackageType)item.Service.ServicePackageType))
+            .ToArray());
+
+        return loaded
+            .Select(item => CreateBookingLine(item.Service, item.Selection.Quantity))
+            .ToList();
     }
 
     /// <summary>Dựng 1 BookingLine: validate dịch vụ active + thuộc chi nhánh, snapshot giá.</summary>
@@ -917,24 +929,36 @@ public class BookingService(
     private async Task<BookingLine> BuildLineAsync(
         Guid branchId, Guid serviceCatalogItemId, short quantity, CancellationToken ct)
     {
-        var svc = await serviceCatalogRepo.GetByIdAsync(serviceCatalogItemId)
+        var service = await LoadServiceForBookingAsync(branchId, serviceCatalogItemId, ct);
+        return CreateBookingLine(service, quantity);
+    }
+
+    private async Task<ServiceCatalogItem> LoadServiceForBookingAsync(
+        Guid branchId, Guid serviceCatalogItemId, CancellationToken ct)
+    {
+        var service = await serviceCatalogRepo.GetByIdAsync(serviceCatalogItemId)
             ?? throw AppException.NotFound(ValidationMessage.Booking.ServiceNotFound(serviceCatalogItemId));
-        if (!svc.IsActive)
-            throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(svc.ServiceName));
+        if (!service.IsActive)
+            throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(service.ServiceName));
 
         var branchService = await branchRepo.GetBranchServiceAsync(branchId, serviceCatalogItemId, ct);
         if (branchService is null || !branchService.IsActive)
-            throw AppException.BadRequest(ValidationMessage.Booking.ServiceNotAvailableAtBranch(svc.ServiceName));
+            throw AppException.BadRequest(ValidationMessage.Booking.ServiceNotAvailableAtBranch(service.ServiceName));
 
+        return service;
+    }
+
+    private static BookingLine CreateBookingLine(ServiceCatalogItem service, short quantity)
+    {
         var qty = quantity < 1 ? (short)1 : quantity;
         return new BookingLine
         {
-            ServiceCatalogItemId = svc.ServiceCatalogItemId,
-            ServiceName          = svc.ServiceName,
-            UnitPrice            = svc.BasePrice,
-            DurationMinutes      = svc.DurationMinutes,
+            ServiceCatalogItemId = service.ServiceCatalogItemId,
+            ServiceName          = service.ServiceName,
+            UnitPrice            = service.BasePrice,
+            DurationMinutes      = service.DurationMinutes,
             Quantity             = qty,
-            LineTotal            = svc.BasePrice * qty,
+            LineTotal            = service.BasePrice * qty,
         };
     }
 

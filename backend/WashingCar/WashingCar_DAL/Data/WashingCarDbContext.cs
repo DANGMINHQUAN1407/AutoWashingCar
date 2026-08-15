@@ -430,6 +430,12 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ServiceName).HasMaxLength(200);
+            entity.Property(e => e.ServicePackageType)
+                .HasColumnType("tinyint")
+                .HasDefaultValue((byte)ServicePackageType.Standard);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_ServiceCatalogItem_ServicePackageType",
+                "[ServicePackageType] IN (1, 2, 3)"));
         });
 
         modelBuilder.Entity<SlotInventory>(entity =>

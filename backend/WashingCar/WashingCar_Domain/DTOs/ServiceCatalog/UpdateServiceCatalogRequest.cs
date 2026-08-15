@@ -16,4 +16,8 @@ public class UpdateServiceCatalogRequest
 
     [Range(1, 480)]
     public short DurationMinutes { get; set; }
+
+    /// <summary>1=Standard, 2=AddOn, 3=Premium.</summary>
+    [Range(1, 3)]
+    public byte? ServicePackageType { get; set; }
 }

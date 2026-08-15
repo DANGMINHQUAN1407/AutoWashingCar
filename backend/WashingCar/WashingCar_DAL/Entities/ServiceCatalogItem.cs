@@ -15,6 +15,9 @@ public partial class ServiceCatalogItem
 
     public short DurationMinutes { get; set; }
 
+    /// <summary>1=Standard, 2=AddOn, 3=Premium.</summary>
+    public byte ServicePackageType { get; set; } = (byte)WashingCar_Common.Enum.ServicePackageType.Standard;
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }

@@ -41,6 +41,10 @@ public static class BranchMapper
         Description          = bs.ServiceCatalogItem.Description,
         BasePrice            = bs.ServiceCatalogItem.BasePrice,
         DurationMinutes      = bs.ServiceCatalogItem.DurationMinutes,
+        ServicePackageType   = bs.ServiceCatalogItem.ServicePackageType,
+        ServicePackageTypeName = Enum.IsDefined(typeof(WashingCar_Common.Enum.ServicePackageType), bs.ServiceCatalogItem.ServicePackageType)
+            ? ((WashingCar_Common.Enum.ServicePackageType)bs.ServiceCatalogItem.ServicePackageType).ToString()
+            : "Unknown",
         IsActive             = bs.IsActive && bs.ServiceCatalogItem.IsActive,
         AddedAtUtc           = bs.AddedAtUtc,
     };

@@ -70,6 +70,7 @@ namespace WashingCar_BLL.Services
                 Description = request.Description,
                 BasePrice = request.BasePrice,
                 DurationMinutes = request.DurationMinutes,
+                ServicePackageType = request.ServicePackageType,
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
             };
@@ -114,6 +115,7 @@ namespace WashingCar_BLL.Services
             item.Description = request.Description;
             item.BasePrice = request.BasePrice;
             item.DurationMinutes = request.DurationMinutes;
+            item.ServicePackageType = request.ServicePackageType ?? item.ServicePackageType;
 
             await _repo.UpdateAsync(item);
             _logger.LogInformation("Updated service catalog item {Id}", id);
