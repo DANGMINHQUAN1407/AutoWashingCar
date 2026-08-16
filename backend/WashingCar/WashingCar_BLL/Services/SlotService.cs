@@ -92,10 +92,13 @@ public class SlotService : ISlotService
 
         while (current <= request.ToDate)
         {
-            var slotStart = request.OpenTime;
+            int initialMinutes = request.OpenTime.Hour * 60 + request.OpenTime.Minute;
+            int startMinutes = initialMinutes;
+            int endMinutes = request.CloseTime.Hour * 60 + request.CloseTime.Minute;
 
-            while (slotStart.AddMinutes(request.SlotDurationMinutes) <= request.CloseTime)
+            while (startMinutes + request.SlotDurationMinutes <= endMinutes)
             {
+                var slotStart = request.OpenTime.AddMinutes(startMinutes - initialMinutes);
                 var slotEnd = slotStart.AddMinutes(request.SlotDurationMinutes);
 
                 if (!await slotRepo.ExistsAsync(branchId, current, slotStart, ct))
@@ -111,7 +114,7 @@ public class SlotService : ISlotService
                     });
                 }
 
-                slotStart = slotEnd;
+                startMinutes += request.SlotDurationMinutes;
             }
 
             current = current.AddDays(1);

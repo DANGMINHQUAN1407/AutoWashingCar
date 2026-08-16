@@ -647,6 +647,8 @@
 
 .confirm-modal-actions .btn {
   flex: 1;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 /* ─── Danger Button style ─── */
@@ -1095,6 +1097,27 @@
   border-color: var(--color-heading);
   background: var(--color-bg-card-2);
   color: var(--color-heading);
+}
+
+.slot-chip-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 77, 79, 0.15);
+  color: var(--color-text-dim);
+}
+
+.slot-chip-item.disabled .slot-chip-time {
+  text-decoration: line-through;
+}
+
+.slot-chip-item.disabled .slot-chip-meta {
+  color: #ff4d4f !important;
+  font-weight: 500;
+}
+
+.slot-chip-item.disabled:hover {
+  border-color: rgba(255, 77, 79, 0.15);
 }
 
 .slot-chip-time {

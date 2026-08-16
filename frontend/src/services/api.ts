@@ -21,6 +21,14 @@ import { unwrapData, unwrapPagedItems } from '../utils/apiHelpers'
 export type HealthResponse = { status?: string }
 export type VehicleType = 1 | 2 | 3
 
+export type VehicleImageDto = {
+  imageId: string
+  vehicleId: string
+  imageUrl: string
+  isPrimary: boolean
+  uploadedAtUtc: string
+}
+
 export type Vehicle = {
   vehicleId?: string
   VehicleId?: string
@@ -30,12 +38,26 @@ export type Vehicle = {
   VehicleType?: VehicleType
   brand?: string | null
   Brand?: string | null
+  model?: string | null
+  Model?: string | null
+  manufactureYear?: number | null
+  ManufactureYear?: number | null
+  engineType?: number | null
+  EngineType?: number | null
+  bodyStyle?: number | null
+  BodyStyle?: number | null
+  vehicleImages?: VehicleImageDto[] | null
+  VehicleImages?: VehicleImageDto[] | null
 }
 
 export type CreateVehicleRequest = {
   LicensePlate: string
   VehicleType: VehicleType
   Brand?: string
+  Model?: string
+  ManufactureYear?: number
+  EngineType?: number
+  BodyStyle?: number
 }
 
 const metaEnv = import.meta.env as Record<string, string | boolean | undefined>
@@ -216,6 +238,28 @@ export async function updateVehicle(vehicleId: string, data: CreateVehicleReques
 
 export async function deleteVehicle(vehicleId: string) {
   return fetchWithAuth(`/api/vehicles/${vehicleId}`, { method: 'DELETE' });
+}
+
+export async function uploadVehicleImage(vehicleId: string, file: File): Promise<any> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return fetchWithAuth(`/api/vehicles/${vehicleId}/images`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export async function setPrimaryVehicleImage(vehicleId: string, imageId: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicles/${vehicleId}/images/${imageId}/set-primary`, { method: 'PUT' });
+}
+
+export async function deleteVehicleImage(vehicleId: string, imageId: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicles/${vehicleId}/images/${imageId}`, { method: 'DELETE' });
+}
+
+export async function getVehicleImages(vehicleId: string): Promise<VehicleImageDto[]> {
+  const res = await fetchWithAuth(`/api/vehicles/${vehicleId}/images`, { method: 'GET' });
+  return Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
 }
 
 export async function forgotPassword(data: { Email: string }) {
@@ -1393,6 +1437,12 @@ export async function setActiveVoucher(id: string, isActive: boolean): Promise<V
   return normalizeVoucher(unwrapData<any>(res))
 }
 
+export async function deleteVoucher(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vouchers/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function assignTierVoucher(data: { TierId: string, VoucherId: string, RequiredPoints: number }): Promise<any> {
   const res = await fetchWithAuth('/api/vouchers/tier-assignments', {
     method: 'POST',
@@ -1687,6 +1737,7 @@ export default {
   getHealth, login, register, googleLogin, logout, getMe, setAuthToken,
   forgotPassword, resetPassword, claimGuestAccount,
   getMyVehicles, createVehicle, updateVehicle, deleteVehicle,
+  uploadVehicleImage, setPrimaryVehicleImage, deleteVehicleImage, getVehicleImages,
   getBranches, getBranchById, getMyBranch, getBranchServices,
   getUsers, activateUser, deactivateUser, deleteUser, createStaff, updateUser,
   createBranch, updateBranch, assignBranchServices, assignManager, removeManager,

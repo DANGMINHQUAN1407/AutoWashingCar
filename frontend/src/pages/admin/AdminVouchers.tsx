@@ -37,6 +37,8 @@ export default function AdminVouchers() {
   // Custom confirm modal state
   const [voucherToToggle, setVoucherToToggle] = useState<VoucherItem | null>(null)
   const [toggleLoading, setToggleLoading] = useState(false)
+  const [voucherToDelete, setVoucherToDelete] = useState<VoucherItem | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Filters and Pagination
   const [search, setSearch] = useState('')
@@ -130,6 +132,25 @@ export default function AdminVouchers() {
       showToast(e?.message || 'Lỗi khi thay đổi trạng thái', 'error')
     } finally {
       setToggleLoading(false)
+    }
+  }
+
+  const handleDeleteVoucherClick = (v: VoucherItem) => {
+    setVoucherToDelete(v)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!voucherToDelete) return
+    setDeleteLoading(true)
+    try {
+      await api.deleteVoucher(voucherToDelete.voucherId)
+      showToast(`Đã xóa voucher ${voucherToDelete.voucherCode} thành công`, 'success')
+      setVouchers(prev => prev.filter(item => item.voucherId !== voucherToDelete.voucherId))
+      setVoucherToDelete(null)
+    } catch (err: any) {
+      showToast(extractErrorMessage(err, 'Không thể xóa voucher này vì đã có khách hàng sử dụng. Bạn có thể tạm dừng hoạt động của nó.'), 'error')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -311,16 +332,46 @@ export default function AdminVouchers() {
                   </div>
                 </div>
                 
-                {v.approvalStatus === 2 && (
-                  <label className="switch-premium" title={v.isActive ? 'Tạm dừng' : 'Kích hoạt'}>
-                    <input
-                      type="checkbox"
-                      checked={v.isActive}
-                      onChange={() => handleToggleActive(v)}
-                    />
-                    <span className="slider-premium" />
-                  </label>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {v.approvalStatus === 2 && (
+                    <label className="switch-premium" title={v.isActive ? 'Tạm dừng' : 'Kích hoạt'}>
+                      <input
+                        type="checkbox"
+                        checked={v.isActive}
+                        onChange={() => handleToggleActive(v)}
+                      />
+                      <span className="slider-premium" />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteVoucherClick(v)}
+                    title="Xóa voucher"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ff4d4f',
+                      cursor: 'pointer',
+                      fontSize: '1.05rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s, transform 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                      e.currentTarget.style.transform = 'scale(1.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.7';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
 
               <div className="branch-body" style={{ marginBottom: '0' }}>
@@ -535,6 +586,29 @@ export default function AdminVouchers() {
         message={
           <>
             Bạn có chắc chắn muốn tạm dừng voucher <strong style={{ color: 'var(--color-heading)' }}>{voucherToToggle?.voucherCode}</strong>?
+          </>
+        }
+      />
+      <ConfirmModal
+        isOpen={!!voucherToDelete}
+        title="Xóa Voucher"
+        variant="danger"
+        isLoading={deleteLoading}
+        onCancel={() => setVoucherToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        confirmText="Xóa"
+        cancelText="Hủy bỏ"
+        message={
+          <>
+            <p>
+              Bạn có chắc chắn muốn xóa voucher{' '}
+              <strong style={{ color: 'var(--color-heading)' }}>
+                {voucherToDelete?.voucherCode}
+              </strong> không?
+            </p>
+            <div style={{ marginTop: '12px', fontSize: '0.85rem', color: '#ff4d4f' }}>
+              ⚠️ Lưu ý: Hành động này không thể hoàn tác và chỉ thực hiện được nếu chưa có lịch sử đặt lịch nào sử dụng voucher này.
+            </div>
           </>
         }
       />

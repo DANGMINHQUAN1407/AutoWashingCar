@@ -70,6 +70,9 @@ public class VoucherRepository(WashingCarDbContext db) : IVoucherRepository
     public async Task AddAsync(Voucher voucher, CancellationToken ct = default)
         => await _db.Vouchers.AddAsync(voucher, ct);
 
+    public void Delete(Voucher voucher)
+        => _db.Vouchers.Remove(voucher);
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
         => await _db.SaveChangesAsync(ct);
 

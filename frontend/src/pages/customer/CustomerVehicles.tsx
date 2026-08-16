@@ -18,7 +18,108 @@ export default function CustomerVehicles() {
     licensePlate: '',
     vehicleType: 2 as VehicleType,
     brand: '',
+    model: '',
+    manufactureYear: '',
+    engineType: '' as '' | number,
+    bodyStyle: '' as '' | number,
   })
+
+  // Images state
+  const [activeImageVehicleId, setActiveImageVehicleId] = useState<string | null>(null)
+  const [vehicleImages, setVehicleImages] = useState<any[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [imageUploadLoading, setImageUploadLoading] = useState(false)
+
+  const engineTypeLabel = (engine?: number) => {
+    if (engine === 1) return 'Xăng (Petrol)'
+    if (engine === 2) return 'Dầu (Diesel)'
+    if (engine === 3) return 'Điện (EV)'
+    if (engine === 4) return 'Hybrid (HEV)'
+    return 'N/A'
+  }
+
+  const bodyStyleLabel = (style?: number) => {
+    if (style === 1) return 'Sedan'
+    if (style === 2) return 'SUV'
+    if (style === 3) return 'Hatchback'
+    if (style === 4) return 'Pickup (Bán tải)'
+    if (style === 5) return 'Van'
+    if (style === 6) return 'Minivan'
+    if (style === 7) return 'Coupe'
+    if (style === 8) return 'Convertible (Mui trần)'
+    return 'N/A'
+  }
+
+  const toggleImagesSection = async (vehicleId: string) => {
+    if (activeImageVehicleId === vehicleId) {
+      setActiveImageVehicleId(null)
+      setVehicleImages([])
+      return
+    }
+    setActiveImageVehicleId(vehicleId)
+    setImagesLoading(true)
+    try {
+      const imgs = await api.getVehicleImages(vehicleId)
+      setVehicleImages(imgs)
+    } catch (err) {
+      console.error(err)
+      setVehicleError('Không thể tải danh sách ảnh xe.')
+    } finally {
+      setImagesLoading(false)
+    }
+  }
+
+  const handleImageUpload = async (vehicleId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const file = files[0]
+    setImageUploadLoading(true)
+    setVehicleError(null)
+    setVehicleSuccess(null)
+    try {
+      await api.uploadVehicleImage(vehicleId, file)
+      const imgs = await api.getVehicleImages(vehicleId)
+      setVehicleImages(imgs)
+      setVehicleSuccess('Tải ảnh xe lên thành công!')
+      const updatedVehicles = await api.getMyVehicles()
+      setVehicles(updatedVehicles)
+    } catch (err: any) {
+      setVehicleError(extractErrorMessage(err, 'Lỗi khi tải ảnh xe lên.'))
+    } finally {
+      setImageUploadLoading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleSetPrimaryImage = async (vehicleId: string, imageId: string) => {
+    setVehicleError(null)
+    setVehicleSuccess(null)
+    try {
+      await api.setPrimaryVehicleImage(vehicleId, imageId)
+      const imgs = await api.getVehicleImages(vehicleId)
+      setVehicleImages(imgs)
+      setVehicleSuccess('Đặt làm ảnh chính thành công!')
+      const updatedVehicles = await api.getMyVehicles()
+      setVehicles(updatedVehicles)
+    } catch (err: any) {
+      setVehicleError(extractErrorMessage(err, 'Lỗi khi đặt ảnh chính.'))
+    }
+  }
+
+  const handleDeleteImage = async (vehicleId: string, imageId: string) => {
+    setVehicleError(null)
+    setVehicleSuccess(null)
+    try {
+      await api.deleteVehicleImage(vehicleId, imageId)
+      const imgs = await api.getVehicleImages(vehicleId)
+      setVehicleImages(imgs)
+      setVehicleSuccess('Xóa ảnh xe thành công!')
+      const updatedVehicles = await api.getMyVehicles()
+      setVehicles(updatedVehicles)
+    } catch (err: any) {
+      setVehicleError(extractErrorMessage(err, 'Lỗi khi xóa ảnh.'))
+    }
+  }
 
   // Search, filter, and pagination states
   const [searchQuery, setSearchQuery] = useState('')
@@ -67,7 +168,15 @@ export default function CustomerVehicles() {
 
   const openCreateVehicleForm = () => {
     setEditingVehicleId(null)
-    setVehicleForm({ licensePlate: '', vehicleType: 2, brand: '' })
+    setVehicleForm({
+      licensePlate: '',
+      vehicleType: 2 as VehicleType,
+      brand: '',
+      model: '',
+      manufactureYear: '',
+      engineType: '',
+      bodyStyle: '',
+    })
     setShowVehicleForm(true)
   }
 
@@ -85,6 +194,10 @@ export default function CustomerVehicles() {
       licensePlate: vehicle.LicensePlate || vehicle.licensePlate || '',
       vehicleType: (vehicle.VehicleType ?? vehicle.vehicleType ?? 2) as VehicleType,
       brand: vehicle.Brand || vehicle.brand || '',
+      model: vehicle.Model || vehicle.model || '',
+      manufactureYear: (vehicle.ManufactureYear ?? vehicle.manufactureYear ?? '').toString(),
+      engineType: vehicle.EngineType ?? vehicle.engineType ?? '',
+      bodyStyle: vehicle.BodyStyle ?? vehicle.bodyStyle ?? '',
     })
     setShowVehicleForm(true)
   }
@@ -100,6 +213,10 @@ export default function CustomerVehicles() {
         LicensePlate: vehicleForm.licensePlate.trim().toUpperCase(),
         VehicleType: vehicleForm.vehicleType,
         Brand: vehicleForm.brand.trim() || undefined,
+        Model: vehicleForm.model.trim() || undefined,
+        ManufactureYear: vehicleForm.manufactureYear ? Number(vehicleForm.manufactureYear) : undefined,
+        EngineType: vehicleForm.engineType !== '' ? Number(vehicleForm.engineType) : undefined,
+        BodyStyle: vehicleForm.bodyStyle !== '' ? Number(vehicleForm.bodyStyle) : undefined,
       }
 
       const savedVehicle = editingVehicleId
@@ -108,16 +225,29 @@ export default function CustomerVehicles() {
 
       setVehicles(prev => {
         if (editingVehicleId) {
-          return prev.map(vehicle => (vehicle.VehicleId || vehicle.vehicleId) === editingVehicleId ? savedVehicle : vehicle)
+          return prev.map(vehicle => (vehicle.VehicleId || vehicle.vehicleId) === editingVehicleId ? { ...vehicle, ...savedVehicle } : vehicle)
         }
         return [savedVehicle, ...prev]
       })
-      setVehicleForm({ licensePlate: '', vehicleType: 2, brand: '' })
+      setVehicleForm({
+        licensePlate: '',
+        vehicleType: 2,
+        brand: '',
+        model: '',
+        manufactureYear: '',
+        engineType: '',
+        bodyStyle: '',
+      })
       setShowVehicleForm(false)
       setEditingVehicleId(null)
-      setVehicleSuccess(editingVehicleId ? 'Vehicle updated successfully.' : 'Vehicle created successfully.')
+      setVehicleSuccess(editingVehicleId ? 'Cập nhật thông tin xe thành công.' : 'Đăng ký xe mới thành công.')
     } catch (error: any) {
-      setVehicleError(extractErrorMessage(error, editingVehicleId ? 'Failed to update vehicle details.' : 'Failed to register new vehicle.'))
+      let friendlyError = editingVehicleId ? 'Không thể cập nhật thông tin xe.' : 'Không thể đăng ký xe mới.'
+      const errorString = error?.message || error?.Message || ''
+      if (errorString.toLowerCase().includes('already exists') || errorString.toLowerCase().includes('trùng') || errorString.toLowerCase().includes('conflict') || errorString.includes('409')) {
+        friendlyError = 'Biển số xe này đã được đăng ký bởi tài khoản khác trong hệ thống.'
+      }
+      setVehicleError(extractErrorMessage(error, friendlyError))
     } finally {
       setVehicleLoading(false)
     }
@@ -147,6 +277,10 @@ export default function CustomerVehicles() {
       setVehicleToDelete(null)
     }
   }
+
+  const activeVehicle = activeImageVehicleId
+    ? vehicles.find(v => (v.VehicleId || v.vehicleId) === activeImageVehicleId)
+    : null;
 
   return (
     <div className="portal-page">
@@ -212,101 +346,281 @@ export default function CustomerVehicles() {
       {showVehicleForm && (
         <form className="vehicle-form card" onSubmit={handleVehicleSubmit}>
           <div className="vehicle-form-header">
-            <h4>{editingVehicleId ? 'Edit Vehicle' : 'Create Vehicle'}</h4>
-            <p>{editingVehicleId ? 'Update the selected vehicle details.' : 'Add a new vehicle to your account.'}</p>
+            <h4>{editingVehicleId ? 'Chỉnh sửa xe' : 'Đăng ký xe'}</h4>
+            <p>{editingVehicleId ? 'Cập nhật thông tin chi tiết xe của bạn.' : 'Thêm một phương tiện mới vào tài khoản của bạn.'}</p>
           </div>
           <div className="vehicle-form-grid">
             <div className="form-group">
-              <label className="form-label" htmlFor="vehicle-license">License Plate</label>
+              <label className="form-label" htmlFor="vehicle-license">Biển số xe *</label>
               <input
                 id="vehicle-license"
                 className="form-input"
                 value={vehicleForm.licensePlate}
                 onChange={e => setVehicleForm(prev => ({ ...prev, licensePlate: e.target.value }))}
-                placeholder="30F-123.45"
+                placeholder="VD: 30F-123.45"
                 required
                 minLength={6}
                 maxLength={20}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="vehicle-type">Vehicle Type</label>
+              <label className="form-label" htmlFor="vehicle-type">Loại xe *</label>
               <select
                 id="vehicle-type"
                 className="form-input"
                 value={vehicleForm.vehicleType}
-                onChange={e => setVehicleForm(prev => ({ ...prev, vehicleType: Number(e.target.value) as VehicleType }))}
+                onChange={e => {
+                  const val = Number(e.target.value) as VehicleType;
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    vehicleType: val,
+                    bodyStyle: val !== 2 ? '' : prev.bodyStyle
+                  }))
+                }}
               >
-                <option value={1}>Motorbike</option>
-                <option value={2}>Car</option>
+                <option value={1}>Xe máy (Motorbike)</option>
+                <option value={2}>Ô tô (Car)</option>
               </select>
             </div>
-            <div className="form-group vehicle-brand-field">
-              <label className="form-label" htmlFor="vehicle-brand">Brand</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="vehicle-brand">Hãng xe</label>
               <input
                 id="vehicle-brand"
                 className="form-input"
                 value={vehicleForm.brand}
                 onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value }))}
-                placeholder="Toyota, Honda, BMW..."
+                placeholder="VD: Honda, Yamaha, Toyota, Ford..."
                 maxLength={50}
               />
             </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="vehicle-model">Dòng xe (Model)</label>
+              <input
+                id="vehicle-model"
+                className="form-input"
+                value={vehicleForm.model}
+                onChange={e => setVehicleForm(prev => ({ ...prev, model: e.target.value }))}
+                placeholder="VD: Future, Sirius, Camry, Ranger..."
+                maxLength={50}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="vehicle-year">Năm sản xuất</label>
+              <input
+                id="vehicle-year"
+                type="number"
+                className="form-input"
+                value={vehicleForm.manufactureYear}
+                onChange={e => setVehicleForm(prev => ({ ...prev, manufactureYear: e.target.value }))}
+                placeholder="VD: 2020"
+                min={1950}
+                max={new Date().getFullYear() + 1}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="vehicle-engine">Loại động cơ</label>
+              <select
+                id="vehicle-engine"
+                className="form-input"
+                value={vehicleForm.engineType}
+                onChange={e => setVehicleForm(prev => ({ ...prev, engineType: e.target.value === '' ? '' : Number(e.target.value) }))}
+              >
+                <option value="">-- Chọn loại động cơ --</option>
+                <option value={1}>Xăng (Petrol)</option>
+                <option value={2}>Dầu (Diesel)</option>
+                <option value={3}>Điện (EV)</option>
+                <option value={4}>Hybrid (HEV)</option>
+              </select>
+            </div>
+            {vehicleForm.vehicleType === 2 && (
+              <div className="form-group animate-slide-in">
+                <label className="form-label" htmlFor="vehicle-style">Kiểu dáng</label>
+                <select
+                  id="vehicle-style"
+                  className="form-input"
+                  value={vehicleForm.bodyStyle}
+                  onChange={e => setVehicleForm(prev => ({ ...prev, bodyStyle: e.target.value === '' ? '' : Number(e.target.value) }))}
+                >
+                  <option value="">-- Chọn kiểu dáng --</option>
+                  <option value={1}>Sedan</option>
+                  <option value={2}>SUV</option>
+                  <option value={3}>Hatchback</option>
+                  <option value={4}>Pickup (Bán tải)</option>
+                  <option value={5}>Van</option>
+                  <option value={6}>Minivan</option>
+                  <option value={7}>Coupe</option>
+                  <option value={8}>Convertible (Mui trần)</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="vehicle-form-actions">
             <AnimatedButton type="button" variant="ghost" onClick={() => { setShowVehicleForm(false); setEditingVehicleId(null) }}>
-              Cancel
+              Hủy
             </AnimatedButton>
             <AnimatedButton type="submit" variant="primary" disabled={vehicleLoading}>
-              {vehicleLoading ? 'Saving…' : editingVehicleId ? 'Update Vehicle' : 'Save Vehicle'}
+              {vehicleLoading ? 'Đang lưu…' : editingVehicleId ? 'Cập nhật' : 'Lưu xe'}
             </AnimatedButton>
           </div>
         </form>
       )}
 
-      <div className="vehicle-list">
+      <div className="vehicle-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {vehicles.length === 0 ? (
           <div className="vehicle-empty card">
-            No vehicles yet. Click Add Vehicle to register your first one.
+            Chưa có xe nào. Hãy nhấn "Thêm xe" để bắt đầu đăng ký phương tiện của bạn.
           </div>
         ) : filteredVehicles.length === 0 ? (
           <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '30px' }}>
             Không tìm thấy xe nào phù hợp với bộ lọc hiện tại.
           </div>
         ) : paginatedVehicles.map((vehicle, index) => {
-          const plate = vehicle.LicensePlate || vehicle.licensePlate || 'Unknown plate'
-          const brand = vehicle.Brand || vehicle.brand || 'Unknown brand'
+          const plate = vehicle.LicensePlate || vehicle.licensePlate || 'Chưa rõ biển số'
+          const brand = vehicle.Brand || vehicle.brand || 'Chưa rõ hãng'
           const vehicleType = vehicle.VehicleType ?? vehicle.vehicleType ?? 2
           return (
-            <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card">
-              <div className="vehicle-status-indicator" />
-              <div>
-                <div className="vehicle-card-title">{plate}</div>
-                <div className="vehicle-card-meta">{brand}</div>
+            <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
+              <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
+                    <img 
+                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl} 
+                      alt={plate} 
+                      style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }} 
+                    />
+                  ) : (
+                    <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🚗</div>
+                  )}
+                  <div>
+                    <div className="vehicle-card-title" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{plate}</div>
+                    <div className="vehicle-card-meta" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                      {brand} {vehicle.Model || vehicle.model ? `- ${vehicle.Model || vehicle.model}` : ''}
+                      {vehicle.ManufactureYear || vehicle.manufactureYear ? ` (${vehicle.ManufactureYear || vehicle.manufactureYear})` : ''}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
+                      <span>⚙️ {engineTypeLabel(vehicle.EngineType ?? vehicle.engineType)}</span>
+                      <span>🚙 {bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle)}</span>
+                      <span>Hạng xe: <strong style={{ color: 'var(--color-primary)' }}>{vehicle.VehicleCondition || vehicle.vehicleCondition || 'Standard'}</strong></span>
+                    </div>
+                  </div>
+                </div>
+                <div className="vehicle-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className={`badge ${getVehicleTypeClass(vehicleType)}`}>{vehicleTypeLabel(vehicleType)}</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => toggleImagesSection(vehicle.VehicleId || vehicle.vehicleId || '')}
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    🖼️ Ảnh xe
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm vehicle-edit-btn"
+                    onClick={() => handleVehicleEditStart(vehicle)}
+                    disabled={vehicleLoading}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm vehicle-remove-btn"
+                    onClick={() => setVehicleToDelete(vehicle)}
+                    disabled={vehicleLoading}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
-              <div className="vehicle-card-actions">
-                <span className={`badge ${getVehicleTypeClass(vehicleType)}`}>{vehicleTypeLabel(vehicleType)}</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm vehicle-edit-btn"
-                  onClick={() => handleVehicleEditStart(vehicle)}
-                  disabled={vehicleLoading}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm vehicle-remove-btn"
-                  onClick={() => setVehicleToDelete(vehicle)}
-                  disabled={vehicleLoading}
-                >
-                  Remove
-                </button>
-              </div>
+
             </div>
           )
         })}
       </div>
+
+      {activeImageVehicleId && activeVehicle && (
+        <div className="confirm-modal-overlay" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <div className="confirm-modal-card" style={{ maxWidth: '540px', width: '95%', textAlign: 'left', alignItems: 'stretch', gap: '16px', borderRadius: 'var(--radius-md)', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: 'var(--color-heading)' }}>
+                Quản lý ảnh xe: {activeVehicle.LicensePlate || activeVehicle.licensePlate}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.6rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {imagesLoading ? (
+              <p style={{ textAlign: 'center', padding: '30px 0', color: 'var(--color-text-dim)', margin: 0 }}>Đang tải danh sách ảnh...</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', minHeight: '100px', justifyContent: 'center', maxHeight: '320px', overflowY: 'auto', padding: '8px' }}>
+                  {vehicleImages.length === 0 ? (
+                    <p style={{ fontSize: '0.9rem', color: 'var(--color-text-dim)', fontStyle: 'italic', padding: '30px 0', margin: 0, textAlign: 'center', width: '100%' }}>
+                      Chưa có ảnh nào được tải lên cho xe này.
+                    </p>
+                  ) : (
+                    vehicleImages.map(img => (
+                      <div key={img.imageId} style={{ display: 'flex', flexDirection: 'column', width: '130px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                        <div style={{ position: 'relative', width: '128px', height: '90px' }}>
+                          <img src={img.imageUrl} alt="Xe" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {img.isPrimary && (
+                            <span style={{ position: 'absolute', top: 4, left: 4, background: 'var(--color-primary)', color: '#000', fontSize: '0.65rem', padding: '1px 6px', borderRadius: '2px', fontWeight: 'bold' }}>CHÍNH</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', borderTop: '1px solid var(--color-border-dim)' }}>
+                          <button 
+                            type="button"
+                            onClick={() => handleSetPrimaryImage(activeImageVehicleId, img.imageId)}
+                            disabled={img.isPrimary}
+                            style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none', borderRight: '1px solid var(--color-border-dim)', color: img.isPrimary ? 'var(--color-primary)' : 'var(--color-text-muted)', cursor: img.isPrimary ? 'default' : 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
+                            title={img.isPrimary ? "Đang là ảnh chính" : "Đặt làm ảnh chính"}
+                          >
+                            ★
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteImage(activeImageVehicleId, img.imageId)}
+                            style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 'bold' }}
+                            title="Xóa ảnh"
+                          >
+                            🗑️ Xóa
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-dim)', paddingTop: '16px' }}>
+                  <label className="btn btn-ghost" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', margin: 0, padding: '8px 16px', fontSize: '0.9rem' }}>
+                    📤 Tải ảnh mới lên
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                      onChange={(e) => handleImageUpload(activeImageVehicleId, e)}
+                      disabled={imageUploadLoading}
+                    />
+                  </label>
+                  {imageUploadLoading && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-dim)' }}>Đang tải lên...</span>}
+                  <AnimatedButton 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
+                  >
+                    Đóng
+                  </AnimatedButton>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Pagination
         currentPage={currentPage}
