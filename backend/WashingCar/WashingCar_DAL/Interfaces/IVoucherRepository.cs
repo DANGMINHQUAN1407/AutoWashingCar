@@ -10,6 +10,7 @@ public interface IVoucherRepository
     Task<bool> ExistsCodeAsync(string code, Guid? excludeId = null, CancellationToken ct = default);
     Task<(List<Voucher> Items, int TotalCount)> GetPagedAsync(VoucherSearchFilter filter, CancellationToken ct = default);
     Task AddAsync(Voucher voucher, CancellationToken ct = default);
+    void Delete(Voucher voucher);
     Task SaveChangesAsync(CancellationToken ct = default);
 
     // TierVoucher CRUD

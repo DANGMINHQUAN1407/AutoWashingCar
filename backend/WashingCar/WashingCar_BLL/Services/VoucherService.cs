@@ -317,4 +317,12 @@ public class VoucherService(
         }
     }
 
+    public async Task DeleteVoucherAsync(Guid voucherId, CancellationToken ct = default)
+    {
+        var voucher = await _voucherRepo.GetByIdAsync(voucherId, ct)
+            ?? throw AppException.NotFound("Voucher không tồn tại.");
+
+        _voucherRepo.Delete(voucher);
+        await _voucherRepo.SaveChangesAsync(ct);
+    }
 }

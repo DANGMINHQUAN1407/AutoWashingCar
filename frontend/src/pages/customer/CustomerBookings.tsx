@@ -40,8 +40,33 @@ function isSlotInPast(slotDateStr: string, slotStartTimeStr: string) {
 }
 
 export default function CustomerBookings() {
+  // Helper to load cached wizard state from sessionStorage
+  const getCached = (key: string, fallback: any) => {
+    // Nếu bước lưu trữ đã là bước 5 (đã hoàn thành đặt lịch), ta không hồi phục lại wizard
+    const cachedStep = sessionStorage.getItem('booking_wizard_wizardStep');
+    if (cachedStep !== null) {
+      try {
+        const stepNum = JSON.parse(cachedStep);
+        if (stepNum === 5) {
+          if (key === 'wizardStep') return 1;
+          if (key === 'viewMode') return 'list';
+        }
+      } catch {}
+    }
+
+    const val = sessionStorage.getItem(`booking_wizard_${key}`);
+    if (val === null) return fallback;
+    try {
+      const parsed = JSON.parse(val);
+      if (key === 'wizardStep' && parsed === 5) return 1;
+      return parsed;
+    } catch {
+      return val;
+    }
+  };
+
   // Navigation & filtering states
-  const [viewMode, setViewMode] = useState<'list' | 'wizard'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'wizard'>(() => getCached('viewMode', 'list'));
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [page, setPage] = useState(1);
@@ -55,12 +80,12 @@ export default function CustomerBookings() {
   const [slots, setSlots] = useState<Slot[]>([]);
 
   // Selection states for Booking Wizard
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateString());
-  const [selectedSlotId, setSelectedSlotId] = useState<string>('');
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(() => Number(getCached('wizardStep', 1)) as any);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => getCached('selectedBranchId', ''));
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(() => getCached('selectedVehicleId', ''));
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(() => getCached('selectedServiceIds', []));
+  const [selectedDate, setSelectedDate] = useState<string>(() => getCached('selectedDate', getLocalDateString()));
+  const [selectedSlotId, setSelectedSlotId] = useState<string>(() => getCached('selectedSlotId', ''));
 
   // Dynamic pricing & booking output
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -72,7 +97,11 @@ export default function CustomerBookings() {
   const [showQuickVehicle, setShowQuickVehicle] = useState(false);
   const [quickPlate, setQuickPlate] = useState('');
   const [quickBrand, setQuickBrand] = useState('');
+  const [quickModel, setQuickModel] = useState('');
   const [quickType, setQuickType] = useState<VehicleType>(2);
+  const [quickYear, setQuickYear] = useState('');
+  const [quickEngineType, setQuickEngineType] = useState<'' | number>('');
+  const [quickBodyStyle, setQuickBodyStyle] = useState<'' | number>('');
   const [quickVehicleLoading, setQuickVehicleLoading] = useState(false);
 
   // Modals & Details view states
@@ -88,8 +117,8 @@ export default function CustomerBookings() {
 
   // Voucher selection states
   const [myAvailableVouchers, setMyAvailableVouchers] = useState<UserVoucherItem[]>([]);
-  const [selectedUserVoucherId, setSelectedUserVoucherId] = useState<string>('');
-  const [selectedVoucherCode, setSelectedVoucherCode] = useState<string>('');
+  const [selectedUserVoucherId, setSelectedUserVoucherId] = useState<string>(() => getCached('selectedUserVoucherId', ''));
+  const [selectedVoucherCode, setSelectedVoucherCode] = useState<string>(() => getCached('selectedVoucherCode', ''));
   const [voucherCodeInput, setVoucherCodeInput] = useState('');
   const [voucherError, setVoucherError] = useState<string | null>(null);
 
@@ -106,11 +135,26 @@ export default function CustomerBookings() {
   const [staffComment, setStaffComment] = useState('');
 
   // Loyalty Points redemption states
-  const [redeemMode, setRedeemMode] = useState<number>(0); // 0 = Do not redeem, 1 = Redeem all, 2 = Redeem custom
-  const [redeemPoints, setRedeemPoints] = useState<number>(0);
+  const [redeemMode, setRedeemMode] = useState<number>(() => Number(getCached('redeemMode', 0))); // 0 = Do not redeem, 1 = Redeem all, 2 = Redeem custom
+  const [redeemPoints, setRedeemPoints] = useState<number>(() => Number(getCached('redeemPoints', 0)));
   const [userPoints, setUserPoints] = useState<number>(0);
   const [customRedeemInput, setCustomRedeemInput] = useState<string>('');
   const [redeemError, setRedeemError] = useState<string | null>(null);
+
+  // Sync wizard state to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('booking_wizard_viewMode', JSON.stringify(viewMode));
+    sessionStorage.setItem('booking_wizard_wizardStep', JSON.stringify(wizardStep));
+    sessionStorage.setItem('booking_wizard_selectedBranchId', JSON.stringify(selectedBranchId));
+    sessionStorage.setItem('booking_wizard_selectedVehicleId', JSON.stringify(selectedVehicleId));
+    sessionStorage.setItem('booking_wizard_selectedServiceIds', JSON.stringify(selectedServiceIds));
+    sessionStorage.setItem('booking_wizard_selectedDate', JSON.stringify(selectedDate));
+    sessionStorage.setItem('booking_wizard_selectedSlotId', JSON.stringify(selectedSlotId));
+    sessionStorage.setItem('booking_wizard_selectedUserVoucherId', JSON.stringify(selectedUserVoucherId));
+    sessionStorage.setItem('booking_wizard_selectedVoucherCode', JSON.stringify(selectedVoucherCode));
+    sessionStorage.setItem('booking_wizard_redeemMode', JSON.stringify(redeemMode));
+    sessionStorage.setItem('booking_wizard_redeemPoints', JSON.stringify(redeemPoints));
+  }, [viewMode, wizardStep, selectedBranchId, selectedVehicleId, selectedServiceIds, selectedDate, selectedSlotId, selectedUserVoucherId, selectedVoucherCode, redeemMode, redeemPoints]);
 
   const handleOpenReviewModal = (booking: Booking) => {
     setBookingToReview(booking);
@@ -245,10 +289,15 @@ export default function CustomerBookings() {
       setBranches(branchRes.items || []);
       setVehicles(vehicleRes || []);
 
-      // Auto select first vehicle if available
+      // Auto select first vehicle if available and no valid cached vehicle is selected
       if (vehicleRes && vehicleRes.length > 0) {
         const firstId = vehicleRes[0].VehicleId || vehicleRes[0].vehicleId;
-        if (firstId) setSelectedVehicleId(firstId);
+        const cachedVehicle = sessionStorage.getItem('booking_wizard_selectedVehicleId');
+        const parsedCached = cachedVehicle ? JSON.parse(cachedVehicle) : '';
+        const existsInFetched = vehicleRes.some((v: any) => (v.VehicleId || v.vehicleId) === parsedCached);
+        if (firstId && (!parsedCached || !existsInFetched)) {
+          setSelectedVehicleId(firstId);
+        }
       }
       return branchRes.items || [];
     } catch (err) {
@@ -256,6 +305,22 @@ export default function CustomerBookings() {
       return [];
     }
   };
+
+  // Restore wizard data on mount if viewMode is cached as 'wizard'
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasService = params.get('serviceId');
+    const hasStart = params.get('startBooking') === 'true';
+    const queryBranchId = params.get('branchId');
+
+    // Only auto-restore if we are not explicitly starting a brand new wizard from query params
+    if (!hasService && !hasStart && !queryBranchId) {
+      const cachedViewMode = sessionStorage.getItem('booking_wizard_viewMode');
+      if (cachedViewMode && JSON.parse(cachedViewMode) === 'wizard') {
+        initWizardData();
+      }
+    }
+  }, []);
 
   const handleStartWizard = () => {
     setViewMode('wizard');
@@ -461,6 +526,10 @@ export default function CustomerBookings() {
         LicensePlate: quickPlate.trim().toUpperCase(),
         VehicleType: quickType,
         Brand: quickBrand.trim() || undefined,
+        Model: quickModel.trim() || undefined,
+        ManufactureYear: quickYear ? Number(quickYear) : undefined,
+        EngineType: quickEngineType !== '' ? Number(quickEngineType) : undefined,
+        BodyStyle: quickBodyStyle !== '' ? Number(quickBodyStyle) : undefined,
       });
       const vId = data.VehicleId || data.vehicleId;
       setVehicles(prev => [data, ...prev]);
@@ -469,10 +538,20 @@ export default function CustomerBookings() {
       }
       setQuickPlate('');
       setQuickBrand('');
+      setQuickModel('');
+      setQuickYear('');
+      setQuickEngineType('');
+      setQuickBodyStyle('');
       setShowQuickVehicle(false);
-      setSuccessMsg('New vehicle registered successfully!');
+      setSuccessMsg('Đăng ký xe mới thành công!');
     } catch (err) {
-      setErrorMsg(extractErrorMessage(err, 'Failed to register new vehicle.'));
+      let friendlyError = 'Không thể đăng ký xe mới.';
+      const errorObj = err as { message?: string; Message?: string } | null;
+      const errorString = errorObj?.message || errorObj?.Message || '';
+      if (errorString.toLowerCase().includes('already exists') || errorString.toLowerCase().includes('trùng') || errorString.toLowerCase().includes('conflict') || errorString.includes('409')) {
+        friendlyError = 'Biển số xe này đã được đăng ký bởi tài khoản khác trong hệ thống.';
+      }
+      setErrorMsg(extractErrorMessage(err, friendlyError));
     } finally {
       setQuickVehicleLoading(false);
     }
@@ -503,6 +582,13 @@ export default function CustomerBookings() {
       setNewBooking(booking);
       setWizardStep(5);
       fetchMyBookings();
+      // Clear cached booking wizard state
+      const keys = [
+        'viewMode', 'wizardStep', 'selectedBranchId', 'selectedVehicleId',
+        'selectedServiceIds', 'selectedDate', 'selectedSlotId',
+        'selectedUserVoucherId', 'selectedVoucherCode', 'redeemMode', 'redeemPoints'
+      ];
+      keys.forEach(k => sessionStorage.removeItem(`booking_wizard_${k}`));
     } catch (err) {
       setErrorMsg(extractErrorMessage(err, 'Failed to save appointment.'));
     } finally {
@@ -991,8 +1077,8 @@ export default function CustomerBookings() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-                <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')}>
-                  Cancel
+                <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')} showArrow={false}>
+                  ← Cancel
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1106,6 +1192,73 @@ export default function CustomerBookings() {
                           placeholder="Toyota, Honda..."
                         />
                       </div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                          Model (Dòng xe)
+                        </label>
+                        <input
+                          className="form-input"
+                          style={{ padding: '6px 10px', fontSize: '0.9rem' }}
+                          value={quickModel}
+                          onChange={e => setQuickModel(e.target.value)}
+                          placeholder="VD: Camry, Civic, Future..."
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                          Năm sản xuất
+                        </label>
+                        <input
+                          className="form-input"
+                          type="number"
+                          style={{ padding: '6px 10px', fontSize: '0.9rem' }}
+                          value={quickYear}
+                          onChange={e => setQuickYear(e.target.value)}
+                          placeholder="VD: 2020"
+                          min={1950}
+                          max={new Date().getFullYear() + 1}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                          Loại động cơ
+                        </label>
+                        <select
+                          className="form-input"
+                          style={{ padding: '6px 10px', fontSize: '0.9rem' }}
+                          value={quickEngineType}
+                          onChange={e => setQuickEngineType(e.target.value === '' ? '' : Number(e.target.value))}
+                        >
+                          <option value="">-- Chọn loại động cơ --</option>
+                          <option value={1}>Xăng (Petrol)</option>
+                          <option value={2}>Dầu (Diesel)</option>
+                          <option value={3}>Điện (EV)</option>
+                          <option value={4}>Hybrid (HEV)</option>
+                        </select>
+                      </div>
+                      {quickType === 2 && (
+                        <div className="form-group animate-slide-in">
+                          <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                            Kiểu dáng
+                          </label>
+                          <select
+                            className="form-input"
+                            style={{ padding: '6px 10px', fontSize: '0.9rem' }}
+                            value={quickBodyStyle}
+                            onChange={e => setQuickBodyStyle(e.target.value === '' ? '' : Number(e.target.value))}
+                          >
+                            <option value="">-- Chọn kiểu dáng --</option>
+                            <option value={1}>Sedan</option>
+                            <option value={2}>SUV</option>
+                            <option value={3}>Hatchback</option>
+                            <option value={4}>Pickup (Bán tải)</option>
+                            <option value={5}>Van</option>
+                            <option value={6}>Minivan</option>
+                            <option value={7}>Coupe</option>
+                            <option value={8}>Convertible (Mui trần)</option>
+                          </select>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                         <AnimatedButton
                           type="button"
@@ -1130,8 +1283,8 @@ export default function CustomerBookings() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(1)}>
-                  Back
+                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(1)} showArrow={false}>
+                  ← Back
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1271,8 +1424,8 @@ export default function CustomerBookings() {
                   paddingTop: '20px',
                 }}
               >
-                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)}>
-                  Back
+                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
+                  ← Back
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1314,21 +1467,33 @@ export default function CustomerBookings() {
                       Invoice Summary
                     </h4>
                     <div className="quote-row">
-                      <span>Subtotal (Base Services)</span>
-                      <strong>{formatVND(quote.subtotal)}</strong>
+                      <span>Tiền dịch vụ gốc</span>
+                      <strong>{formatVND(quote.serviceSubtotal ?? quote.subtotal)}</strong>
                     </div>
+                    {quote.vehicleSurchargeAmount > 0 && (
+                      <div className="quote-row">
+                        <span>Phụ thu xe ({quote.vehicleCondition === 'New' ? 'Xe mới +10%' : quote.vehicleCondition === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'})</span>
+                        <strong>+{formatVND(quote.vehicleSurchargeAmount)}</strong>
+                      </div>
+                    )}
+                    {quote.vehicleSurchargeAmount > 0 && (
+                      <div className="quote-row" style={{ borderTop: '1px dashed var(--color-border-dim)', paddingTop: '6px' }}>
+                        <span>Tổng cộng tạm tính</span>
+                        <strong>{formatVND(quote.subtotal)}</strong>
+                      </div>
+                    )}
                     {quote.discountAmount > 0 && (
                       <div className="quote-row" style={{ color: 'var(--color-success)' }}>
-                        <span>Promotional Discount</span>
+                        <span>Giảm giá / Ưu đãi</span>
                         <strong>-{formatVND(quote.discountAmount)}</strong>
                       </div>
                     )}
                     <div className="quote-row">
-                      <span>Estimated Duration</span>
-                      <strong>{quote.totalDurationMinutes} mins</strong>
+                      <span>Thời gian ước tính</span>
+                      <strong>{quote.totalDurationMinutes} phút</strong>
                     </div>
-                    <div className="quote-row quote-total">
-                      <span>Final Payment Amount</span>
+                    <div className="quote-row quote-total" style={{ borderTop: '2px solid var(--color-primary)', paddingTop: '10px' }}>
+                      <span>Tổng tiền thanh toán</span>
                       <strong>{formatVND(quote.finalAmount)}</strong>
                     </div>
                   </div>
@@ -1769,8 +1934,8 @@ export default function CustomerBookings() {
                   paddingTop: '20px',
                 }}
               >
-                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(3)}>
-                  Back
+                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(3)} showArrow={false}>
+                  ← Back
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1855,8 +2020,18 @@ export default function CustomerBookings() {
                     🚘 <strong>License Plate:</strong> {newBooking.licensePlate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    💵 <strong>Subtotal:</strong> {formatVND(newBooking.bookingSubtotal)}
+                    💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking.bookingSubtotal)}
                   </p>
+                  {newBooking.vehicleSurchargeAmount > 0 && (
+                    <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
+                      ⚡ <strong>Phụ thu xe ({newBooking.vehicleConditionAtBooking === 'New' ? 'Xe mới +10%' : newBooking.vehicleConditionAtBooking === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'}):</strong> +{formatVND(newBooking.vehicleSurchargeAmount)}
+                    </p>
+                  )}
+                  {newBooking.vehicleSurchargeAmount > 0 && (
+                    <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
+                      💵 <strong>Tổng cộng tạm tính:</strong> {formatVND(newBooking.bookingSubtotal)}
+                    </p>
+                  )}
                   {newBooking.bookingDiscountAmount > 0 && (
                     <p
                       style={{ margin: '6px 0', fontSize: '0.9rem', color: 'var(--color-success)' }}
@@ -2172,9 +2347,27 @@ export default function CustomerBookings() {
                     className="booking-detail-service-line"
                     style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}
                   >
-                    <span>Subtotal</span>
-                    <span>{formatVND(selectedBooking.bookingSubtotal)}</span>
+                    <span>Tiền dịch vụ gốc</span>
+                    <span>{formatVND(selectedBooking.serviceSubtotal ?? selectedBooking.bookingSubtotal)}</span>
                   </div>
+                  {selectedBooking.vehicleSurchargeAmount > 0 && (
+                    <div
+                      className="booking-detail-service-line"
+                      style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}
+                    >
+                      <span>Phụ thu xe ({selectedBooking.vehicleConditionAtBooking === 'New' ? 'Xe mới +10%' : selectedBooking.vehicleConditionAtBooking === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'})</span>
+                      <span>+{formatVND(selectedBooking.vehicleSurchargeAmount)}</span>
+                    </div>
+                  )}
+                  {selectedBooking.vehicleSurchargeAmount > 0 && (
+                    <div
+                      className="booking-detail-service-line"
+                      style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', borderTop: '1px dashed var(--color-border-dim)', paddingTop: '4px' }}
+                    >
+                      <span>Tổng cộng tạm tính</span>
+                      <span>{formatVND(selectedBooking.bookingSubtotal)}</span>
+                    </div>
+                  )}
                   {selectedBooking.bookingDiscountAmount > 0 && (
                     <div
                       className="booking-detail-service-line"

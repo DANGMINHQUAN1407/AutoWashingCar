@@ -116,6 +116,7 @@ export default function ConfirmModal({
             variant="ghost"
             onClick={onCancel}
             disabled={isLoading}
+            showArrow={false}
           >
             {cancelText}
           </AnimatedButton>
@@ -124,6 +125,7 @@ export default function ConfirmModal({
             variant={variant === 'danger' ? 'danger' : variant === 'success' ? 'success' : 'primary'}
             onClick={onConfirm}
             disabled={isLoading}
+            showArrow={false}
           >
             {isLoading ? 'Processing...' : confirmText}
           </AnimatedButton>

@@ -127,6 +127,15 @@ public class VoucherController(
         return Success(voucher, message);
     }
 
+    /// <summary>Xoá voucher nếu chưa được gán hoặc sử dụng.</summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = $"{UserRole.Manager},{UserRole.Admin}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        await _voucherService.DeleteVoucherAsync(id, ct);
+        return Success<object?>(null, "Xóa voucher thành công");
+    }
+
     /// <summary>Manager phê duyệt hàng loạt.</summary>
     /// <remarks>
     /// Gọi: VoucherApprovalService.BulkApproveAsync → IUserRepository.GetByIdAsync → IVoucherRepository.GetByIdAsync (loop)

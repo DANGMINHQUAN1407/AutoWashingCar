@@ -11,4 +11,5 @@ public interface IVoucherService
     Task<VoucherDto> GetByIdAsync(Guid voucherId, CancellationToken ct = default);
     Task<PagedResult<VoucherDto>> BrowseVouchersAsync(Guid userId, string role, VoucherSearchFilter filter, CancellationToken ct = default);
     Task<VoucherDto> SetActiveAsync(Guid userId, Guid voucherId, bool isActive, CancellationToken ct = default);
+    Task DeleteVoucherAsync(Guid voucherId, CancellationToken ct = default);
 }
