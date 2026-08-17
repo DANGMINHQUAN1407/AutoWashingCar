@@ -163,22 +163,45 @@
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 20px;
 }
 
 .dash-stat-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 20px;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+/* M-stripe top accent on stat cards */
+.dash-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--m-stripe);
+  opacity: 0.5;
+  transition: opacity var(--t-normal) var(--ease);
+}
+
+.dash-stat-card:hover::before {
+  opacity: 1;
 }
 
 .dash-stat-card:hover {
-  border-color: var(--color-heading);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .stat-icon {
@@ -225,10 +248,13 @@
 }
 
 .vehicle-form {
-  padding: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  background: var(--color-bg-card);
+  padding: 28px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-card);
 }
 
 .vehicle-form-header {
@@ -277,16 +303,19 @@
 
 .vehicle-list {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .vehicle-card,
 .vehicle-empty {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 18px 20px;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
+  box-shadow: var(--shadow-card);
 }
 
 .vehicle-card {
@@ -308,7 +337,8 @@
 }
 
 .vehicle-card:hover {
-  border-color: var(--color-heading) !important;
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: var(--shadow-card-hover) !important;
 }
 
 .vehicle-card-actions {
@@ -323,26 +353,30 @@
   white-space: nowrap;
   background: transparent !important;
   color: var(--color-heading) !important;
-  border: 1px solid var(--color-border) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 .vehicle-edit-btn:hover {
   background: var(--color-heading) !important;
   color: var(--color-bg) !important;
   border-color: var(--color-heading) !important;
+  box-shadow: var(--glow-white) !important;
 }
 
 .vehicle-remove-btn {
   white-space: nowrap;
   background: transparent !important;
-  color: var(--m-red) !important;
-  border: 1px solid var(--color-border) !important;
+  color: var(--color-danger) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 .vehicle-remove-btn:hover {
-  background: var(--m-red) !important;
+  background: var(--color-danger) !important;
   color: var(--color-heading) !important;
-  border-color: var(--m-red) !important;
+  border-color: var(--color-danger) !important;
+  box-shadow: var(--glow-red) !important;
 }
 
 /* Badges for vehicle types */
@@ -352,30 +386,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0px !important;
+  border-radius: var(--radius-sm) !important;
   padding: 4px 12px !important;
   font-size: 10px !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 1px !important;
+  backdrop-filter: blur(8px) !important;
 }
 
 .badge-car {
-  background: transparent !important;
+  background: rgba(28, 105, 212, 0.08) !important;
   color: var(--color-heading) !important;
-  border: 1px solid var(--color-border) !important;
+  border: 1px solid rgba(28, 105, 212, 0.2) !important;
 }
 
 .badge-motorbike {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.04) !important;
   color: var(--color-text-muted) !important;
-  border: 1px solid var(--color-border-dim) !important;
+  border: 1px solid var(--glass-border) !important;
 }
 
 .badge-truck {
-  background: transparent !important;
+  background: rgba(245, 158, 11, 0.1) !important;
   color: var(--color-warning) !important;
-  border: 1px solid var(--color-warning) !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
 }
 
 .vehicle-card-title {
@@ -408,20 +443,24 @@
 
 .booking-card {
   position: relative;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .active-booking {
-  border-color: var(--color-heading);
-  background: var(--color-bg-card);
+  border-color: rgba(28, 105, 212, 0.3);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-card), 0 0 15px rgba(28, 105, 212, 0.06);
 }
 
 .booking-status-indicator {
@@ -429,8 +468,9 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 3px;
   background: var(--m-stripe);
+  box-shadow: 0 0 8px rgba(28, 105, 212, 0.2);
 }
 
 .booking-main {
@@ -566,7 +606,9 @@
 .confirm-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   z-index: 1000;
   animation: fadeIn var(--t-fast) var(--ease) both;
@@ -575,13 +617,15 @@
 }
 
 .confirm-modal-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: var(--radius-lg);
   padding: 32px;
   width: 90%;
   max-width: 440px;
-  box-shadow: none;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 30px rgba(28, 105, 212, 0.05);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -594,13 +638,14 @@
   width: 60px;
   height: 60px;
   border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--m-red);
-  border: 1px solid var(--color-border);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 4px;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
 }
 
 .confirm-modal-header h3 {
@@ -664,7 +709,7 @@
   border-color: var(--m-red);
 }
 
-/* Legacy anim-btn overrides to standard flat style */
+/* Legacy anim-btn overrides — premium style */
 .anim-btn {
   position: relative;
   display: inline-flex;
@@ -676,7 +721,7 @@
   font-family: var(--font-sans);
   font-size: 14px;
   background-color: transparent;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   font-weight: 700;
   cursor: pointer;
   overflow: hidden;
@@ -685,11 +730,14 @@
   outline: none;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  transition: all var(--t-normal) var(--ease);
 }
 
 .anim-btn:hover {
   background: var(--color-heading);
   color: var(--color-bg);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .anim-btn__text {

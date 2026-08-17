@@ -1,4 +1,5 @@
-/* ─── BMW M Customer Profile ─────────────────────────────── */
+/* ─── Premium Customer Profile ───────────────────────────── */
+/* Glassmorphism · Avatar glow · Form glass cards              */
 
 .profile-page-container {
   margin: 0 auto;
@@ -8,7 +9,7 @@
 .profile-grid {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 24px;
+  gap: 28px;
   margin-top: 24px;
 }
 
@@ -18,36 +19,46 @@
   }
 }
 
-/* Left Overview Card */
+/* Left Overview Card — Glass with avatar glow */
 .profile-card-overview {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 40px 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   text-align: center;
   position: sticky;
   top: 24px;
 }
 
+/* Premium avatar with animated glow ring */
 .profile-avatar-large {
-  width: 96px;
-  height: 96px;
-  border-radius: var(--radius-full); /* Circular exception for avatar */
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(28, 105, 212, 0.15), rgba(226, 39, 24, 0.1));
+  border: 2px solid rgba(28, 105, 212, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
   color: var(--color-heading);
   margin-bottom: 20px;
-  box-shadow: none;
+  box-shadow: 0 0 20px rgba(28, 105, 212, 0.15), 0 0 40px rgba(28, 105, 212, 0.05);
+  animation: pulseGlow 4s ease-in-out infinite;
+  transition: all var(--t-normal) var(--ease);
+}
+
+.profile-avatar-large:hover {
+  box-shadow: 0 0 30px rgba(28, 105, 212, 0.3), 0 0 60px rgba(28, 105, 212, 0.1);
+  border-color: rgba(28, 105, 212, 0.5);
+  transform: scale(1.05);
 }
 
 .profile-card-overview h3 {
@@ -58,24 +69,25 @@
   letter-spacing: 0.5px;
 }
 
+/* Tier badge with shimmer for gold/platinum */
 .profile-tier-badge {
   display: inline-block;
-  padding: 6px 16px;
-  background: transparent;
+  padding: 6px 18px;
+  background: rgba(28, 105, 212, 0.06);
   color: var(--color-heading);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  border: 1px solid rgba(28, 105, 212, 0.2);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin-bottom: 32px;
-  box-shadow: none;
+  box-shadow: 0 0 10px rgba(28, 105, 212, 0.06);
 }
 
 .profile-meta-info-list {
   width: 100%;
-  border-top: 1px solid var(--color-border-dim);
+  border-top: 1px solid var(--glass-border);
   padding-top: 24px;
 }
 
@@ -106,9 +118,10 @@
   color: var(--color-success);
   font-weight: 700;
   text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }
 
-/* Right Columns Forms */
+/* Right Columns Forms — Glass cards */
 .profile-right-column {
   display: flex;
   flex-direction: column;
@@ -117,11 +130,17 @@
 
 .profile-form-card {
   padding: 32px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: all var(--t-normal) var(--ease);
+}
+
+.profile-form-card:hover {
+  border-color: var(--glass-border-hover);
 }
 
 .form-card-title {
@@ -131,7 +150,7 @@
   letter-spacing: 1px;
   margin: 0 0 24px 0;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border-dim);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .profile-form {
@@ -174,7 +193,7 @@
 }
 
 .req-star {
-  color: var(--m-red);
+  color: var(--color-danger);
 }
 
 .form-group input {
@@ -182,19 +201,20 @@
   font-size: 16px;
   font-weight: 300;
   color: var(--color-heading);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 12px 16px;
   height: 48px;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
+  backdrop-filter: blur(8px);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--color-heading);
-  background: var(--color-bg);
-  box-shadow: none;
+  border-color: rgba(28, 105, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(28, 105, 212, 0.1), 0 0 15px rgba(28, 105, 212, 0.08);
+  background: rgba(10, 10, 15, 0.8);
 }
 
 .form-group input:disabled {
@@ -207,10 +227,10 @@
   min-width: 150px;
 }
 
-/* Alerts */
+/* Alerts — glass style */
 .profile-alert {
   padding: 12px 16px;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   margin-bottom: 24px;
   font-size: 14px;
   display: flex;
@@ -218,16 +238,17 @@
   gap: 8px;
   text-align: left;
   line-height: 1.4;
+  backdrop-filter: blur(8px);
 }
 
 .alert-success {
-  background: rgba(15, 163, 54, 0.1);
-  border: 1px solid rgba(15, 163, 54, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: var(--color-success);
 }
 
 .alert-error {
-  background: rgba(226, 39, 24, 0.1);
-  border: 1px solid rgba(226, 39, 24, 0.25);
-  color: var(--m-red);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--color-danger);
 }

@@ -1,5 +1,5 @@
-/* ─── BMW M Customer Loyalty ─────────────────────────────── */
-/* Sharp corners · flat cards · hairline borders · no blurs   */
+/* ─── Premium Customer Loyalty ───────────────────────────── */
+/* Glassmorphism · 3D VIP Card · Glow effects · Animations    */
 
 .loyalty-page-container {
   margin: 0 auto;
@@ -8,7 +8,7 @@
 .loyalty-grid {
   display: grid;
   grid-template-columns: 1fr 1.3fr;
-  gap: 24px;
+  gap: 28px;
   align-items: start;
 }
 
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
   padding-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -54,44 +54,43 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--glass-border);
   border-radius: 50%;
-  border-top-color: var(--color-heading);
+  border-top-color: var(--m-blue-dark);
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ─── VIP Membership Cards (Realistic Credit Card Style) ─── */
+/* ─── VIP Membership Card (3D Metallic Holographic) ─── */
 .membership-vip-card {
   position: relative;
-  height: 230px;
-  border-radius: 16px; /* Rounded credit card corner */
+  height: 240px;
+  border-radius: 18px;
   padding: 28px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
   overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  transition: transform 0.5s var(--ease-spring), box-shadow 0.4s ease;
   color: #ffffff;
+  /* 3D perspective on hover */
+  perspective: 800px;
+  transform-style: preserve-3d;
 }
 
 .membership-vip-card:hover {
-  transform: translateY(-4px) rotate(0.5deg);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(28, 105, 212, 0.1);
 }
 
 /* Metallic Gradients */
 .tier-bronze {
-  background: linear-gradient(135deg, #a0522d 0%, #cd7f32 40%, #8b4513 100%);
+  background: linear-gradient(135deg, #8b4513 0%, #cd7f32 35%, #daa520 50%, #cd7f32 65%, #8b4513 100%);
   border: 1px solid rgba(205, 127, 50, 0.4);
 }
 
 .tier-silver {
-  background: linear-gradient(135deg, #708090 0%, #c0c0c0 45%, #e6e6e6 55%, #708090 100%);
+  background: linear-gradient(135deg, #5c6370 0%, #a8b0bc 30%, #e8edf3 50%, #a8b0bc 70%, #5c6370 100%);
   border: 1px solid rgba(192, 192, 192, 0.5);
   color: #1e293b;
 }
@@ -106,12 +105,12 @@
   color: #0f172a;
 }
 .tier-silver .vip-card-insignia {
-  color: rgba(15, 23, 42, 0.2);
+  color: rgba(15, 23, 42, 0.25);
   border-color: rgba(15, 23, 42, 0.2);
 }
 
 .tier-gold {
-  background: linear-gradient(135deg, #b8860b 0%, #ffd700 35%, #fffacd 50%, #daa520 70%, #8b6508 100%);
+  background: linear-gradient(135deg, #b8860b 0%, #ffd700 30%, #fffbe6 48%, #ffd700 52%, #daa520 70%, #8b6508 100%);
   border: 1px solid rgba(218, 165, 32, 0.5);
   color: #451a03;
 }
@@ -126,37 +125,46 @@
   color: #451a03;
 }
 .tier-gold .vip-card-insignia {
-  color: rgba(69, 26, 3, 0.2);
+  color: rgba(69, 26, 3, 0.25);
   border-color: rgba(69, 26, 3, 0.2);
 }
 
 .tier-platinum {
-  background: linear-gradient(135deg, #0f172a 0%, #334155 30%, #94a3b8 50%, #475569 75%, #0f172a 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 20%, #64748b 45%, #94a3b8 50%, #64748b 55%, #1e293b 80%, #0f172a 100%);
   border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
-/* Card Glow Reflection Overlay */
+/* Animated Shine Sweep Overlay */
 .vip-card-glow {
   display: block;
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  top: -80%;
+  left: -80%;
+  width: 260%;
+  height: 260%;
   background: linear-gradient(
     30deg,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.08) 48%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.08) 52%,
-    rgba(255, 255, 255, 0) 60%
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.06) 44%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.06) 56%,
+    rgba(255, 255, 255, 0) 65%
   );
-  transform: rotate(-10deg);
-  transition: transform 0.6s ease;
+  transform: rotate(-10deg) translateX(-100%);
+  transition: none;
   pointer-events: none;
+  animation: cardShine 4s ease-in-out infinite;
 }
+
+@keyframes cardShine {
+  0%, 100% { transform: rotate(-10deg) translateX(-100%); }
+  50% { transform: rotate(-10deg) translateX(60%); }
+}
+
 .membership-vip-card:hover .vip-card-glow {
-  transform: translate(25%, 25%) rotate(-10deg);
+  animation: none;
+  transform: rotate(-10deg) translateX(30%);
+  transition: transform 0.8s ease;
 }
 
 /* VIP Card Details Layout */
@@ -169,7 +177,7 @@
 .vip-card-brand {
   font-weight: 700;
   font-size: 18px;
-  letter-spacing: 0;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
@@ -178,12 +186,34 @@
 }
 
 .vip-card-chip {
-  width: 38px;
-  height: 28px;
-  background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #aa7c11 100%);
+  width: 42px;
+  height: 30px;
+  background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 40%, #d4af37 60%, #aa7c11 100%);
   border-radius: 6px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
   display: block;
+  position: relative;
+}
+
+/* Chip contact lines */
+.vip-card-chip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.vip-card-chip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .vip-card-body {
@@ -193,7 +223,7 @@
 .vip-card-tier-label {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   opacity: 0.85;
 }
@@ -207,15 +237,16 @@
 
 .pts-num {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .pts-lbl {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   opacity: 0.8;
 }
@@ -227,11 +258,11 @@
 }
 
 .vip-card-holder .holder-lbl {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  opacity: 0.7;
+  opacity: 0.6;
   margin-bottom: 2px;
 }
 
@@ -239,26 +270,31 @@
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .vip-card-insignia {
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   opacity: 0.8;
-  border: 1px solid var(--color-border);
-  padding: 4px 12px;
-  border-radius: 0px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 14px;
+  border-radius: 4px;
   line-height: 1;
+  backdrop-filter: blur(4px);
 }
 
-/* ─── Progress Bar ─── */
+/* ─── Progress Bar (Animated) ─── */
 .progress-card {
   padding: 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .progress-header {
@@ -280,17 +316,32 @@
 
 .progress-bar-bg {
   height: 8px;
-  background: var(--color-bg);
-  border-radius: 0px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--color-heading);
-  border-radius: 0px;
-  box-shadow: none;
+  background: linear-gradient(90deg, var(--m-blue-dark), var(--m-blue-light));
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 12px rgba(28, 105, 212, 0.3);
+  transition: width 1s var(--ease);
+  position: relative;
+}
+
+/* Animated glow trail on progress bar */
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  bottom: -2px;
+  width: 20px;
+  background: radial-gradient(circle, rgba(28, 105, 212, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulseGlow 2s ease-in-out infinite;
 }
 
 .progress-footer {
@@ -298,15 +349,18 @@
   justify-content: space-between;
   font-size: 12px;
   color: var(--color-text-muted);
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* ─── Benefits Card ─── */
 .benefits-card {
   padding: 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .benefit-info-row {
@@ -327,7 +381,7 @@
 .benefit-text {
   font-size: 14px;
   font-weight: 300;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text);
 }
 
@@ -338,9 +392,12 @@
 /* ─── Point History Ledger ─── */
 .history-card {
   padding: 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .empty-history {
@@ -362,7 +419,7 @@
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .history-item {
@@ -370,14 +427,24 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 0px;
-  transition: border-color var(--t-fast) var(--ease);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--t-normal) var(--ease);
+  animation: fadeUp 0.4s var(--ease) both;
 }
 
+/* Stagger animation for history items */
+.history-item:nth-child(1) { animation-delay: 50ms; }
+.history-item:nth-child(2) { animation-delay: 100ms; }
+.history-item:nth-child(3) { animation-delay: 150ms; }
+.history-item:nth-child(4) { animation-delay: 200ms; }
+.history-item:nth-child(5) { animation-delay: 250ms; }
+
 .history-item:hover {
-  border-color: var(--color-border);
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .history-meta {
@@ -412,10 +479,12 @@
 
 .points-credit {
   color: var(--color-success);
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }
 
 .points-debit {
   color: var(--color-danger);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
 }
 
 .history-balance {
@@ -429,7 +498,7 @@
   align-items: center;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--glass-border);
 }
 
 .page-indicator {
@@ -440,52 +509,58 @@
 /* ─── Membership Tiers Comparison ─── */
 .tiers-list-card {
   padding: 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .tier-comparison-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .tier-compare-card {
   position: relative;
   padding: 20px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 0px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
 }
 
 .tier-compare-card:hover {
-  border-color: var(--color-border);
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .current-compare-tier {
-  border-color: var(--color-heading);
-  background: var(--color-bg);
-  box-shadow: none;
+  border-color: rgba(28, 105, 212, 0.3);
+  background: rgba(28, 105, 212, 0.04);
+  animation: borderGlow 3s ease-in-out infinite;
 }
 
 .current-badge {
   position: absolute;
   top: -10px;
   left: 16px;
-  background: var(--color-heading);
-  color: var(--color-bg);
+  background: linear-gradient(135deg, var(--m-blue-dark), var(--m-blue-light));
+  color: #ffffff;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 0px;
-  box-shadow: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(28, 105, 212, 0.3);
 }
 
 .tier-compare-card h4 {
@@ -509,6 +584,6 @@
   color: var(--color-text-muted);
   line-height: 1.4;
   margin-top: 4px;
-  border-top: 1px dashed var(--color-border);
+  border-top: 1px dashed var(--glass-border);
   padding-top: 8px;
 }

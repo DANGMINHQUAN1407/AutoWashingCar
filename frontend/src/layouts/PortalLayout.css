@@ -1,18 +1,33 @@
-/* ─── BMW M Portal Layout ────────────────────────────────── */
+/* ─── Premium Portal Layout ──────────────────────────────── */
 
 .portal-layout {
   min-height: 100vh;
   background: var(--color-bg);
 }
 
-/* Top bar — 64px, black, hairline bottom */
+/* Top bar — frosted glass with M-stripe glow */
 .portal-topbar {
   position: sticky;
   top: 0;
   z-index: 50;
   height: var(--nav-h);
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  background: rgba(5, 5, 8, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 1px 0 rgba(28, 105, 212, 0.08), 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtle M-stripe glow under topbar */
+.portal-topbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--m-stripe);
+  opacity: 0.4;
 }
 
 .portal-topbar-inner {
@@ -33,6 +48,11 @@
   text-transform: uppercase;
   color: var(--color-heading);
   text-decoration: none;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.portal-logo:hover {
+  opacity: 0.85;
 }
 
 .portal-logo-icon {
@@ -58,28 +78,31 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--color-heading);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 4px 12px;
+  backdrop-filter: blur(8px);
 }
 
 /* Body grid — sidebar + main */
 .portal-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 250px 1fr;
   gap: 0;
   padding-top: 0;
   padding-bottom: 48px;
   align-items: start;
 }
 
-/* Sidebar — BMW M: flat, sharp, dark */
+/* Sidebar — glassmorphism with glow */
 .portal-sidebar {
-  background: var(--color-bg);
-  border-right: 1px solid var(--color-border);
+  background: rgba(10, 10, 15, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--glass-border);
   border-radius: 0px;
-  padding: 24px 20px;
+  padding: 24px 16px;
   position: sticky;
   top: var(--nav-h);
   height: calc(100vh - var(--nav-h));
@@ -93,15 +116,16 @@
   gap: 12px;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--color-border-dim);
+  border-bottom: 1px solid var(--glass-border);
 }
 
+/* Avatar with glow ring */
 .portal-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full); /* Circular — BMW exception */
-  background: var(--color-bg-card-2);
-  border: 1px solid var(--color-border);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(28, 105, 212, 0.2), rgba(226, 39, 24, 0.15));
+  border: 2px solid rgba(28, 105, 212, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,6 +133,13 @@
   font-size: 14px;
   color: var(--color-heading);
   flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(28, 105, 212, 0.15);
+  transition: all var(--t-normal) var(--ease);
+}
+
+.portal-avatar:hover {
+  box-shadow: 0 0 20px rgba(28, 105, 212, 0.3);
+  border-color: rgba(28, 105, 212, 0.5);
 }
 
 .portal-user-info h3 {
@@ -126,7 +157,7 @@
   margin-top: 1px;
 }
 
-/* Tier/Role subtitle badges */
+/* Tier/Role subtitle badges with shimmer */
 .portal-user-subtitle {
   display: inline-flex;
   align-items: center;
@@ -134,10 +165,11 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 0px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
   margin-top: 4px !important;
   line-height: 1;
+  backdrop-filter: blur(8px);
 }
 
 .portal-user-subtitle.tier-bronze {
@@ -153,16 +185,32 @@
 }
 
 .portal-user-subtitle.tier-gold {
-  background: rgba(234, 179, 8, 0.1);
+  background: rgba(245, 158, 11, 0.12);
   color: var(--color-warning) !important;
-  border: 1px solid rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    90deg,
+    rgba(245, 158, 11, 0.12) 0%,
+    rgba(255, 215, 0, 0.2) 50%,
+    rgba(245, 158, 11, 0.12) 100%
+  );
+  animation: shimmer 3s linear infinite;
 }
 
 .portal-user-subtitle.tier-platinum,
 .portal-user-subtitle.tier-diamond {
-  background: rgba(28, 105, 212, 0.1);
+  background: rgba(28, 105, 212, 0.12);
   color: var(--color-bmw-blue) !important;
-  border: 1px solid rgba(28, 105, 212, 0.2);
+  border: 1px solid rgba(28, 105, 212, 0.25);
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    90deg,
+    rgba(28, 105, 212, 0.12) 0%,
+    rgba(148, 163, 184, 0.2) 50%,
+    rgba(28, 105, 212, 0.12) 100%
+  );
+  animation: shimmer 3s linear infinite;
 }
 
 .portal-user-subtitle.role-admin,
@@ -170,10 +218,10 @@
 .portal-user-subtitle.role-staff {
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-heading) !important;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
 }
 
-/* Nav links — BMW M: flat, category-tab style */
+/* Nav links — premium slide indicator */
 .portal-nav {
   display: flex;
   flex-direction: column;
@@ -184,37 +232,37 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 0px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-weight: 400;
   font-size: 14px;
   letter-spacing: 0.5px;
   text-decoration: none;
-  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
   border-left: 2px solid transparent;
+  position: relative;
 }
 
 .portal-nav-link:hover {
   color: var(--color-heading);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
+  border-left-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Active: white text + left white border (BMW M category-tab-active style) */
+/* Active: glow left border + background highlight */
 .portal-nav-link.active {
   color: var(--color-heading);
-  background: transparent;
-  border-left-color: var(--color-heading);
+  background: rgba(28, 105, 212, 0.06);
+  border-left-color: var(--m-blue-dark);
   font-weight: 700;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
+  box-shadow: inset 0 0 20px rgba(28, 105, 212, 0.04);
 }
 
 /* Main content area */
 .portal-main {
   min-width: 0;
-  padding: 24px;
+  padding: 28px;
 }
 
 /* Route loading */
@@ -248,8 +296,8 @@
 .portal-layout .spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-heading);
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--m-blue-dark);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -264,7 +312,7 @@
     position: static;
     height: auto;
     border-right: none;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--glass-border);
   }
 
   .portal-main {
@@ -295,7 +343,7 @@
   height: 24px;
   border-radius: 9999px;
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
   transition: background 0.2s ease;
   box-shadow: none;
 }
