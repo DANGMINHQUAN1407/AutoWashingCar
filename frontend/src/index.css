@@ -8,13 +8,13 @@
   color-scheme: dark;
 
   /* ── Surface Colors ── */
-  --color-bg:           #000000; /* Canvas — true black */
-  --color-bg-1:         #0d0d0d; /* Surface soft */
-  --color-bg-2:         #1a1a1a; /* Surface card */
-  --color-bg-card:      #1a1a1a; /* Surface card */
-  --color-bg-card-2:    #262626; /* Surface elevated */
-  --color-bg-alt:       #0d0d0d; /* Alternate section bg */
-  --color-carbon:       #2b2b2b; /* Carbon-fiber surface */
+  --color-bg:           #050508; /* Canvas — near-black with subtle blue tint */
+  --color-bg-1:         #0a0a0f; /* Surface soft */
+  --color-bg-2:         #12121a; /* Surface card */
+  --color-bg-card:      #12121a; /* Surface card */
+  --color-bg-card-2:    #1a1a24; /* Surface elevated */
+  --color-bg-alt:       #0a0a0f; /* Alternate section bg */
+  --color-carbon:       #1e1e28; /* Carbon-fiber surface */
 
   /* ── Brand & Accent (M Tricolor) ── */
   --color-primary:      #ffffff; /* White — the primary CTA color */
@@ -27,21 +27,35 @@
   --color-electric-blue:#0653b6; /* Electric vehicle accent */
 
   /* ── Text Colors ── */
-  --color-text:         #bbbbbb; /* Body text */
-  --color-text-muted:   #7e7e7e; /* Muted / captions */
-  --color-text-dim:     #555555; /* Dimmed text */
+  --color-text:         #b8b8c8; /* Body text — slightly blue-tinted */
+  --color-text-muted:   #6e6e82; /* Muted / captions */
+  --color-text-dim:     #45455a; /* Dimmed text */
   --color-heading:      #ffffff; /* Ink / all headings */
-  --color-body-strong:  #e6e6e6; /* Emphasized body */
+  --color-body-strong:  #e6e6f0; /* Emphasized body */
   --color-white:        #ffffff;
 
   /* ── Borders & Hairlines ── */
-  --color-border:       #3c3c3c; /* Hairline — section dividers, card outlines */
-  --color-border-dim:   #262626; /* Hairline strong — subtle separators */
+  --color-border:       rgba(255, 255, 255, 0.1); /* Glass-style border */
+  --color-border-dim:   rgba(255, 255, 255, 0.05); /* Subtle glass separator */
 
   /* ── Semantic Colors ── */
-  --color-success:      #0fa336;
-  --color-warning:      #f4b400;
-  --color-danger:       #e22718; /* Reusing M red */
+  --color-success:      #10b981;
+  --color-warning:      #f59e0b;
+  --color-danger:       #ef4444; /* Bright red */
+
+  /* ── Glassmorphism Tokens ── */
+  --glass-bg:           rgba(18, 18, 26, 0.6);
+  --glass-bg-strong:    rgba(18, 18, 26, 0.8);
+  --glass-border:       rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.18);
+  --glass-blur:         16px;
+
+  /* ── Glow Tokens ── */
+  --glow-blue:          0 0 20px rgba(28, 105, 212, 0.25), 0 0 40px rgba(28, 105, 212, 0.1);
+  --glow-red:           0 0 20px rgba(226, 39, 24, 0.2), 0 0 40px rgba(226, 39, 24, 0.08);
+  --glow-white:         0 0 20px rgba(255, 255, 255, 0.1), 0 0 40px rgba(255, 255, 255, 0.05);
+  --glow-success:       0 0 15px rgba(16, 185, 129, 0.2);
+  --glow-gold:          0 0 20px rgba(245, 158, 11, 0.25), 0 0 40px rgba(245, 158, 11, 0.1);
 
   /* ── Typography ── */
   --font-sans:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -50,7 +64,7 @@
   /* ── Spacing (4px base grid) ── */
   --nav-h:              64px;
   --section-px:         clamp(16px, 4vw, 48px);
-  --section-py:         96px; /* Section spacing per DESIGN.md */
+  --section-py:         96px;
   --spacing-xxs:        4px;
   --spacing-xs:         8px;
   --spacing-sm:         12px;
@@ -59,25 +73,27 @@
   --spacing-xl:         40px;
   --spacing-xxl:        64px;
 
-  /* ── Border Radius (almost always 0) ── */
+  /* ── Border Radius (premium subtle rounding) ── */
   --radius-none:        0px;
-  --radius-sm:          0px;
-  --radius-md:          0px;
-  --radius-lg:          0px;
-  --radius-xl:          0px;
-  --radius-full:        9999px; /* Circular icon buttons only */
+  --radius-sm:          6px;
+  --radius-md:          10px;
+  --radius-lg:          14px;
+  --radius-xl:          20px;
+  --radius-full:        9999px;
 
-  /* ── Shadows (none in BMW M system) ── */
-  --shadow-card:        none;
-  --shadow-glow:        none;
-  --shadow-btn:         none;
+  /* ── Shadows (premium glow system) ── */
+  --shadow-card:        0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover:  0 8px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(28, 105, 212, 0.08);
+  --shadow-glow:        var(--glow-blue);
+  --shadow-btn:         0 2px 12px rgba(0, 0, 0, 0.3);
 
   /* ── Transitions ── */
   --ease:               cubic-bezier(0.16, 1, 0.3, 1);
   --ease-bounce:        cubic-bezier(0.34, 1.56, 0.64, 1);
-  --t-fast:             100ms;
-  --t-normal:           200ms;
-  --t-slow:             300ms;
+  --ease-spring:        cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --t-fast:             150ms;
+  --t-normal:           250ms;
+  --t-slow:             400ms;
 
   /* ── M Stripe Gradient ── */
   --m-stripe:           linear-gradient(90deg, var(--m-blue-light) 0%, var(--m-blue-light) 33.33%, var(--m-blue-dark) 33.33%, var(--m-blue-dark) 66.66%, var(--m-red) 66.66%, var(--m-red) 100%);
@@ -106,11 +122,23 @@ html {
 body {
   font-family: var(--font-sans);
   font-size: 16px;
-  font-weight: 300; /* BMW M: body uses Light weight */
+  font-weight: 300;
   line-height: 1.5;
   color: var(--color-text);
   background-color: var(--color-bg);
   min-height: 100vh;
+  /* Carbon fiber micro-texture */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(28, 105, 212, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(226, 39, 24, 0.02) 0%, transparent 50%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 4px
+    );
+  background-attachment: fixed;
 }
 
 #root {
@@ -201,7 +229,7 @@ img, svg {
   margin-bottom: 16px;
 }
 
-/* ─── Button System (BMW M: flat, rectangular, uppercase) ── */
+/* ─── Button System (premium glow + glass) ─────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -212,9 +240,9 @@ img, svg {
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  border-radius: 0px; /* Sharp rectangles IS the brand */
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
   white-space: nowrap;
   text-decoration: none;
   outline: none;
@@ -225,10 +253,10 @@ img, svg {
 }
 
 .btn:active {
-  transform: scale(0.985);
+  transform: scale(0.97);
 }
 
-/* Primary: white outline on black */
+/* Primary: white with glow */
 .btn-primary {
   background: transparent;
   color: var(--color-heading);
@@ -238,21 +266,26 @@ img, svg {
 .btn-primary:hover {
   background: var(--color-heading);
   color: var(--color-bg);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
-/* Secondary: surface card bg */
+/* Secondary: glass bg */
 .btn-secondary {
-  background: var(--color-bg-card);
+  background: var(--glass-bg);
   color: var(--color-heading);
-  border-color: var(--color-border);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(8px);
 }
 
 .btn-secondary:hover {
-  background: var(--color-bg-card-2);
-  border-color: var(--color-heading);
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glow-white);
+  transform: translateY(-1px);
 }
 
-/* Ghost: no border, transparent */
+/* Ghost: transparent with subtle reveal */
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
@@ -261,22 +294,25 @@ img, svg {
 
 .btn-ghost:hover {
   color: var(--color-heading);
-  border-color: var(--color-border);
+  border-color: var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-/* Danger */
+/* Danger: red glow */
 .btn-danger {
   background: transparent;
-  color: var(--m-red);
-  border-color: var(--m-red);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .btn-danger:hover {
-  background: var(--m-red);
+  background: var(--color-danger);
   color: var(--color-heading);
+  box-shadow: var(--glow-red);
+  transform: translateY(-1px);
 }
 
-/* Success */
+/* Success: green glow */
 .btn-success {
   background: transparent;
   color: var(--color-success);
@@ -286,6 +322,8 @@ img, svg {
 .btn-success:hover {
   background: var(--color-success);
   color: var(--color-heading);
+  box-shadow: var(--glow-success);
+  transform: translateY(-1px);
 }
 
 /* Sizes */
@@ -293,17 +331,18 @@ img, svg {
 .btn-sm { padding: 8px 16px; font-size: 12px; height: 36px; letter-spacing: 1px; }
 .btn-icon {
   padding: 0;
-  border-radius: var(--radius-full); /* Circular — BMW exception */
+  border-radius: var(--radius-full);
   width: 48px;
   height: 48px;
   aspect-ratio: 1;
-  border-color: var(--color-border);
+  border-color: var(--glass-border);
 }
 
 .btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Legacy premium glow — redirect to primary */
@@ -318,17 +357,21 @@ img, svg {
   color: var(--color-bg);
 }
 
-/* ─── Card System (flat, sharp, no shadow) ──────────────── */
+/* ─── Card System (glassmorphism + glow) ────────────────── */
 .card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 24px;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
+  box-shadow: var(--shadow-card);
 }
 
 .card:hover {
-  border-color: var(--color-body-strong);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* ─── Form System ───────────────────────────────────────── */
@@ -351,14 +394,15 @@ img, svg {
   font-size: 16px;
   font-weight: 300;
   color: var(--color-heading);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 12px 16px;
   height: 48px;
   width: 100%;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
   outline: none;
+  backdrop-filter: blur(8px);
 }
 
 .form-input::placeholder {
@@ -367,7 +411,9 @@ img, svg {
 }
 
 .form-input:focus {
-  border-color: var(--color-heading);
+  border-color: rgba(28, 105, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(28, 105, 212, 0.1), 0 0 15px rgba(28, 105, 212, 0.08);
+  background: rgba(10, 10, 15, 0.8);
 }
 
 .form-input option {
@@ -376,44 +422,46 @@ img, svg {
 }
 
 .form-input.error {
-  border-color: var(--m-red);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-/* ─── Badge / Chip (sharp, no rounding) ─────────────────── */
+/* ─── Badge / Chip (glass + glow) ───────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
 
 .badge-success {
-  background: rgba(15, 163, 54, 0.1);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--color-success);
-  border: 1px solid rgba(15, 163, 54, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .badge-warning {
-  background: rgba(244, 180, 0, 0.1);
+  background: rgba(245, 158, 11, 0.12);
   color: var(--color-warning);
-  border: 1px solid rgba(244, 180, 0, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .badge-danger {
-  background: rgba(226, 39, 24, 0.1);
-  color: var(--m-red);
-  border: 1px solid rgba(226, 39, 24, 0.25);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .badge-primary {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--color-heading);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
 }
 
 /* ─── Divider ───────────────────────────────────────────── */
@@ -427,12 +475,12 @@ img, svg {
 /* ─── Scroll Bar ────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 0px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
-/* ─── Animations (minimal — BMW M is restrained) ────────── */
+/* ─── Animations (premium micro-animations) ─────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -445,15 +493,36 @@ img, svg {
   to { transform: rotate(360deg); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(28, 105, 212, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(28, 105, 212, 0.3), 0 0 40px rgba(28, 105, 212, 0.1); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: var(--glass-border); }
+  50% { border-color: rgba(28, 105, 212, 0.3); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 .animate-fade-up    { animation: fadeUp var(--t-normal) var(--ease) both; }
 .animate-fade-in    { animation: fadeIn var(--t-normal) var(--ease) both; }
 .animate-spin       { animation: spin 0.8s linear infinite; }
+.animate-slide-in   { animation: slideInLeft var(--t-normal) var(--ease) both; }
 
-.delay-1 { animation-delay: 50ms; }
-.delay-2 { animation-delay: 100ms; }
-.delay-3 { animation-delay: 150ms; }
-.delay-4 { animation-delay: 200ms; }
-.delay-5 { animation-delay: 250ms; }
+.delay-1 { animation-delay: 80ms; }
+.delay-2 { animation-delay: 160ms; }
+.delay-3 { animation-delay: 240ms; }
+.delay-4 { animation-delay: 320ms; }
+.delay-5 { animation-delay: 400ms; }
 
 /* ─── Utility ───────────────────────────────────────────── */
 .w-full { width: 100%; }
@@ -584,11 +653,11 @@ img, svg {
 @keyframes cardFadeUp {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(20px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -601,10 +670,10 @@ img, svg {
 .vehicle-card,
 .mgr-stat-card,
 .membership-vip-card {
-  animation: cardFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardFadeUp 0.7s var(--ease-spring) both;
   transition: transform var(--t-normal) var(--ease), 
               border-color var(--t-normal) var(--ease),
-              box-shadow var(--t-normal) var(--ease) !important;
+              box-shadow var(--t-slow) var(--ease) !important;
 }
 
 .card:nth-child(1),
@@ -614,7 +683,7 @@ img, svg {
 .ticket-card:nth-child(1),
 .booking-card:nth-child(1),
 .vehicle-card:nth-child(1) {
-  animation-delay: 100ms;
+  animation-delay: 80ms;
 }
 
 .card:nth-child(2),
@@ -624,7 +693,7 @@ img, svg {
 .ticket-card:nth-child(2),
 .booking-card:nth-child(2),
 .vehicle-card:nth-child(2) {
-  animation-delay: 200ms;
+  animation-delay: 160ms;
 }
 
 .card:nth-child(3),
@@ -634,13 +703,13 @@ img, svg {
 .ticket-card:nth-child(3),
 .booking-card:nth-child(3),
 .vehicle-card:nth-child(3) {
-  animation-delay: 300ms;
+  animation-delay: 240ms;
 }
 
 .card:nth-child(4),
 .step-card:nth-child(4),
 .booking-card:nth-child(4) {
-  animation-delay: 400ms;
+  animation-delay: 320ms;
 }
 
 .card:hover,
@@ -651,7 +720,7 @@ img, svg {
 .booking-card:hover,
 .vehicle-card:hover,
 .mgr-stat-card:hover {
-  transform: translateY(-4px) !important;
-  border-color: var(--color-heading) !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-4px) scale(1.005) !important;
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: var(--shadow-card-hover), 0 0 30px rgba(28, 105, 212, 0.06) !important;
 }

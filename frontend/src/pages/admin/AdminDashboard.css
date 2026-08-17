@@ -1,11 +1,13 @@
-/* ─── Admin Dashboard ──────────────────────────────────────── */
+/* ─── Premium Admin Dashboard ─────────────────────────────── */
+/* Glassmorphism · BMW M Accents · Unified design system        */
+
 .adm-dashboard {
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
 
-/* ── Main 2-col grid ────────────────────────────────────────── */
+/* Main 2-col grid */
 .adm-main-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -14,9 +16,7 @@
 }
 
 @media (max-width: 1100px) {
-  .adm-main-grid {
-    grid-template-columns: 1fr;
-  }
+  .adm-main-grid { grid-template-columns: 1fr; }
 }
 
 .adm-left-col {
@@ -31,28 +31,37 @@
   gap: 24px;
 }
 
-/* ── Network Summary Card ───────────────────────────────────── */
+/* Network Summary Card */
 .adm-network-card {
   position: relative;
   padding: 28px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
+/* Ambient glow in corner */
 .adm-network-glow {
   position: absolute;
   top: -40px;
   right: -40px;
   width: 180px;
   height: 180px;
-  background: radial-gradient(circle, rgba(0, 210, 255, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(28, 105, 212, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .adm-network-card h3 {
   margin: 0 0 20px;
-  color: #e2e2e8;
-  font-size: 18px;
-  font-weight: 600;
+  color: var(--color-heading);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .adm-network-row {
@@ -62,22 +71,29 @@
   margin-bottom: 20px;
 }
 
+/* Network stat mini-cards */
 .adm-network-item {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 14px;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
-  outline: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  transition: all var(--t-fast) var(--ease);
+}
+
+.adm-network-item:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .adm-network-label {
-  color: #bbc9cf;
+  color: var(--color-text-muted);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .adm-network-val {
@@ -86,8 +102,8 @@
   line-height: 1.2;
 }
 
-.adm-network-val--green { color: #00ffc2; }
-.adm-network-val--red   { color: #ff4b4b; }
+.adm-network-val--green { color: var(--color-success); text-shadow: 0 0 10px rgba(16,185,129,0.2); }
+.adm-network-val--red   { color: var(--color-danger);  text-shadow: 0 0 10px rgba(239,68,68,0.2); }
 
 /* Health bar */
 .adm-health-bar-wrap {
@@ -97,25 +113,27 @@
 .adm-health-bar-label {
   display: flex;
   justify-content: space-between;
-  color: #bbc9cf;
+  color: var(--color-text-muted);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 
 .adm-health-bar {
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .adm-health-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0072ff 0%, #00ffc2 100%);
-  border-radius: 9999px;
-  box-shadow: 0 0 10px rgba(0, 255, 194, 0.4);
-  transition: width 0.6s ease;
+  background: linear-gradient(90deg, var(--m-blue-dark) 0%, var(--color-success) 100%);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  transition: width 0.6s var(--ease);
 }
 
 /* Bottom stats row */
@@ -124,7 +142,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--glass-border);
 }
 
 .adm-network-stat {
@@ -134,22 +152,28 @@
 }
 
 .adm-network-stat-label {
-  color: #bbc9cf;
+  color: var(--color-text-muted);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .adm-network-stat-val {
-  color: #e2e2e8;
+  color: var(--color-heading);
   font-size: 18px;
   font-weight: 700;
 }
 
-/* ── Alerts Card ─────────────────────────────────────────────── */
+/* Alerts Card */
 .adm-alerts-card {
   overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .adm-alert-count {
@@ -159,10 +183,11 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(255, 178, 41, 0.15);
-  color: #ffb229;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--color-warning);
   font-size: 11px;
   font-weight: 700;
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .adm-alerts-list {
@@ -174,9 +199,10 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background 0.15s;
+  padding: 14px 24px;
+  border-top: 1px solid var(--glass-border);
+  transition: background var(--t-fast) var(--ease);
+  cursor: pointer;
 }
 
 .adm-alert-item:hover {
@@ -191,9 +217,9 @@
   margin-top: 5px;
 }
 
-.adm-alert-item--warning .adm-alert-dot  { background: #ffb229; box-shadow: 0 0 6px #ffb229; }
-.adm-alert-item--success .adm-alert-dot  { background: #00ffc2; box-shadow: 0 0 6px #00ffc2; }
-.adm-alert-item--info    .adm-alert-dot  { background: #a5e7ff; box-shadow: 0 0 6px #a5e7ff; }
+.adm-alert-item--warning .adm-alert-dot { background: var(--color-warning); box-shadow: 0 0 6px rgba(245,158,11,0.5); }
+.adm-alert-item--success .adm-alert-dot { background: var(--color-success); box-shadow: 0 0 6px rgba(16,185,129,0.5); }
+.adm-alert-item--info    .adm-alert-dot { background: var(--m-blue-dark);   box-shadow: 0 0 6px rgba(28,105,212,0.5); }
 
 .adm-alert-body {
   flex: 1;
@@ -201,9 +227,9 @@
 }
 
 .adm-alert-title {
-  color: #e2e2e8;
+  color: var(--color-heading);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
@@ -211,33 +237,24 @@
 }
 
 .adm-alert-msg {
-  color: #bbc9cf;
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.5;
+  font-weight: 300;
 }
 
 .adm-alert-badge {
   flex-shrink: 0;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
   align-self: center;
+  backdrop-filter: blur(8px);
 }
 
-.adm-alert-badge--warning {
-  background: rgba(255, 178, 41, 0.12);
-  color: #ffb229;
-}
-
-.adm-alert-badge--success {
-  background: rgba(0, 255, 194, 0.12);
-  color: #00ffc2;
-}
-
-.adm-alert-badge--info {
-  background: rgba(165, 231, 255, 0.12);
-  color: #a5e7ff;
-}
+.adm-alert-badge--warning { background: rgba(245,158,11,0.12); color: var(--color-warning); border: 1px solid rgba(245,158,11,0.25); }
+.adm-alert-badge--success { background: rgba(16,185,129,0.12); color: var(--color-success); border: 1px solid rgba(16,185,129,0.25); }
+.adm-alert-badge--info    { background: rgba(28,105,212,0.12); color: var(--m-blue-dark);   border: 1px solid rgba(28,105,212,0.25); }

@@ -1,10 +1,17 @@
-/* ─── Manager Customers Layout ─── */
+/* ─── Premium Manager Customers ──────────────────────────── */
+
 .manager-customers-container {
   margin: 0 auto;
 }
 
 .search-card {
   padding: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .customer-search-form {
@@ -28,31 +35,32 @@
 
 /* Alert Banner */
 .alert-banner {
-  padding: 16px 20px;
-  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 14px;
   line-height: 1.4;
   margin-top: 4px;
+  backdrop-filter: blur(8px);
 }
 
 .alert-success {
   background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .alert-error {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 /* Workspace Layout */
 .manager-loyalty-workspace {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  gap: 28px;
+  gap: 24px;
   margin-top: 4px;
 }
 
@@ -66,25 +74,42 @@
 .workspace-right {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .workspace-card-title {
-  font-size: 1.15rem;
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
   color: var(--color-heading);
-  border-bottom: 1px solid var(--color-border-dim);
+  border-bottom: 1px solid var(--glass-border);
   padding-bottom: 12px;
 }
 
-/* Profile details */
+/* Card sections — glass */
 .customer-details-card,
 .loyalty-summary-card,
 .adjustment-card,
 .ledger-history-card,
 .tiers-reference-card {
   padding: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: all var(--t-normal) var(--ease);
+}
+
+.customer-details-card:hover,
+.loyalty-summary-card:hover,
+.adjustment-card:hover,
+.ledger-history-card:hover,
+.tiers-reference-card:hover {
+  border-color: var(--glass-border-hover);
 }
 
 .profile-details-grid {
@@ -94,9 +119,7 @@
 }
 
 @media (max-width: 500px) {
-  .profile-details-grid {
-    grid-template-columns: 1fr;
-  }
+  .profile-details-grid { grid-template-columns: 1fr; }
 }
 
 .detail-item {
@@ -106,21 +129,23 @@
 }
 
 .detail-lbl {
-  font-size: 0.82rem;
+  font-size: 12px;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 
 .detail-val {
-  font-size: 1rem;
+  font-size: 14px;
   color: var(--color-heading);
   word-break: break-all;
+  font-weight: 300;
 }
 
 .customer-vehicles-section {
   margin-top: 20px;
-  border-top: 1px dashed var(--color-border-dim);
+  border-top: 1px dashed var(--glass-border);
   padding-top: 16px;
 }
 
@@ -132,51 +157,67 @@
 }
 
 .vehicle-pill {
-  font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border-dim);
-  padding: 6px 12px;
-  border-radius: 99px;
+  font-size: 13px;
+  background: rgba(28, 105, 212, 0.05);
+  border: 1px solid rgba(28, 105, 212, 0.15);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
   color: var(--color-text);
+  transition: all var(--t-fast) var(--ease);
 }
 
-/* Loyalty summary */
+.vehicle-pill:hover {
+  border-color: rgba(28, 105, 212, 0.3);
+  color: var(--color-heading);
+}
+
+/* Loyalty stat boxes */
 .loyalty-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
 }
 
 .loyalty-stat-box {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.loyalty-stat-box:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .stat-lbl {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 
 .stat-val-tier {
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .stat-val-points {
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-success);
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }
 
 .stat-val-sub {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
@@ -197,8 +238,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 4px;
 }
 
@@ -206,22 +247,28 @@
   background: transparent;
   border: none;
   padding: 10px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: calc(var(--radius-sm) - 2px);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--t-normal) var(--ease);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .toggle-option.active-add {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.08);
 }
 
 .toggle-option.active-deduct {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.08);
 }
 
 .quick-adjust-buttons {
@@ -245,7 +292,7 @@
 .ledger-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .ledger-item {
@@ -254,8 +301,14 @@
   align-items: center;
   padding: 14px 16px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--t-fast) var(--ease);
+}
+
+.ledger-item:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .ledger-meta {
@@ -265,14 +318,14 @@
 }
 
 .ledger-desc {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
 .ledger-date {
-  font-size: 0.78rem;
-  color: var(--color-text-dim);
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 .ledger-nums {
@@ -284,12 +337,12 @@
 
 .ledger-points {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 14px;
   font-family: var(--font-display);
 }
 
 .ledger-balance {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
@@ -299,11 +352,11 @@
   align-items: center;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid var(--color-border-dim);
+  border-top: 1px solid var(--glass-border);
 }
 
 .ledger-page-indicator {
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--color-text-muted);
 }
 
@@ -311,14 +364,20 @@
 .reference-tiers-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .reference-tier-item {
   padding: 14px 16px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--t-fast) var(--ease);
+}
+
+.reference-tier-item:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .ref-tier-header {
@@ -329,45 +388,27 @@
 }
 
 .ref-tier-header h4 {
-  font-size: 1.05rem;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--color-primary);
+  text-transform: uppercase;
+  color: var(--color-heading);
 }
 
 .ref-tier-points {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-text-muted);
 }
 
 .ref-tier-body {
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--color-text);
 }
 
 .ref-tier-benefits {
-  font-size: 0.82rem;
-  color: var(--color-text-dim);
+  font-size: 12px;
+  color: var(--color-text-muted);
   margin-top: 4px;
-  border-top: 1px dashed var(--color-border-dim);
+  border-top: 1px dashed var(--glass-border);
   padding-top: 6px;
-}
-
-/* Light Theme overrides */
-[data-theme="light"] .ledger-item,
-[data-theme="light"] .loyalty-stat-box,
-[data-theme="light"] .reference-tier-item,
-[data-theme="light"] .vehicle-pill {
-  background: #f8fafc;
-}
-[data-theme="light"] .adjustment-type-toggle {
-  background: #f1f5f9;
-}
-[data-theme="light"] .toggle-option.active-add {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-[data-theme="light"] .toggle-option.active-deduct {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }

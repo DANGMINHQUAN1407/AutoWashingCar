@@ -1,5 +1,5 @@
-/* ─── BMW M Manager Dashboard ────────────────────────────── */
-/* True black, sharp corners, hairline borders, flat panels   */
+/* ─── Premium Manager Dashboard ──────────────────────────── */
+/* Glassmorphism · Glow effects · Micro-animations             */
 
 .mgr-dashboard {
   display: flex;
@@ -31,15 +31,15 @@
   font-weight: 300;
 }
 
-/* Manager primary buttons */
+/* Manager primary buttons — premium glow */
 .mgr-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 32px;
+  padding: 14px 28px;
   background: transparent;
   border: 1px solid var(--color-heading);
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   color: var(--color-heading);
   font-size: 14px;
   font-weight: 700;
@@ -47,18 +47,21 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
 }
 
 .mgr-btn-primary:hover {
   background: var(--color-heading);
   color: var(--color-bg);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
+/* ── Stats Grid ── */
 .mgr-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 20px;
 }
 
 @media (max-width: 1100px) {
@@ -73,15 +76,38 @@
   }
 }
 
+/* Stat Cards — Glass + M-stripe top */
 .mgr-stat-card {
   position: relative;
   padding: 24px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
+  transition: all var(--t-normal) var(--ease);
+}
+
+.mgr-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--m-stripe);
+  opacity: 0.45;
+  transition: opacity var(--t-normal) var(--ease);
+}
+
+.mgr-stat-card:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+}
+
+.mgr-stat-card:hover::before {
+  opacity: 1;
 }
 
 .mgr-stat-top {
@@ -90,20 +116,22 @@
   align-items: flex-start;
 }
 
+/* Icon circles — glass style */
 .mgr-stat-icon {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-full); /* Circular exception for icons */
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
 }
 
-.mgr-stat-icon--cyan { background: transparent; color: var(--color-heading); }
-.mgr-stat-icon--amber { background: transparent; color: var(--color-warning); border-color: var(--color-warning); }
-.mgr-stat-icon--blue { background: transparent; color: var(--color-bmw-blue); border-color: var(--color-bmw-blue); }
-.mgr-stat-icon--teal { background: transparent; color: var(--color-heading); }
+.mgr-stat-icon--cyan  { background: rgba(255,255,255,0.04); color: var(--color-heading); }
+.mgr-stat-icon--amber { background: rgba(245,158,11,0.08);  color: var(--color-warning); border-color: rgba(245,158,11,0.2); }
+.mgr-stat-icon--blue  { background: rgba(28,105,212,0.08);  color: var(--color-bmw-blue); border-color: rgba(28,105,212,0.2); }
+.mgr-stat-icon--teal  { background: rgba(16,185,129,0.08);  color: var(--color-success); border-color: rgba(16,185,129,0.2); }
 
 .mgr-stat-trend {
   display: flex;
@@ -137,6 +165,7 @@
   font-family: var(--font-display);
 }
 
+/* ── Main Grid ── */
 .mgr-main-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -157,27 +186,34 @@
   gap: 24px;
 }
 
+/* Glass Panels */
 .mgr-panel {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
+  transition: all var(--t-normal) var(--ease);
+}
+
+.mgr-panel:hover {
+  border-color: var(--glass-border-hover);
 }
 
 .mgr-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid var(--color-border-dim);
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .mgr-panel-header h3 {
   margin: 0;
   color: var(--color-heading);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -186,7 +222,7 @@
 .mgr-link-btn {
   background: none;
   border: none;
-  color: var(--color-heading);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -196,10 +232,10 @@
 }
 
 .mgr-link-btn:hover {
-  color: var(--color-text-muted);
-  text-decoration: none;
+  color: var(--color-heading);
 }
 
+/* ── Bar Chart ── */
 .mgr-chart-panel {
   padding: 24px;
 }
@@ -208,13 +244,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .mgr-chart-header h3 {
   margin: 0;
   color: var(--color-heading);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -235,8 +271,8 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-heading);
-  box-shadow: none;
+  background: var(--m-blue-dark);
+  box-shadow: 0 0 6px rgba(28, 105, 212, 0.4);
 }
 
 .mgr-chart-bars {
@@ -255,12 +291,12 @@
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
-  opacity: 0.1;
+  opacity: 0.08;
 }
 
 .mgr-chart-grid-line {
   height: 1px;
-  background: var(--color-border);
+  background: var(--color-heading);
 }
 
 .mgr-chart-bar {
@@ -268,9 +304,15 @@
   z-index: 1;
   width: 32px;
   min-height: 20px;
-  background: var(--color-heading);
-  border-radius: 0px;
+  background: linear-gradient(to top, var(--m-blue-dark), rgba(28,105,212,0.5));
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transform-origin: bottom;
+  transition: all var(--t-normal) var(--ease);
+}
+
+.mgr-chart-bar:hover {
+  background: linear-gradient(to top, var(--color-heading), rgba(255,255,255,0.6));
+  box-shadow: 0 0 12px rgba(28,105,212,0.3);
 }
 
 .mgr-chart-labels {
@@ -286,32 +328,38 @@
   font-weight: 500;
 }
 
+/* ── Table ── */
 .mgr-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .mgr-table thead {
-  background: var(--color-bg-1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .mgr-table th {
-  padding: 16px 24px;
+  padding: 14px 24px;
   text-align: left;
-  color: var(--color-heading);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .mgr-table td {
-  padding: 16px 24px;
+  padding: 14px 24px;
   color: var(--color-text);
   font-size: 14px;
   font-weight: 300;
-  border-top: 1px solid var(--color-border-dim);
+  border-top: 1px solid var(--glass-border);
+  transition: background var(--t-fast) var(--ease);
+}
+
+.mgr-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .mgr-table td.muted {
@@ -324,6 +372,7 @@
   gap: 12px;
 }
 
+/* Glass Avatar */
 .mgr-avatar {
   width: 32px;
   height: 32px;
@@ -333,21 +382,24 @@
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  background: var(--color-bg-card-2);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(28,105,212,0.15), rgba(226,39,24,0.1));
+  border: 1px solid rgba(28,105,212,0.25);
   color: var(--color-heading);
+  box-shadow: 0 0 8px rgba(28,105,212,0.1);
 }
 
+/* Status Badges — glass */
 .mgr-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  border-radius: 0px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
 
 .mgr-status-badge--progress {
@@ -357,27 +409,27 @@
 }
 
 .mgr-status-badge--completed {
-  background: rgba(15, 163, 54, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
-  border: 1px solid rgba(15, 163, 54, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .mgr-status-badge--pending {
-  background: rgba(244, 180, 0, 0.1);
+  background: rgba(245, 158, 11, 0.1);
   color: var(--color-warning);
-  border: 1px solid rgba(244, 180, 0, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .mgr-status-badge--open {
-  background: rgba(15, 163, 54, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
-  border: 1px solid var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .mgr-status-badge--closed {
-  background: rgba(226, 39, 24, 0.1);
-  color: var(--m-red);
-  border: 1px solid var(--m-red);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .mgr-status-dot {
@@ -387,20 +439,28 @@
   background: currentColor;
 }
 
+/* ── Branch Info Panel ── */
 .mgr-branch-info {
   position: relative;
   padding: 24px;
   overflow: hidden;
 }
 
+/* Subtle glow in corner */
 .mgr-branch-info-glow {
-  display: none;
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(28,105,212,0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .mgr-branch-info h3 {
   margin: 0 0 20px;
   color: var(--color-heading);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -437,7 +497,7 @@
 .mgr-address-row svg {
   flex-shrink: 0;
   margin-top: 4px;
-  color: var(--color-heading);
+  color: var(--m-blue-dark);
 }
 
 .mgr-branch-status-row {
@@ -445,7 +505,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border-dim);
+  border-top: 1px solid var(--glass-border);
 }
 
 .mgr-branch-status-row span {
@@ -456,6 +516,7 @@
   letter-spacing: 0.5px;
 }
 
+/* ── Quick Actions ── */
 .mgr-quick-actions {
   padding: 24px;
 }
@@ -463,7 +524,7 @@
 .mgr-quick-actions h3 {
   margin: 0 0 20px;
   color: var(--color-heading);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -472,7 +533,7 @@
 .mgr-quick-actions-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .mgr-quick-action-btn {
@@ -480,10 +541,10 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 16px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   color: var(--color-heading);
   font-size: 14px;
   font-weight: 700;
@@ -491,12 +552,13 @@
   text-transform: uppercase;
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
 }
 
 .mgr-quick-action-btn:hover {
-  border-color: var(--color-heading);
-  background: var(--color-bg-card);
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
 }
 
 .mgr-quick-action-icon {
@@ -507,17 +569,23 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
+  background: rgba(28, 105, 212, 0.06);
 }
 
+/* ── Pro Tip Banner ── */
 .mgr-pro-tip {
   position: relative;
-  min-height: 192px;
+  min-height: 160px;
   overflow: hidden;
 }
 
 .mgr-pro-tip-bg {
-  display: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(28,105,212,0.04) 0%, transparent 60%),
+              repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.005) 3px, rgba(255,255,255,0.005) 6px);
+  pointer-events: none;
 }
 
 .mgr-pro-tip-content {
@@ -526,11 +594,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 192px;
+  min-height: 160px;
 }
 
 .mgr-pro-tip-label {
-  color: var(--color-heading);
+  color: var(--m-blue-dark);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1.5px;
@@ -542,7 +610,7 @@
   color: var(--color-text);
   font-size: 14px;
   font-weight: 300;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .mgr-loading,
@@ -553,7 +621,7 @@
 }
 
 .mgr-error {
-  color: var(--m-red);
+  color: var(--color-danger);
 }
 
 .mgr-branch-code {

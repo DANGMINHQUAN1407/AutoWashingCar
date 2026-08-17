@@ -6,11 +6,11 @@
 
 /* Glassmorphism Filters */
 .glass-filters {
-  background: var(--color-bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border-dim);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-card);
@@ -22,8 +22,8 @@
 }
 
 .glass-filters:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-card), 0 0 20px rgba(99, 102, 241, 0.15);
+  border-color: rgba(28, 105, 212, 0.4);
+  box-shadow: var(--shadow-card), 0 0 20px rgba(28, 105, 212, 0.08);
 }
 
 .glass-filters .form-input {
@@ -131,9 +131,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-dim);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 22px 28px;
   position: relative;
   overflow: hidden;
@@ -144,8 +146,8 @@
 
 .user-card-premium:hover {
   transform: translateY(-3px);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-card), 0 10px 30px -10px rgba(30, 144, 255, 0.15);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .user-card-premium::before {
@@ -182,26 +184,25 @@
 .user-avatar-premium {
   width: 54px;
   height: 54px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(30, 144, 255, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
-  border: 1px solid rgba(30, 144, 255, 0.2);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(28,105,212,0.12) 0%, rgba(226,39,24,0.08) 100%);
+  border: 1px solid rgba(28,105,212,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--color-primary);
-  text-shadow: 0 2px 4px rgba(30, 144, 255, 0.2);
-  transition: transform var(--t-normal) var(--ease);
+  font-size: 20px;
+  color: var(--color-heading);
+  box-shadow: 0 0 10px rgba(28,105,212,0.08);
+  transition: all var(--t-normal) var(--ease);
 }
 
 .user-card-premium:hover .user-avatar-premium {
-  transform: scale(1.05) rotate(3deg);
-  background: var(--grad-primary);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 15px rgba(30, 144, 255, 0.4);
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(28,105,212,0.2), rgba(226,39,24,0.12));
+  border-color: rgba(28,105,212,0.4);
+  box-shadow: 0 0 15px rgba(28,105,212,0.2);
 }
 
 .status-indicator-dot {
@@ -377,18 +378,18 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
+  border: 1px solid var(--glass-border);
   color: var(--color-text);
   cursor: pointer;
   transition: all var(--t-normal) var(--ease);
 }
 
 .btn-page-nav:hover:not(:disabled) {
-  background: rgba(30, 144, 255, 0.08);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: rgba(28, 105, 212, 0.08);
+  border-color: rgba(28, 105, 212, 0.35);
+  color: var(--color-heading);
   transform: translateY(-1px);
 }
 
@@ -563,9 +564,10 @@
   align-items: center;
   justify-content: center;
   padding: 60px 40px;
-  background: rgba(15, 26, 46, 0.2);
-  border: 1px dashed var(--color-border-dim);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-md);
   text-align: center;
   color: var(--color-text-muted);
 }
@@ -573,7 +575,7 @@
 .empty-state-icon-premium {
   font-size: 3rem;
   margin-bottom: 16px;
-  filter: drop-shadow(0 4px 12px rgba(30, 144, 255, 0.15));
+  filter: drop-shadow(0 4px 12px rgba(28, 105, 212, 0.15));
 }
 
 .empty-state-premium h3 {

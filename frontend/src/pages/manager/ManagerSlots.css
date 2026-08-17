@@ -1,52 +1,76 @@
-/* Manager Slots Stylesheet - Premium Aesthetics */
+/* ─── Premium Manager Slots ───────────────────────────────── */
+/* Glassmorphism · BMW M Accents · Micro-animations            */
 
 .mgr-slots-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 24px;
   animation: fadeUp var(--t-slow) var(--ease) both;
 }
 
-/* Header & Stat Cards */
+/* Header */
 .mgr-slots-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
 }
 
 .mgr-slots-header h2 {
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
-  font-weight: 800;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
   color: var(--color-heading);
+  text-transform: uppercase;
 }
 
 .mgr-slots-header p {
   color: var(--color-text-muted);
-  font-size: 0.95rem;
+  font-size: 15px;
+  font-weight: 300;
 }
 
 .mgr-header-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
+/* Stat Cards */
 .mgr-slots-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: 16px;
 }
 
 .mgr-slots-stat-card {
-  background: var(--grad-card);
-  border: 1px solid var(--color-border-dim);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  padding: 1.25rem;
+  padding: 20px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 16px;
   box-shadow: var(--shadow-card);
+  transition: all var(--t-normal) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.mgr-slots-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--m-stripe);
+  opacity: 0.4;
+}
+
+.mgr-slots-stat-card:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .mgr-slots-stat-icon {
@@ -56,35 +80,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.mgr-slots-stat-icon--total { background: rgba(99, 102, 241, 0.12); color: var(--color-primary); }
-.mgr-slots-stat-icon--booked { background: rgba(244, 63, 94, 0.12); color: var(--color-danger); }
-.mgr-slots-stat-icon--capacity { background: rgba(6, 182, 212, 0.12); color: var(--color-cyan); }
+.mgr-slots-stat-icon--total    { background: rgba(28,105,212,0.08);  color: var(--color-bmw-blue);  border: 1px solid rgba(28,105,212,0.2); }
+.mgr-slots-stat-icon--booked   { background: rgba(239,68,68,0.08);   color: var(--color-danger);    border: 1px solid rgba(239,68,68,0.2); }
+.mgr-slots-stat-icon--capacity { background: rgba(16,185,129,0.08);  color: var(--color-success);   border: 1px solid rgba(16,185,129,0.2); }
 
 .mgr-slots-stat-info h4 {
-  font-size: 0.8rem;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   color: var(--color-text-muted);
 }
 
 .mgr-slots-stat-info p {
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-heading);
-  margin-top: 0.25rem;
+  margin-top: 4px;
 }
 
-/* Date Range and Filter Bar */
+/* Filter Bar */
 .mgr-slots-filters {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-dim);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  padding: 1rem;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
   box-shadow: var(--shadow-card);
 }
 
@@ -92,122 +120,132 @@
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
 .mgr-filter-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 .mgr-filter-field label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .mgr-filter-input {
   font-family: var(--font-sans);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-dim);
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  padding: 0.55rem 0.85rem;
+  padding: 9px 14px;
   color: var(--color-heading);
   outline: none;
-  font-size: 0.9rem;
-  transition: all var(--t-fast) var(--ease);
+  font-size: 14px;
+  transition: all var(--t-normal) var(--ease);
+  backdrop-filter: blur(8px);
 }
 
 .mgr-filter-input:focus {
-  border-color: var(--color-primary);
-  background: rgba(99, 102, 241, 0.05);
+  border-color: rgba(28, 105, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(28, 105, 212, 0.1);
+  background: rgba(10, 10, 15, 0.8);
 }
 
-/* Horizontal Date Picker Slider */
+/* Date Slider */
 .mgr-date-slider-container {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .mgr-date-slider-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .mgr-date-slider {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 0.35rem;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 
 .mgr-date-slide-btn {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-dim);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.85rem;
+  padding: 8px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  min-width: 75px;
+  gap: 3px;
+  min-width: 72px;
   cursor: pointer;
   transition: all var(--t-fast) var(--ease);
   color: var(--color-text);
+  flex-shrink: 0;
 }
 
 .mgr-date-slide-btn:hover {
-  background: rgba(99, 102, 241, 0.05);
-  border-color: var(--color-border);
+  background: rgba(28, 105, 212, 0.05);
+  border-color: rgba(28, 105, 212, 0.2);
+  color: var(--color-heading);
 }
 
 .mgr-date-slide-btn.active {
-  background: var(--color-primary-dim);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  box-shadow: 0 0 10px var(--color-primary-glow);
+  background: rgba(28, 105, 212, 0.1);
+  border-color: rgba(28, 105, 212, 0.35);
+  color: var(--color-heading);
+  box-shadow: 0 0 10px rgba(28, 105, 212, 0.08);
 }
 
 .mgr-date-slide-btn-day {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--color-text-muted);
 }
 
 .mgr-date-slide-btn.active .mgr-date-slide-btn-day {
-  color: var(--color-primary);
+  color: var(--m-blue-dark);
 }
 
 .mgr-date-slide-btn-num {
-  font-size: 1.15rem;
+  font-size: 18px;
   font-weight: 700;
 }
 
-/* Slots Grid and Cards */
+/* Slots Grid */
 .mgr-slots-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
+  gap: 20px;
 }
 
+/* Slot Card */
 .mgr-slot-card {
-  background: var(--grad-card);
-  border: 1px solid var(--color-border-dim);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  padding: 1.25rem;
+  padding: 20px;
   box-shadow: var(--shadow-card);
   transition: all var(--t-normal) var(--ease);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
   position: relative;
   overflow: hidden;
 }
@@ -215,26 +253,27 @@
 .mgr-slot-card::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 3px;
   background: var(--color-success);
-  opacity: 0.85;
+  opacity: 0.7;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
 }
 
 .mgr-slot-card--warn::after {
   background: var(--color-warning);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
 
 .mgr-slot-card--full::after {
   background: var(--color-danger);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
 .mgr-slot-card:hover {
   transform: translateY(-3px);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-card), var(--shadow-glow);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .mgr-slot-time-row {
@@ -244,58 +283,65 @@
 }
 
 .mgr-slot-time {
-  font-size: 1.2rem;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-heading);
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 .mgr-slot-date {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--color-text-muted);
   background: rgba(255, 255, 255, 0.04);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .mgr-slot-occupancy-container {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 6px;
 }
 
 .mgr-slot-occupancy-text {
   display: flex;
   justify-content: space-between;
-  font-size: 0.825rem;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .mgr-slot-bar-outer {
-  height: 6px;
+  height: 5px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .mgr-slot-bar-inner {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   background: var(--color-success);
-  transition: width 0.3s ease;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.25);
+  transition: width 0.4s var(--ease);
 }
 
-.mgr-slot-card--warn .mgr-slot-bar-inner { background: var(--color-warning); }
-.mgr-slot-card--full .mgr-slot-bar-inner { background: var(--color-danger); }
+.mgr-slot-card--warn .mgr-slot-bar-inner { background: var(--color-warning); box-shadow: 0 0 6px rgba(245,158,11,0.2); }
+.mgr-slot-card--full .mgr-slot-bar-inner { background: var(--color-danger);  box-shadow: 0 0 6px rgba(239,68,68,0.2); }
 
 .mgr-slot-details-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.825rem;
+  gap: 6px;
+  font-size: 13px;
   color: var(--color-text-muted);
 }
 
@@ -305,111 +351,73 @@
 }
 
 .mgr-slot-detail-val {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
 .mgr-slot-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 8px;
   margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 0.75rem;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 12px;
 }
 
-/* Modals */
+/* Modal Fields */
 .mgr-modal-field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
 .mgr-modal-field label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-heading);
 }
 
 .mgr-modal-input,
 .mgr-modal-select {
   font-family: var(--font-sans);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-dim);
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  padding: 0.65rem 0.85rem;
+  padding: 10px 14px;
   color: var(--color-heading);
   outline: none;
-  font-size: 0.95rem;
+  font-size: 15px;
   width: 100%;
-  transition: all var(--t-fast) var(--ease);
+  transition: all var(--t-normal) var(--ease);
+  backdrop-filter: blur(8px);
 }
 
 .mgr-modal-input:focus,
 .mgr-modal-select:focus {
-  border-color: var(--color-primary);
-  background: rgba(99, 102, 241, 0.05);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  border-color: rgba(28, 105, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(28, 105, 212, 0.1);
+  background: rgba(10, 10, 15, 0.8);
 }
 
 .mgr-modal-select option {
-  background-color: var(--color-bg-card-2);
-  color: var(--color-text);
+  background-color: var(--color-bg-card);
+  color: var(--color-heading);
 }
 
-/* Empty & Warnings */
+/* Empty State */
 .mgr-slots-empty {
   text-align: center;
-  padding: 4rem 2rem;
-  background: var(--color-bg-card);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: 64px 32px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
 }
 
 .mgr-slots-empty p {
-  margin-bottom: 1.5rem;
-  font-size: 1.05rem;
-}
-
-/* Light Theme overrides specifically for slots */
-[data-theme="light"] .mgr-slots-stat-card {
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-card);
-}
-
-[data-theme="light"] .mgr-slot-card {
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-card);
-}
-
-[data-theme="light"] .mgr-slot-bar-outer {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .mgr-date-slide-btn {
-  background: var(--color-bg-2);
-  border-color: rgba(0,0,0,0.06);
-  color: var(--color-text);
-}
-
-[data-theme="light"] .mgr-date-slide-btn:hover {
-  background: rgba(79, 70, 229, 0.05);
-}
-
-[data-theme="light"] .mgr-date-slide-btn.active {
-  background: var(--color-primary-dim);
-  color: var(--color-primary);
-}
-
-[data-theme="light"] .mgr-slot-date {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .mgr-modal-input,
-[data-theme="light"] .mgr-modal-select,
-[data-theme="light"] .mgr-filter-input {
-  background: var(--color-bg-1);
-  border-color: rgba(0, 0, 0, 0.12);
-  color: #0f172a;
+  margin-bottom: 24px;
+  font-size: 16px;
 }

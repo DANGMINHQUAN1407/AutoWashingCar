@@ -47,6 +47,12 @@
 /* Filter Pane */
 .filter-panel {
   padding: 20px 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .filter-form {
@@ -110,19 +116,22 @@
 .review-card {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.015);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 20px;
-  transition: all 0.2s ease;
+  transition: all var(--t-normal) var(--ease);
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .review-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--glass-border-hover);
 }
 
 .review-card.card-hidden {
@@ -152,15 +161,16 @@
 .reviewer-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 99px;
-  background: linear-gradient(135deg, var(--color-primary), #00d4ff);
-  color: #fff;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(28,105,212,0.2), rgba(226,39,24,0.15));
+  border: 1px solid rgba(28,105,212,0.25);
+  color: var(--color-heading);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 10px rgba(28,105,212,0.1);
 }
 
 .reviewer-name {
@@ -229,12 +239,13 @@
 }
 
 .metadata-tag {
-  font-size: 0.8rem;
+  font-size: 12px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-dim);
-  padding: 4px 8px;
-  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
   color: var(--color-text);
+  backdrop-filter: blur(4px);
 }
 
 .metadata-tag strong {
@@ -247,7 +258,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px dashed var(--color-border-dim);
+  border-top: 1px dashed var(--glass-border);
   padding-top: 12px;
   margin-top: 4px;
 }
