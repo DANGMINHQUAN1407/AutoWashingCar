@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
+using WashingCar_Common.Helpers;
 
 namespace WashingCar_DAL.Repositories;
 
@@ -31,12 +32,26 @@ public class SlotRepository : ISlotRepository
                                                         && s.SlotStartTime == startTime, ct);
     }
 
-    public async Task<List<SlotInventory>> GetAvailableAsync(Guid branchId, DateOnly date, CancellationToken ct = default)
+    public async Task<List<SlotInventory>> GetAvailableAsync(
+        Guid branchId,
+        DateOnly date,
+        CancellationToken ct = default)
     {
-        return await _db.SlotInventories.AsNoTracking()
-        .Where(s => s.BranchId == branchId && s.SlotDate == date)
-        .OrderBy(s => s.SlotStartTime)
-        .ToListAsync(ct);
+        // SlotDate/SlotStartTime của hệ thống được lưu theo giờ Việt Nam.
+        // DateTime.UtcNow phải được đổi sang giờ VN trước khi so sánh với slot.
+        var nowVietnam = DateTime.UtcNow.AddHours(VietnamTimeHelper.UtcOffsetHours);
+        var todayVietnam = DateOnly.FromDateTime(nowVietnam);
+        var currentTimeVietnam = TimeOnly.FromDateTime(nowVietnam);
+
+        return await _db.SlotInventories
+            .AsNoTracking()
+            .Where(s => s.BranchId == branchId && s.SlotDate == date)
+            .Where(s => s.SlotDate > todayVietnam
+                     || (s.SlotDate == todayVietnam
+                         && s.SlotStartTime > currentTimeVietnam))
+            .Where(s => s.Capacity > s.OnlineReservedCount + s.WalkInReservedCount)
+            .OrderBy(s => s.SlotStartTime)
+            .ToListAsync(ct);
     }
 
     public async Task<SlotInventory?> GetByIdAsync(Guid slotId, CancellationToken ct = default)
