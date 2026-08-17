@@ -140,6 +140,10 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
         return q;
     }
 
+    public async Task<Booking?> GetTrackedByUserVoucherIdAsync(Guid userVoucherId, CancellationToken ct = default)
+        => await _db.Bookings
+            .FirstOrDefaultAsync(b => b.UserVoucherId == userVoucherId, ct);
+
     public async Task<int> GetTotalBookingsCountAsync(CancellationToken ct = default)
     {
         return await _db.Bookings.CountAsync(ct);

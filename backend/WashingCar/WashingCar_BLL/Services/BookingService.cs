@@ -175,6 +175,13 @@ public class BookingService(
 
         if (userVoucher is not null)
         {
+            // Gỡ liên kết voucher khỏi bất kỳ booking cũ nào đã bị Hủy để tránh vi phạm UNIQUE index
+            var oldBooking = await bookingRepo.GetTrackedByUserVoucherIdAsync(userVoucher.UserVoucherId, ct);
+            if (oldBooking is not null && oldBooking.BookingStatus == BookingStatus.Cancelled)
+            {
+                oldBooking.UserVoucherId = null;
+            }
+
             var exists = await voucherRepo.GetUserVoucherByIdAsync(userVoucher.UserVoucherId, ct) != null;
             if (!exists)
             {
@@ -307,6 +314,13 @@ public class BookingService(
 
         if (userVoucher is not null)
         {
+            // Gỡ liên kết voucher khỏi bất kỳ booking cũ nào đã bị Hủy để tránh vi phạm UNIQUE index
+            var oldBooking = await bookingRepo.GetTrackedByUserVoucherIdAsync(userVoucher.UserVoucherId, ct);
+            if (oldBooking is not null && oldBooking.BookingStatus == BookingStatus.Cancelled)
+            {
+                oldBooking.UserVoucherId = null;
+            }
+
             var exists = await voucherRepo.GetUserVoucherByIdAsync(userVoucher.UserVoucherId, ct) != null;
             if (!exists)
             {
@@ -720,6 +734,7 @@ public class BookingService(
                 userVoucher.VoucherStatus = UserVoucherStatus.Redeemed;
                 userVoucher.UsedAtUtc = null;
             }
+            booking.UserVoucherId = null; // Gỡ liên kết voucher khỏi booking cũ để tránh vi phạm ràng buộc UNIQUE khi đặt lại
         }
 
         booking.BookingStatus = BookingStatus.Cancelled;

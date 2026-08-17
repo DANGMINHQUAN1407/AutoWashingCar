@@ -51,7 +51,7 @@ export default function CustomerBookings() {
           if (key === 'wizardStep') return 1;
           if (key === 'viewMode') return 'list';
         }
-      } catch {}
+      } catch { }
     }
 
     const val = sessionStorage.getItem(`booking_wizard_${key}`);
@@ -376,7 +376,7 @@ export default function CustomerBookings() {
                 setSelectedBranchId(b.branchId);
                 break;
               }
-            } catch (err) {}
+            } catch (err) { }
           }
         }
       });
@@ -1710,8 +1710,8 @@ export default function CustomerBookings() {
                         <strong style={{ color: 'var(--color-heading)' }}>
                           {selectedUserVoucherId
                             ? myAvailableVouchers.find(
-                                v => v.userVoucherId === selectedUserVoucherId
-                              )?.voucherCode
+                              v => v.userVoucherId === selectedUserVoucherId
+                            )?.voucherCode
                             : selectedVoucherCode}
                         </strong>
                       </span>
