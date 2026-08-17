@@ -142,12 +142,12 @@ export default function CustomerVehicles() {
   const filteredVehicles = vehicles.filter(v => {
     const brand = (v.Brand || v.brand || '').toLowerCase()
     const matchesSearch = brand.includes(searchQuery.toLowerCase())
-    
+
     const type = v.VehicleType ?? v.vehicleType ?? 2
-    const matchesType = typeFilter === 'all' || 
-      (typeFilter === 'car' && type === 2) || 
+    const matchesType = typeFilter === 'all' ||
+      (typeFilter === 'car' && type === 2) ||
       (typeFilter === 'motorbike' && type === 1)
-      
+
     return matchesSearch && matchesType
   })
 
@@ -307,18 +307,18 @@ export default function CustomerVehicles() {
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '16px', background: 'rgba(255,255,255,0.015)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
         <div style={{ flex: 1, minWidth: '240px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label className="form-label" style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Tìm theo hãng xe</label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="VD: Toyota, Honda..." 
+          <input
+            type="text"
+            className="form-input"
+            placeholder="VD: Toyota, Honda..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
         <div style={{ width: '180px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label className="form-label" style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Loại xe</label>
-          <select 
-            className="form-input form-select-custom" 
+          <select
+            className="form-input form-select-custom"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value as any)}
           >
@@ -483,10 +483,10 @@ export default function CustomerVehicles() {
               <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
                   {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
-                    <img 
-                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl} 
-                      alt={plate} 
-                      style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }} 
+                    <img
+                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl}
+                      alt={plate}
+                      style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }}
                     />
                   ) : (
                     <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🚗</div>
@@ -545,8 +545,8 @@ export default function CustomerVehicles() {
               <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: 'var(--color-heading)' }}>
                 Quản lý ảnh xe: {activeVehicle.LicensePlate || activeVehicle.licensePlate}
               </h3>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
                 style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.6rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
               >
@@ -573,7 +573,7 @@ export default function CustomerVehicles() {
                           )}
                         </div>
                         <div style={{ display: 'flex', borderTop: '1px solid var(--color-border-dim)' }}>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleSetPrimaryImage(activeImageVehicleId, img.imageId)}
                             disabled={img.isPrimary}
@@ -582,7 +582,7 @@ export default function CustomerVehicles() {
                           >
                             ★
                           </button>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleDeleteImage(activeImageVehicleId, img.imageId)}
                             style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 'bold' }}
@@ -599,18 +599,18 @@ export default function CustomerVehicles() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-dim)', paddingTop: '16px' }}>
                   <label className="btn btn-ghost" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', margin: 0, padding: '8px 16px', fontSize: '0.9rem' }}>
                     📤 Tải ảnh mới lên
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      style={{ display: 'none' }} 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
                       onChange={(e) => handleImageUpload(activeImageVehicleId, e)}
                       disabled={imageUploadLoading}
                     />
                   </label>
                   {imageUploadLoading && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-dim)' }}>Đang tải lên...</span>}
-                  <AnimatedButton 
-                    type="button" 
-                    variant="ghost" 
+                  <AnimatedButton
+                    type="button"
+                    variant="ghost"
                     onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
                   >
                     Đóng

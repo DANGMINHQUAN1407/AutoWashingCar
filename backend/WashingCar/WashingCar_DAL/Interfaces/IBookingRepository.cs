@@ -39,6 +39,8 @@ public interface IBookingRepository
     /// <summary>Booking Confirmed chưa gửi nhắc, có slot trong [fromDate..toDate] (tracked, kèm User+Slot+Branch) — cho job nhắc lịch.</summary>
     Task<List<Booking>> GetRemindableAsync(DateOnly fromDate, DateOnly toDate, CancellationToken ct = default);
 
+    Task<Booking?> GetTrackedByUserVoucherIdAsync(Guid userVoucherId, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
     Task<int> GetTotalBookingsCountAsync(CancellationToken ct = default);
     Task<int> GetBranchBookingsCountAsync(Guid branchId, CancellationToken ct = default);
