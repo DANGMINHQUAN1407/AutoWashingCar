@@ -23,6 +23,18 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
         return Paged(result);
     }
 
+    /// <summary>Lấy catalog theo cây parent-child.</summary>
+    /// <remarks>Parent chỉ là node nhóm; leaf mới là dịch vụ bookable và tính tiền.</remarks>
+    [AllowAnonymous]
+    [HttpGet("tree")]
+    public async Task<IActionResult> GetTree([FromQuery] bool includeInactive = false)
+    {
+        // Chỉ Manager/Admin mới được xem inactive; public luôn chỉ nhận active tree.
+        var canViewInactive = User.IsInRole(UserRole.Manager) || User.IsInRole(UserRole.Admin);
+        var result = await _service.GetTreeAsync(includeInactive && canViewInactive);
+        return Success(result);
+    }
+
     /// <summary>Chi tiết 1 dịch vụ.</summary>
     /// <remarks>Gọi: ServiceCatalogService.GetByIdAsync → IServiceCatalogRepository.GetByIdAsync.</remarks>
     [AllowAnonymous]
@@ -39,7 +51,7 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
     /// nếu isManager → IBranchRepository.GetByManagerIdAsync + AddBranchServiceAsync + SaveChangesAsync.
     /// </remarks>
     [HttpPost]
-    [Authorize(Roles = $"{UserRole.Manager}")]
+    [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> Create([FromBody] CreateServiceCatalogRequest request)
     {
         var item = await _service.CreateAsync(request, CurrentUserId, User.IsInRole(UserRole.Manager));
@@ -49,7 +61,7 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
     /// <summary>Cập nhật thông tin dịch vụ.</summary>
     /// <remarks>Gọi: ServiceCatalogService.UpdateAsync → IServiceCatalogRepository.GetByIdAsync + ExistsNameAsync → UpdateAsync.</remarks>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = $"{UserRole.Manager}")]
+    [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateServiceCatalogRequest request)
     {
         var item = await _service.UpdateAsync(id, request);
@@ -59,7 +71,7 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
     /// <summary>Kích hoạt lại dịch vụ.</summary>
     /// <remarks>Gọi: ServiceCatalogService.SetActiveAsync(true) → IServiceCatalogRepository.GetByIdAsync → UpdateAsync.</remarks>
     [HttpPost("{id:guid}/activate")]
-    [Authorize(Roles = $"{UserRole.Manager}")]
+    [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> Activate(Guid id)
     {
         await _service.SetActiveAsync(id, isActive: true);
@@ -69,7 +81,7 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
     /// <summary>Vô hiệu hóa dịch vụ.</summary>
     /// <remarks>Gọi: ServiceCatalogService.SetActiveAsync(false) → IServiceCatalogRepository.GetByIdAsync → UpdateAsync.</remarks>
     [HttpPost("{id:guid}/deactivate")]
-    [Authorize(Roles = $"{UserRole.Manager}")]
+    [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
         await _service.SetActiveAsync(id, isActive: false);

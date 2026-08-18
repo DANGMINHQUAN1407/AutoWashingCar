@@ -45,6 +45,7 @@ public static class ValidationMessage
     {
         public const string NotFound                       = "Không tìm thấy chi nhánh";
         public const string ManagerNotAssigned              = "Bạn chưa được gán quản lý chi nhánh nào";
+        public const string ForbiddenOtherBranch          = "Bạn không có quyền thao tác chi nhánh này";
         public const string CannotAssignAdminAsManager      = "Không thể gán Admin làm manager chi nhánh";
         public const string ManagerAlreadyAssignedElsewhere = "User này đã quản lý một chi nhánh khác";
         public const string NotStaffRole                    = "Người dùng này không phải Staff";
@@ -162,6 +163,17 @@ public static class ValidationMessage
     {
         public const string NotFound   = "Không tìm thấy dịch vụ";
         public const string NameExists = "Tên dịch vụ đã tồn tại";
+        public const string InvalidNodeType = "Loại node dịch vụ không hợp lệ";
+        public const string InvalidSelectionMode = "Cách chọn dịch vụ không hợp lệ";
+        public const string ParentNotFound = "Không tìm thấy dịch vụ cha";
+        public const string ParentMustBeGroup = "Dịch vụ cha phải là một nhóm dịch vụ";
+        public const string GroupCannotHaveParent = "Nhóm dịch vụ không được nằm dưới một dịch vụ khác";
+        public const string LeafMustHaveParentOrBeRoot = "Dịch vụ con phải tham chiếu đến nhóm dịch vụ cha";
+        public const string GroupCannotBeBooked = "Không thể đặt trực tiếp nhóm dịch vụ; hãy chọn dịch vụ con";
+        public const string HierarchyCycle = "Quan hệ cha-con của dịch vụ tạo thành vòng lặp";
+        public const string GroupCannotBeAssignedToBranch = "Không thể gán nhóm dịch vụ trực tiếp cho chi nhánh";
+        public const string GroupWithChildrenCannotBecomeLeaf = "Nhóm còn dịch vụ con nên không thể đổi thành dịch vụ đơn";
+        public const string ActiveChildrenPreventGroupDeactivation = "Không thể vô hiệu hóa nhóm khi còn dịch vụ con đang hoạt động";
     }
 
     public static class Loyalty

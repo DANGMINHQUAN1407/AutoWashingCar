@@ -437,9 +437,33 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.ServicePackageType)
                 .HasColumnType("tinyint")
                 .HasDefaultValue((byte)ServicePackageType.Standard);
-            entity.ToTable(t => t.HasCheckConstraint(
-                "CK_ServiceCatalogItem_ServicePackageType",
-                "[ServicePackageType] IN (1, 2, 3)"));
+            entity.Property(e => e.ServiceNodeType)
+                .HasColumnType("tinyint")
+                .HasDefaultValue((byte)ServiceNodeType.Leaf);
+            entity.Property(e => e.SelectionMode)
+                .HasColumnType("tinyint");
+            entity.HasIndex(e => e.ParentServiceCatalogItemId)
+                .HasDatabaseName("IX_ServiceCatalogItem_ParentServiceCatalogItemId");
+            entity.HasOne(e => e.ParentServiceCatalogItem)
+                .WithMany(e => e.ChildServiceCatalogItems)
+                .HasForeignKey(e => e.ParentServiceCatalogItemId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ServiceCatalogItem_Parent");
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_ServiceCatalogItem_ServicePackageType",
+                    "[ServicePackageType] IN (1, 2, 3)");
+                t.HasCheckConstraint(
+                    "CK_ServiceCatalogItem_ServiceNodeType",
+                    "[ServiceNodeType] IN (1, 2)");
+                t.HasCheckConstraint(
+                    "CK_ServiceCatalogItem_GroupSelectionMode",
+                    "([ServiceNodeType] = 1 AND [SelectionMode] = 1) OR ([ServiceNodeType] = 2 AND [SelectionMode] IS NULL)");
+                t.HasCheckConstraint(
+                    "CK_ServiceCatalogItem_GroupBillingFields",
+                    "([ServiceNodeType] = 1 AND [BasePrice] = 0 AND [DurationMinutes] = 0) OR [ServiceNodeType] = 2");
+            });
         });
 
         modelBuilder.Entity<SlotInventory>(entity =>

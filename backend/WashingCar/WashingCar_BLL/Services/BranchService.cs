@@ -23,6 +23,7 @@ namespace WashingCar_BLL.Services;
 public class BranchService(
     IBranchRepository branchRepo,
     IUserRepository userRepo,
+    IServiceCatalogRepository serviceCatalogRepo,
     ILogger<BranchService> logger) : IBranchService
 {
     /// <summary>Filter theo city/isActive nếu có, phân trang, include Manager.</summary>
@@ -272,6 +273,11 @@ public class BranchService(
         var toAdd = new List<BranchServiceEntity>();
         foreach (var serviceId in serviceIds.Distinct())
         {
+            var catalogItem = await serviceCatalogRepo.GetByIdAsync(serviceId)
+                ?? throw AppException.NotFound(ValidationMessage.ServiceCatalog.NotFound);
+            if (catalogItem.ServiceNodeType == (byte)ServiceNodeType.Group)
+                throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupCannotBeAssignedToBranch);
+
             var existing = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct);
             if (existing is not null)
             {
