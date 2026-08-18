@@ -30,6 +30,7 @@ public class BookingService(
     IVoucherRepository        voucherRepo,
     IReviewRepository         reviewRepo,
     IPaymentRepository        paymentRepo,
+    IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
     ILogger<BookingService>   logger) : IBookingService
 {
     // Slot lưu theo giờ địa phương; VN = UTC+7 (không DST). Xem WashingCar_Common.Helpers.VietnamTimeHelper.
@@ -1024,6 +1025,19 @@ public class BookingService(
         if (await vehicleRepo.ExistsLicensePlateAsync(plate, customerId))
             throw AppException.Conflict(ValidationMessage.Booking.LicensePlateExistsForCustomer);
 
+        var bodyStyleCatalog = request.NewVehicle.BodyStyleCatalogId is { } bodyStyleId
+            ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
+                ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.")
+            : null;
+
+        if (bodyStyleCatalog is not null)
+        {
+            if (!bodyStyleCatalog.IsActive)
+                throw AppException.BadRequest("Kiểu dáng xe đã bị vô hiệu hóa.");
+            if (bodyStyleCatalog.VehicleType != (byte)request.NewVehicle.VehicleType)
+                throw AppException.BadRequest("Kiểu dáng xe không phù hợp với loại phương tiện đã chọn.");
+        }
+
         var vehicle = new Vehicle
         {
             UserId       = customerId,
@@ -1034,8 +1048,8 @@ public class BookingService(
             ManufactureYear = request.NewVehicle.ManufactureYear,
             EngineCatalogId = request.NewVehicle.EngineCatalogId,
             EngineType   = request.NewVehicle.EngineType.HasValue ? (byte)request.NewVehicle.EngineType.Value : null,
-            BodyStyleCatalogId = request.NewVehicle.BodyStyleCatalogId,
-            BodyStyle    = request.NewVehicle.BodyStyle.HasValue ? (byte)request.NewVehicle.BodyStyle.Value : null,
+            BodyStyleCatalogId = bodyStyleCatalog?.VehicleBodyStyleCatalogId,
+            BodyStyle    = bodyStyleCatalog?.LegacyEnumValue ?? (request.NewVehicle.BodyStyle.HasValue ? (byte)request.NewVehicle.BodyStyle.Value : null),
             IsDeleted    = false,
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion   = [],

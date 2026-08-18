@@ -24,6 +24,9 @@ public class VehicleBodyStyleCatalogRepository(WashingCarDbContext db) : IVehicl
         if (query.IsActive.HasValue)
             q = q.Where(x => x.IsActive == query.IsActive.Value);
 
+        if (query.VehicleType.HasValue)
+            q = q.Where(x => x.VehicleType == (byte)query.VehicleType.Value);
+
         var totalCount = await q.CountAsync();
         q = query.SortBy?.ToLowerInvariant() switch
         {
