@@ -5,6 +5,14 @@ namespace WashingCar_BLL.Interfaces;
 
 public interface IBookingService
 {
+    /// <summary>
+    /// Normalize selection parent-child và trả trạng thái checkbox trước khi tính giá.
+    /// Không đọc slot/vehicle/voucher và không ghi database.
+    /// </summary>
+    Task<ServiceSelectionPreviewDto> PreviewServiceSelectionAsync(
+        ServiceSelectionPreviewRequest request,
+        CancellationToken ct = default);
+
     /// <summary>Tính giá preview (lines + subtotal + final) trước khi đặt — "Calculate Booking Price".</summary>
     Task<BookingQuoteDto> QuoteAsync(Guid userId, BookingQuoteRequest request, CancellationToken ct = default);
 

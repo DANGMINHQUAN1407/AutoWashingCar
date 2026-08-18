@@ -39,6 +39,37 @@ public class BookingService(
     // Số ngày được đặt trước tối đa mặc định — hạng có benefit AdvanceBookingDays sẽ override giá trị này.
     private const int DefaultMaxAdvanceBookingDays = 3;
 
+    /// <summary>
+    /// Normalize selection parent-child và trả trạng thái checkbox trước khi tính giá.
+    /// Dùng cùng ExpandToLeafSelectionsAsync với quote/create nên không tạo ra
+    /// một quy tắc selection thứ hai. Workflow này không đọc slot, không tính tiền
+    /// và không ghi database.
+    /// </summary>
+    public async Task<ServiceSelectionPreviewDto> PreviewServiceSelectionAsync(
+        ServiceSelectionPreviewRequest request,
+        CancellationToken ct = default)
+    {
+        if (request is null)
+            throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
+
+        var normalized = await ExpandToLeafSelectionsAsync(request.Services, ct);
+        var selectedLeafIds = normalized
+            .Select(selection => selection.ServiceCatalogItemId)
+            .ToHashSet();
+        var roots = await serviceCatalogRepo.GetHierarchyAsync(includeInactive: false);
+        var states = new List<ServiceSelectionStateDto>();
+
+        foreach (var root in roots)
+            AddSelectionStates(root, selectedLeafIds, states);
+
+        return new ServiceSelectionPreviewDto
+        {
+            NormalizedLeafSelections = normalized,
+            States = states,
+            SelectedLeafCount = normalized.Count,
+        };
+    }
+
     /// <summary>Tính giá preview (dịch vụ + voucher + tier discount + redeem điểm) trước khi đặt — không ghi DB.</summary>
     /// <remarks>
     /// Gọi: IBookingRepository.GetSlotForReserveAsync → helper BuildLinesAsync (→ IServiceCatalogRepository.GetByIdAsync
@@ -964,6 +995,9 @@ public class BookingService(
 
             if (selected.ServiceNodeType == (byte)ServiceNodeType.Leaf)
             {
+                if (!selected.IsActive)
+                    throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(selected.ServiceName));
+
                 AddLeafSelection(normalized, selected.ServiceCatalogItemId, selection.Quantity, overwrite: true);
                 continue;
             }
@@ -997,6 +1031,52 @@ public class BookingService(
                 Quantity = item.Value,
             })
             .ToList();
+    }
+
+    private static void AddSelectionStates(
+        ServiceCatalogItem node,
+        ISet<Guid> selectedLeafIds,
+        ICollection<ServiceSelectionStateDto> states)
+    {
+        var activeChildren = node.ChildServiceCatalogItems
+            .Where(child => child.IsActive)
+            .OrderBy(child => child.ServiceName)
+            .ToList();
+
+        if (node.ServiceNodeType == (byte)ServiceNodeType.Group)
+        {
+            var selectedChildCount = activeChildren.Count(child => selectedLeafIds.Contains(child.ServiceCatalogItemId));
+            var activeChildCount = activeChildren.Count;
+
+            states.Add(new ServiceSelectionStateDto
+            {
+                ServiceCatalogItemId = node.ServiceCatalogItemId,
+                ParentServiceCatalogItemId = node.ParentServiceCatalogItemId,
+                ServiceNodeType = node.ServiceNodeType,
+                IsChecked = activeChildCount > 0 && selectedChildCount == activeChildCount,
+                IsIndeterminate = selectedChildCount > 0 && selectedChildCount < activeChildCount,
+                SelectedChildCount = selectedChildCount,
+                ActiveChildCount = activeChildCount,
+                IsBookable = false,
+            });
+
+            foreach (var child in activeChildren)
+                AddSelectionStates(child, selectedLeafIds, states);
+
+            return;
+        }
+
+        states.Add(new ServiceSelectionStateDto
+        {
+            ServiceCatalogItemId = node.ServiceCatalogItemId,
+            ParentServiceCatalogItemId = node.ParentServiceCatalogItemId,
+            ServiceNodeType = node.ServiceNodeType,
+            IsChecked = selectedLeafIds.Contains(node.ServiceCatalogItemId),
+            IsIndeterminate = false,
+            SelectedChildCount = 0,
+            ActiveChildCount = 0,
+            IsBookable = node.ServiceNodeType == (byte)ServiceNodeType.Leaf,
+        });
     }
 
     private static void AddLeafSelection(
