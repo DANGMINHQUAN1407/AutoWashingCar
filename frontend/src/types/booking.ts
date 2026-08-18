@@ -40,6 +40,9 @@ export interface Booking {
   createdAtUtc: string;
   lines: BookingLine[];
   serviceSummary?: string; // từ BookingListItemDto (queue/list endpoint)
+  serviceSubtotal?: number;
+  vehicleSurchargeAmount?: number;
+  vehicleConditionAtBooking?: string;
 }
 
 export interface BookingQuoteRequest {
@@ -137,5 +140,8 @@ export function normalizeBooking(raw: any): Booking {
     createdAtUtc: String(pick(raw, 'createdAtUtc', 'CreatedAtUtc') ?? ''),
     lines: Array.isArray(rawLines) ? rawLines.map(normalizeBookingLine) : [],
     serviceSummary: pick(raw, 'serviceSummary', 'ServiceSummary') as string | undefined,
+    serviceSubtotal: pick(raw, 'serviceSubtotal', 'ServiceSubtotal') as number | undefined,
+    vehicleSurchargeAmount: pick(raw, 'vehicleSurchargeAmount', 'VehicleSurchargeAmount') as number | undefined,
+    vehicleConditionAtBooking: pick(raw, 'vehicleConditionAtBooking', 'VehicleConditionAtBooking') as string | undefined,
   };
 }

@@ -102,6 +102,10 @@ export default function CustomerBookings() {
   const [quickYear, setQuickYear] = useState('');
   const [quickEngineType, setQuickEngineType] = useState<'' | number>('');
   const [quickBodyStyle, setQuickBodyStyle] = useState<'' | number>('');
+  const [quickEngineCatalogId, setQuickEngineCatalogId] = useState<string>('');
+  const [quickBodyStyleCatalogId, setQuickBodyStyleCatalogId] = useState<string>('');
+  const [engineCatalogs, setEngineCatalogs] = useState<any[]>([]);
+  const [bodyStyleCatalogs, setBodyStyleCatalogs] = useState<any[]>([]);
   const [quickVehicleLoading, setQuickVehicleLoading] = useState(false);
 
   // Modals & Details view states
@@ -282,12 +286,16 @@ export default function CustomerBookings() {
   const initWizardData = async () => {
     setErrorMsg(null);
     try {
-      const [branchRes, vehicleRes] = await Promise.all([
+      const [branchRes, vehicleRes, engineRes, bodyStyleRes] = await Promise.all([
         api.getBranches({ isActive: true }),
         api.getMyVehicles(),
+        api.getEngineTypes({ isActive: true, page: 1, pageSize: 9999 }),
+        api.getBodyStyles({ isActive: true, page: 1, pageSize: 9999 }),
       ]);
       setBranches(branchRes.items || []);
       setVehicles(vehicleRes || []);
+      setEngineCatalogs(engineRes.items || []);
+      setBodyStyleCatalogs(bodyStyleRes.items || []);
 
       // Auto select first vehicle if available and no valid cached vehicle is selected
       if (vehicleRes && vehicleRes.length > 0) {
@@ -530,6 +538,8 @@ export default function CustomerBookings() {
         ManufactureYear: quickYear ? Number(quickYear) : undefined,
         EngineType: quickEngineType !== '' ? Number(quickEngineType) : undefined,
         BodyStyle: quickBodyStyle !== '' ? Number(quickBodyStyle) : undefined,
+        EngineCatalogId: quickEngineCatalogId || undefined,
+        BodyStyleCatalogId: quickBodyStyleCatalogId || undefined,
       });
       const vId = data.VehicleId || data.vehicleId;
       setVehicles(prev => [data, ...prev]);
@@ -542,6 +552,8 @@ export default function CustomerBookings() {
       setQuickYear('');
       setQuickEngineType('');
       setQuickBodyStyle('');
+      setQuickEngineCatalogId('');
+      setQuickBodyStyleCatalogId('');
       setShowQuickVehicle(false);
       setSuccessMsg('Đăng ký xe mới thành công!');
     } catch (err) {
@@ -1174,10 +1186,15 @@ export default function CustomerBookings() {
                           className="form-input"
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
                           value={quickType}
-                          onChange={e => setQuickType(Number(e.target.value) as VehicleType)}
+                          onChange={e => {
+                            setQuickType(Number(e.target.value) as VehicleType);
+                            setQuickBodyStyle('');
+                            setQuickBodyStyleCatalogId('');
+                          }}
                         >
                           <option value={2}>Car</option>
                           <option value={1}>Motorbike</option>
+                          <option value={3}>Truck (Xe tải / xe ba gác)</option>
                         </select>
                       </div>
                       <div className="form-group">
@@ -1226,39 +1243,54 @@ export default function CustomerBookings() {
                         <select
                           className="form-input"
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
-                          value={quickEngineType}
-                          onChange={e => setQuickEngineType(e.target.value === '' ? '' : Number(e.target.value))}
+                          value={quickEngineCatalogId}
+                          onChange={e => {
+                            const catId = e.target.value;
+                            const matched = engineCatalogs.find(c => c.id === catId);
+                            setQuickEngineCatalogId(catId);
+                            setQuickEngineType(matched?.legacyEnumValue ?? '');
+                          }}
                         >
                           <option value="">-- Chọn loại động cơ --</option>
-                          <option value={1}>Xăng (Petrol)</option>
-                          <option value={2}>Dầu (Diesel)</option>
-                          <option value={3}>Điện (EV)</option>
-                          <option value={4}>Hybrid (HEV)</option>
+                          {engineCatalogs.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
                         </select>
                       </div>
-                      {quickType === 2 && (
-                        <div className="form-group animate-slide-in">
+                      <div className="form-group animate-slide-in">
                           <label className="form-label" style={{ fontSize: '0.8rem' }}>
                             Kiểu dáng
                           </label>
                           <select
                             className="form-input"
                             style={{ padding: '6px 10px', fontSize: '0.9rem' }}
-                            value={quickBodyStyle}
-                            onChange={e => setQuickBodyStyle(e.target.value === '' ? '' : Number(e.target.value))}
+                            value={quickBodyStyleCatalogId}
+                            onChange={e => {
+                              const catId = e.target.value;
+                              const matched = bodyStyleCatalogs.find(c => c.id === catId);
+                              setQuickBodyStyleCatalogId(catId);
+                              setQuickBodyStyle(matched?.legacyEnumValue ?? '');
+                            }}
                           >
                             <option value="">-- Chọn kiểu dáng --</option>
-                            <option value={1}>Sedan</option>
-                            <option value={2}>SUV</option>
-                            <option value={3}>Hatchback</option>
-                            <option value={4}>Pickup (Bán tải)</option>
-                            <option value={5}>Van</option>
-                            <option value={6}>Minivan</option>
-                            <option value={7}>Coupe</option>
-                            <option value={8}>Convertible (Mui trần)</option>
+                            {(() => {
+                              const qType = Number(quickType);
+                              const opts = bodyStyleCatalogs.filter(cat => {
+                                const vt = Number(cat.vehicleType ?? cat.VehicleType);
+                                if (!vt || isNaN(vt)) {
+                                  const leg = cat.legacyEnumValue ?? cat.LegacyEnumValue;
+                                  return qType === 2 && leg != null;
+                                }
+                                return vt === qType;
+                              });
+                              return opts.length > 0
+                                ? opts.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                  ))
+                                : <option disabled value="">Không có kiểu dáng cho loại xe này</option>;
+                            })()}
                           </select>
                         </div>
-                      )}
                       <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                         <AnimatedButton
                           type="button"
@@ -2022,12 +2054,12 @@ export default function CustomerBookings() {
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
                     💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking.bookingSubtotal)}
                   </p>
-                  {newBooking.vehicleSurchargeAmount > 0 && (
+                  {(newBooking.vehicleSurchargeAmount ?? 0) > 0 && (
                     <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
                       ⚡ <strong>Phụ thu xe ({newBooking.vehicleConditionAtBooking === 'New' ? 'Xe mới +10%' : newBooking.vehicleConditionAtBooking === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'}):</strong> +{formatVND(newBooking.vehicleSurchargeAmount)}
                     </p>
                   )}
-                  {newBooking.vehicleSurchargeAmount > 0 && (
+                  {(newBooking.vehicleSurchargeAmount ?? 0) > 0 && (
                     <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
                       💵 <strong>Tổng cộng tạm tính:</strong> {formatVND(newBooking.bookingSubtotal)}
                     </p>
@@ -2350,7 +2382,7 @@ export default function CustomerBookings() {
                     <span>Tiền dịch vụ gốc</span>
                     <span>{formatVND(selectedBooking.serviceSubtotal ?? selectedBooking.bookingSubtotal)}</span>
                   </div>
-                  {selectedBooking.vehicleSurchargeAmount > 0 && (
+                  {(selectedBooking.vehicleSurchargeAmount ?? 0) > 0 && (
                     <div
                       className="booking-detail-service-line"
                       style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}
@@ -2359,7 +2391,7 @@ export default function CustomerBookings() {
                       <span>+{formatVND(selectedBooking.vehicleSurchargeAmount)}</span>
                     </div>
                   )}
-                  {selectedBooking.vehicleSurchargeAmount > 0 && (
+                  {(selectedBooking.vehicleSurchargeAmount ?? 0) > 0 && (
                     <div
                       className="booking-detail-service-line"
                       style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', borderTop: '1px dashed var(--color-border-dim)', paddingTop: '4px' }}

@@ -46,8 +46,20 @@ export type Vehicle = {
   EngineType?: number | null
   bodyStyle?: number | null
   BodyStyle?: number | null
+  engineCatalogId?: string | null
+  EngineCatalogId?: string | null
+  bodyStyleCatalogId?: string | null
+  BodyStyleCatalogId?: string | null
+  engineCatalogName?: string | null
+  EngineCatalogName?: string | null
+  bodyStyleCatalogName?: string | null
+  BodyStyleCatalogName?: string | null
   vehicleImages?: VehicleImageDto[] | null
   VehicleImages?: VehicleImageDto[] | null
+  primaryImageUrl?: string | null
+  PrimaryImageUrl?: string | null
+  vehicleCondition?: string | null
+  VehicleCondition?: string | null
 }
 
 export type CreateVehicleRequest = {
@@ -58,6 +70,27 @@ export type CreateVehicleRequest = {
   ManufactureYear?: number
   EngineType?: number
   BodyStyle?: number
+  EngineCatalogId?: string
+  BodyStyleCatalogId?: string
+}
+
+export type VehicleCatalogItem = {
+  id: string
+  code: string
+  name: string
+  isActive: boolean
+  legacyEnumValue?: number | null
+  vehicleType?: number | null
+}
+
+export type CreateVehicleCatalogRequest = {
+  Code: string
+  Name: string
+}
+
+export type UpdateVehicleCatalogRequest = {
+  Name: string
+  IsActive: boolean
 }
 
 const metaEnv = import.meta.env as Record<string, string | boolean | undefined>
@@ -1733,6 +1766,87 @@ export async function getManagerBookingStats(query: BookingStatsQuery): Promise<
   return (Array.isArray(data) ? data : []).map(normalizeBookingStats)
 }
 
+export async function getEngineTypes(params?: { page?: number, pageSize?: number, search?: string, isActive?: boolean }): Promise<{ items: VehicleCatalogItem[], totalCount: number }> {
+  const search = new URLSearchParams()
+  if (params?.page) search.set('Page', String(params.page))
+  if (params?.pageSize) search.set('PageSize', String(params.pageSize))
+  if (params?.search) search.set('Search', params.search)
+  if (params?.isActive !== undefined) search.set('IsActive', String(params.isActive))
+  const qs = search.toString()
+  const res = await fetchWithAuth(`/api/vehicle-catalogs/engine-types${qs ? `?${qs}` : ''}`)
+  const data = unwrapData<{ items?: any[], Items?: any[], totalCount?: number, TotalCount?: number }>(res)
+  const items = data?.items ?? data?.Items ?? unwrapPagedItems(res)
+  const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
+  return { items, totalCount }
+}
+
+export async function createEngineType(data: CreateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth('/api/vehicle-catalogs/engine-types', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function updateEngineType(id: string, data: UpdateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth(`/api/vehicle-catalogs/engine-types/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function activateEngineType(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/engine-types/${id}/activate`, { method: 'POST' })
+}
+
+export async function deactivateEngineType(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/engine-types/${id}/deactivate`, { method: 'POST' })
+}
+
+export async function getBodyStyles(params?: { page?: number, pageSize?: number, search?: string, isActive?: boolean, vehicleType?: number }): Promise<{ items: VehicleCatalogItem[], totalCount: number }> {
+  const search = new URLSearchParams()
+  if (params?.page) search.set('Page', String(params.page))
+  if (params?.pageSize) search.set('PageSize', String(params.pageSize))
+  if (params?.search) search.set('Search', params.search)
+  if (params?.isActive !== undefined) search.set('IsActive', String(params.isActive))
+  if (params?.vehicleType !== undefined) search.set('VehicleType', String(params.vehicleType))
+  const qs = search.toString()
+  const res = await fetchWithAuth(`/api/vehicle-catalogs/body-styles${qs ? `?${qs}` : ''}`)
+  const data = unwrapData<{ items?: any[], Items?: any[], totalCount?: number, TotalCount?: number }>(res)
+  const items = data?.items ?? data?.Items ?? unwrapPagedItems(res)
+  const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
+  return { items, totalCount }
+}
+
+export async function createBodyStyle(data: CreateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth('/api/vehicle-catalogs/body-styles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function updateBodyStyle(id: string, data: UpdateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth(`/api/vehicle-catalogs/body-styles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function activateBodyStyle(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/body-styles/${id}/activate`, { method: 'POST' })
+}
+
+export async function deactivateBodyStyle(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/body-styles/${id}/deactivate`, { method: 'POST' })
+}
+
 export default {
   getHealth, login, register, googleLogin, logout, getMe, setAuthToken,
   forgotPassword, resetPassword, claimGuestAccount,
@@ -1755,6 +1869,8 @@ export default {
   getCustomerAvailableVouchers, redeemVoucher, getMyVouchers, getAvailableVouchers,
   getAdminDashboardStats, getManagerDashboardStats, getAdminBookingStats, getManagerBookingStats,
   getReviews, getReviewsForModeration, getMyReviews, createReview, deleteReview, toggleHideReview, getSystemStats,
+  getEngineTypes, createEngineType, updateEngineType, activateEngineType, deactivateEngineType,
+  getBodyStyles, createBodyStyle, updateBodyStyle, activateBodyStyle, deactivateBodyStyle,
 }
 
 

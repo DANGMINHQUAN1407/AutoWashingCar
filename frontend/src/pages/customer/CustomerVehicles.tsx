@@ -14,6 +14,9 @@ export default function CustomerVehicles() {
   const [vehicleError, setVehicleError] = useState<string | null>(null)
   const [vehicleSuccess, setVehicleSuccess] = useState<string | null>(null)
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null)
+  const [engineCatalogs, setEngineCatalogs] = useState<any[]>([])
+  const [bodyStyleCatalogs, setBodyStyleCatalogs] = useState<any[]>([])
+
   const [vehicleForm, setVehicleForm] = useState({
     licensePlate: '',
     vehicleType: 2 as VehicleType,
@@ -22,6 +25,8 @@ export default function CustomerVehicles() {
     manufactureYear: '',
     engineType: '' as '' | number,
     bodyStyle: '' as '' | number,
+    engineCatalogId: '',
+    bodyStyleCatalogId: '',
   })
 
   // Images state
@@ -123,7 +128,7 @@ export default function CustomerVehicles() {
 
   // Search, filter, and pagination states
   const [searchQuery, setSearchQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'car' | 'motorbike'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'car' | 'motorbike' | 'truck'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 5
 
@@ -136,6 +141,14 @@ export default function CustomerVehicles() {
     api.getMyVehicles()
       .then(setVehicles)
       .catch(() => setVehicles([]))
+
+    api.getEngineTypes({ isActive: true, page: 1, pageSize: 9999 })
+      .then(res => setEngineCatalogs(res.items))
+      .catch(() => setEngineCatalogs([]))
+
+    api.getBodyStyles({ isActive: true, page: 1, pageSize: 9999 })
+      .then(res => setBodyStyleCatalogs(res.items))
+      .catch(() => setBodyStyleCatalogs([]))
   }, [])
 
   // Client-side filtering & pagination calculations
@@ -146,13 +159,29 @@ export default function CustomerVehicles() {
     const type = v.VehicleType ?? v.vehicleType ?? 2
     const matchesType = typeFilter === 'all' ||
       (typeFilter === 'car' && type === 2) ||
-      (typeFilter === 'motorbike' && type === 1)
+      (typeFilter === 'motorbike' && type === 1) ||
+      (typeFilter === 'truck' && type === 3)
 
     return matchesSearch && matchesType
   })
 
   const totalPages = Math.max(1, Math.ceil(filteredVehicles.length / pageSize))
   const paginatedVehicles = filteredVehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  // Tính danh sách kiểu dáng cho loại xe đang chọn trong form
+  // BE trả về vehicleType là số nguyên (1=Motorbike, 2=Car, 3=Truck)
+  // Dùng Number() để tránh lỗi so sánh kiểu dữ liệu
+  const formVehicleType = Number(vehicleForm.vehicleType)
+  const filteredBodyStyles = bodyStyleCatalogs.filter(cat => {
+    const vt = Number(cat.vehicleType ?? cat.VehicleType)
+    // Legacy fallback: nếu vehicleType chưa được set (= 0 hoặc NaN),
+    // các kiểu dáng có legacyEnumValue (1-8) mặc định thuộc Ô tô (Car = 2)
+    if (!vt || isNaN(vt)) {
+      const leg = cat.legacyEnumValue ?? cat.LegacyEnumValue
+      return formVehicleType === 2 && leg != null
+    }
+    return vt === formVehicleType
+  })
 
   const vehicleTypeLabel = (vehicleType?: VehicleType | number) => {
     if (vehicleType === 1) return 'Motorbike'
@@ -176,6 +205,8 @@ export default function CustomerVehicles() {
       manufactureYear: '',
       engineType: '',
       bodyStyle: '',
+      engineCatalogId: '',
+      bodyStyleCatalogId: '',
     })
     setShowVehicleForm(true)
   }
@@ -198,6 +229,8 @@ export default function CustomerVehicles() {
       manufactureYear: (vehicle.ManufactureYear ?? vehicle.manufactureYear ?? '').toString(),
       engineType: vehicle.EngineType ?? vehicle.engineType ?? '',
       bodyStyle: vehicle.BodyStyle ?? vehicle.bodyStyle ?? '',
+      engineCatalogId: vehicle.EngineCatalogId ?? vehicle.engineCatalogId ?? '',
+      bodyStyleCatalogId: vehicle.BodyStyleCatalogId ?? vehicle.bodyStyleCatalogId ?? '',
     })
     setShowVehicleForm(true)
   }
@@ -217,6 +250,8 @@ export default function CustomerVehicles() {
         ManufactureYear: vehicleForm.manufactureYear ? Number(vehicleForm.manufactureYear) : undefined,
         EngineType: vehicleForm.engineType !== '' ? Number(vehicleForm.engineType) : undefined,
         BodyStyle: vehicleForm.bodyStyle !== '' ? Number(vehicleForm.bodyStyle) : undefined,
+        EngineCatalogId: vehicleForm.engineCatalogId || undefined,
+        BodyStyleCatalogId: vehicleForm.bodyStyleCatalogId || undefined,
       }
 
       const savedVehicle = editingVehicleId
@@ -237,6 +272,8 @@ export default function CustomerVehicles() {
         manufactureYear: '',
         engineType: '',
         bodyStyle: '',
+        engineCatalogId: '',
+        bodyStyleCatalogId: '',
       })
       setShowVehicleForm(false)
       setEditingVehicleId(null)
@@ -325,6 +362,7 @@ export default function CustomerVehicles() {
             <option value="all">Tất cả loại xe</option>
             <option value="car">Ô tô (Car)</option>
             <option value="motorbike">Xe máy (Motorbike)</option>
+            <option value="truck">Xe tải / xe ba gác (Truck)</option>
           </select>
         </div>
         {(searchQuery || typeFilter !== 'all') && (
@@ -374,12 +412,14 @@ export default function CustomerVehicles() {
                   setVehicleForm(prev => ({
                     ...prev,
                     vehicleType: val,
-                    bodyStyle: val !== 2 ? '' : prev.bodyStyle
+                    bodyStyleCatalogId: '',
+                    bodyStyle: ''
                   }))
                 }}
               >
                 <option value={1}>Xe máy (Motorbike)</option>
                 <option value={2}>Ô tô (Car)</option>
+                <option value={3}>Xe tải / xe ba gác (Truck)</option>
               </select>
             </div>
             <div className="form-group">
@@ -422,37 +462,49 @@ export default function CustomerVehicles() {
               <select
                 id="vehicle-engine"
                 className="form-input"
-                value={vehicleForm.engineType}
-                onChange={e => setVehicleForm(prev => ({ ...prev, engineType: e.target.value === '' ? '' : Number(e.target.value) }))}
+                value={vehicleForm.engineCatalogId}
+                onChange={e => {
+                  const catId = e.target.value
+                  const matched = engineCatalogs.find(c => c.id === catId)
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    engineCatalogId: catId,
+                    engineType: matched?.legacyEnumValue ?? ''
+                  }))
+                }}
               >
                 <option value="">-- Chọn loại động cơ --</option>
-                <option value={1}>Xăng (Petrol)</option>
-                <option value={2}>Dầu (Diesel)</option>
-                <option value={3}>Điện (EV)</option>
-                <option value={4}>Hybrid (HEV)</option>
+                {engineCatalogs.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
               </select>
             </div>
-            {vehicleForm.vehicleType === 2 && (
-              <div className="form-group animate-slide-in">
-                <label className="form-label" htmlFor="vehicle-style">Kiểu dáng</label>
-                <select
-                  id="vehicle-style"
-                  className="form-input"
-                  value={vehicleForm.bodyStyle}
-                  onChange={e => setVehicleForm(prev => ({ ...prev, bodyStyle: e.target.value === '' ? '' : Number(e.target.value) }))}
-                >
-                  <option value="">-- Chọn kiểu dáng --</option>
-                  <option value={1}>Sedan</option>
-                  <option value={2}>SUV</option>
-                  <option value={3}>Hatchback</option>
-                  <option value={4}>Pickup (Bán tải)</option>
-                  <option value={5}>Van</option>
-                  <option value={6}>Minivan</option>
-                  <option value={7}>Coupe</option>
-                  <option value={8}>Convertible (Mui trần)</option>
-                </select>
-              </div>
-            )}
+            <div className="form-group animate-slide-in">
+              <label className="form-label" htmlFor="vehicle-style">Kiểu dáng</label>
+              <select
+                id="vehicle-style"
+                className="form-input"
+                value={vehicleForm.bodyStyleCatalogId}
+                onChange={e => {
+                  const catId = e.target.value
+                  const matched = filteredBodyStyles.find(c => c.id === catId)
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    bodyStyleCatalogId: catId,
+                    bodyStyle: matched?.legacyEnumValue ?? ''
+                  }))
+                }}
+              >
+                <option value="">-- Chọn kiểu dáng --</option>
+                {filteredBodyStyles.length > 0 ? (
+                  filteredBodyStyles.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))
+                ) : (
+                  <option disabled value="">Không có kiểu dáng cho loại xe này</option>
+                )}
+              </select>
+            </div>
           </div>
           <div className="vehicle-form-actions">
             <AnimatedButton type="button" variant="ghost" onClick={() => { setShowVehicleForm(false); setEditingVehicleId(null) }}>
@@ -484,7 +536,7 @@ export default function CustomerVehicles() {
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
                   {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
                     <img
-                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl}
+                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || undefined}
                       alt={plate}
                       style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }}
                     />
@@ -498,8 +550,8 @@ export default function CustomerVehicles() {
                       {vehicle.ManufactureYear || vehicle.manufactureYear ? ` (${vehicle.ManufactureYear || vehicle.manufactureYear})` : ''}
                     </div>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
-                      <span>⚙️ {engineTypeLabel(vehicle.EngineType ?? vehicle.engineType)}</span>
-                      <span>🚙 {bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle)}</span>
+                      <span>⚙️ {vehicle.EngineCatalogName ?? vehicle.engineCatalogName ?? engineTypeLabel(vehicle.EngineType ?? vehicle.engineType ?? undefined)}</span>
+                      <span>🚙 {vehicle.BodyStyleCatalogName ?? vehicle.bodyStyleCatalogName ?? bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle ?? undefined)}</span>
                       <span>Hạng xe: <strong style={{ color: 'var(--color-primary)' }}>{vehicle.VehicleCondition || vehicle.vehicleCondition || 'Standard'}</strong></span>
                     </div>
                   </div>
