@@ -55,7 +55,7 @@ namespace WashingCar_BLL.Services
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
-            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle);
+            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
             var vehicle = new Vehicle
             {
                 UserId = userId,
@@ -96,7 +96,7 @@ namespace WashingCar_BLL.Services
             vehicle.Model = NormalizeOptionalText(request.Model);
             vehicle.ManufactureYear = request.ManufactureYear;
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
-            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle);
+            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
             vehicle.EngineCatalogId = engine.CatalogId;
             vehicle.EngineType = engine.LegacyValue;
             vehicle.BodyStyleCatalogId = bodyStyle.CatalogId;
@@ -120,7 +120,7 @@ namespace WashingCar_BLL.Services
             return (catalog.VehicleEngineCatalogId, catalog.LegacyEnumValue ?? (legacyValue.HasValue ? (byte)legacyValue.Value : null));
         }
 
-        private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveBodyStyleAsync(Guid? catalogId, BodyStyle? legacyValue)
+        private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveBodyStyleAsync(Guid? catalogId, BodyStyle? legacyValue, VehicleType vehicleType)
         {
             if (!catalogId.HasValue)
                 return (null, legacyValue.HasValue ? (byte)legacyValue.Value : null);
@@ -129,6 +129,8 @@ namespace WashingCar_BLL.Services
                 ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.");
             if (!catalog.IsActive)
                 throw AppException.BadRequest("Kiểu dáng xe đã bị vô hiệu hóa.");
+            if (catalog.VehicleType != (byte)vehicleType)
+                throw AppException.BadRequest("Kiểu dáng xe không phù hợp với loại phương tiện đã chọn.");
             return (catalog.VehicleBodyStyleCatalogId, catalog.LegacyEnumValue ?? (legacyValue.HasValue ? (byte)legacyValue.Value : null));
         }
 

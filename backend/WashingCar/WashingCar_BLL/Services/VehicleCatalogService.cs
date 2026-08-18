@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using WashingCar_BLL.Interfaces;
+using WashingCar_Common.Enum;
 using WashingCar_Common.Exceptions;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
@@ -91,6 +92,10 @@ public class VehicleCatalogService(
 
     public async Task<VehicleCatalogItemDto> CreateBodyStyleAsync(CreateVehicleCatalogRequest request)
     {
+        if (request.VehicleType is null)
+            throw AppException.BadRequest("Phải chọn loại phương tiện cho kiểu dáng xe.");
+
+        var vehicleType = EnsureSupportedVehicleType(request.VehicleType.Value);
         var code = NormalizeCode(request.Code);
         var name = NormalizeName(request.Name);
         if (await bodyStyleRepo.ExistsCodeAsync(code))
@@ -103,11 +108,12 @@ public class VehicleCatalogService(
             VehicleBodyStyleCatalogId = Guid.NewGuid(),
             Code = code,
             Name = name,
+            VehicleType = (byte)vehicleType,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion = [],
         });
-        logger.LogInformation("Created vehicle body-style catalog {CatalogId}", item.VehicleBodyStyleCatalogId);
+        logger.LogInformation("Created vehicle body-style catalog {CatalogId} for {VehicleType}", item.VehicleBodyStyleCatalogId, vehicleType);
         return ToDto(item);
     }
 
@@ -165,5 +171,11 @@ public class VehicleCatalogService(
         Name = item.Name,
         IsActive = item.IsActive,
         LegacyEnumValue = item.LegacyEnumValue,
+        VehicleType = (VehicleType)item.VehicleType,
     };
+
+    private static VehicleType EnsureSupportedVehicleType(VehicleType vehicleType)
+        => vehicleType is VehicleType.Motorbike or VehicleType.Car or VehicleType.Truck
+            ? vehicleType
+            : throw AppException.BadRequest("Loại phương tiện không được hỗ trợ cho catalog kiểu dáng.");
 }

@@ -31,14 +31,15 @@ public static class DataSeeder
         var now = DateTime.UtcNow;
         var engines = new[]
         {
-            (Code: "GASOLINE", Name: "Gasoline", Legacy: (byte)1),
-            (Code: "DIESEL", Name: "Diesel", Legacy: (byte)2),
-            (Code: "ELECTRIC", Name: "Electric", Legacy: (byte)3),
+            (Code: "GASOLINE", Name: "Xăng (Gasoline)", Legacy: (byte)1),
+            (Code: "DIESEL", Name: "Dầu diesel (Diesel)", Legacy: (byte)2),
+            (Code: "ELECTRIC", Name: "Điện (Electric)", Legacy: (byte)3),
             (Code: "HYBRID", Name: "Hybrid", Legacy: (byte)4),
         };
         foreach (var seed in engines)
         {
-            if (!await db.VehicleEngineCatalogs.AnyAsync(x => x.Code == seed.Code))
+            var item = await db.VehicleEngineCatalogs.FirstOrDefaultAsync(x => x.Code == seed.Code);
+            if (item is null)
             {
                 await db.VehicleEngineCatalogs.AddAsync(new VehicleEngineCatalog
                 {
@@ -51,33 +52,54 @@ public static class DataSeeder
                     RowVersion = [],
                 });
             }
+            else if (item.Name != seed.Name)
+            {
+                item.Name = seed.Name;
+                item.UpdatedAtUtc = now;
+            }
         }
 
         var bodyStyles = new[]
         {
-            (Code: "SEDAN", Name: "Sedan", Legacy: (byte)1),
-            (Code: "SUV", Name: "SUV", Legacy: (byte)2),
-            (Code: "HATCHBACK", Name: "Hatchback", Legacy: (byte)3),
-            (Code: "PICKUP", Name: "Pickup", Legacy: (byte)4),
-            (Code: "VAN", Name: "Van", Legacy: (byte)5),
-            (Code: "MINIVAN", Name: "Minivan", Legacy: (byte)6),
-            (Code: "COUPE", Name: "Coupe", Legacy: (byte)7),
-            (Code: "CONVERTIBLE", Name: "Convertible", Legacy: (byte)8),
+            (Code: "SEDAN", Name: "Sedan – xe gầm thấp", Legacy: (byte?)1, VehicleType: VehicleType.Car),
+            (Code: "SUV", Name: "SUV – xe gầm cao", Legacy: (byte?)2, VehicleType: VehicleType.Car),
+            (Code: "HATCHBACK", Name: "Hatchback – xe 5 cửa", Legacy: (byte?)3, VehicleType: VehicleType.Car),
+            (Code: "PICKUP", Name: "Pickup – xe bán tải", Legacy: (byte?)4, VehicleType: VehicleType.Car),
+            (Code: "VAN", Name: "Van – xe chở khách/hàng", Legacy: (byte?)5, VehicleType: VehicleType.Car),
+            (Code: "MINIVAN", Name: "Minivan – xe đa dụng", Legacy: (byte?)6, VehicleType: VehicleType.Car),
+            (Code: "COUPE", Name: "Coupe – xe thể thao 2 cửa", Legacy: (byte?)7, VehicleType: VehicleType.Car),
+            (Code: "CONVERTIBLE", Name: "Convertible – xe mui trần", Legacy: (byte?)8, VehicleType: VehicleType.Car),
+            (Code: "MOTORBIKE_STANDARD", Name: "Xe số", Legacy: (byte?)null, VehicleType: VehicleType.Motorbike),
+            (Code: "MOTORBIKE_SCOOTER", Name: "Xe tay ga", Legacy: (byte?)null, VehicleType: VehicleType.Motorbike),
+            (Code: "MOTORBIKE_MANUAL", Name: "Xe côn tay", Legacy: (byte?)null, VehicleType: VehicleType.Motorbike),
+            (Code: "TRUCK_BOX", Name: "Xe tải thùng", Legacy: (byte?)null, VehicleType: VehicleType.Truck),
+            (Code: "TRUCK_DUMP", Name: "Xe tải ben", Legacy: (byte?)null, VehicleType: VehicleType.Truck),
+            (Code: "CARGO_TRICYCLE", Name: "Xe ba gác chở hàng", Legacy: (byte?)null, VehicleType: VehicleType.Truck),
         };
         foreach (var seed in bodyStyles)
         {
-            if (!await db.VehicleBodyStyleCatalogs.AnyAsync(x => x.Code == seed.Code))
+            var item = await db.VehicleBodyStyleCatalogs.FirstOrDefaultAsync(x => x.Code == seed.Code);
+            if (item is null)
             {
                 await db.VehicleBodyStyleCatalogs.AddAsync(new VehicleBodyStyleCatalog
                 {
                     VehicleBodyStyleCatalogId = Guid.NewGuid(),
                     Code = seed.Code,
                     Name = seed.Name,
+                    VehicleType = (byte)seed.VehicleType,
                     IsActive = true,
                     LegacyEnumValue = seed.Legacy,
                     CreatedAtUtc = now,
                     RowVersion = [],
                 });
+            }
+            else
+            {
+                var changed = false;
+                if (item.Name != seed.Name) { item.Name = seed.Name; changed = true; }
+                if (item.VehicleType != (byte)seed.VehicleType) { item.VehicleType = (byte)seed.VehicleType; changed = true; }
+                if (item.LegacyEnumValue != seed.Legacy) { item.LegacyEnumValue = seed.Legacy; changed = true; }
+                if (changed) item.UpdatedAtUtc = now;
             }
         }
 
@@ -93,7 +115,9 @@ public static class DataSeeder
             UPDATE v
             SET v.BodyStyleCatalogId = c.VehicleBodyStyleCatalogId
             FROM Vehicle v
-            INNER JOIN VehicleBodyStyleCatalog c ON c.LegacyEnumValue = v.BodyStyle
+            INNER JOIN VehicleBodyStyleCatalog c
+                ON c.LegacyEnumValue = v.BodyStyle
+               AND c.VehicleType = v.VehicleType
             WHERE v.BodyStyleCatalogId IS NULL AND v.BodyStyle IS NOT NULL;
             """);
     }

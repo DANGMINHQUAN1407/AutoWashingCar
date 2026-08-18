@@ -635,6 +635,10 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.VehicleBodyStyleCatalogId).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
             entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.VehicleType)
+                .IsRequired()
+                .HasDefaultValue((byte)VehicleType.Car);
+            entity.HasIndex(e => e.VehicleType, "IX_VehicleBodyStyleCatalog_VehicleType");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);

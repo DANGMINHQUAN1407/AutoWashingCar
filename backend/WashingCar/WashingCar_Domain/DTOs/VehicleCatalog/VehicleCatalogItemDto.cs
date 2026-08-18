@@ -1,3 +1,5 @@
+using WashingCar_Common.Enum;
+
 namespace WashingCar_Domain.DTOs.VehicleCatalog;
 
 public class VehicleCatalogItemDto
@@ -7,4 +9,5 @@ public class VehicleCatalogItemDto
     public string Name { get; set; } = null!;
     public bool IsActive { get; set; }
     public byte? LegacyEnumValue { get; set; }
+    public VehicleType? VehicleType { get; set; }
 }
