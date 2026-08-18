@@ -38,13 +38,45 @@ public class ServiceCatalogRepository(WashingCarDbContext db) : IServiceCatalogR
         return (items, totalCount);
     }
 
+    public async Task<List<ServiceCatalogItem>> GetHierarchyAsync(bool includeInactive = false)
+    {
+        var query = _db.ServiceCatalogItems
+            .AsNoTracking()
+            .Include(x => x.ChildServiceCatalogItems)
+            .AsQueryable();
+
+        if (!includeInactive)
+        {
+            query = query
+                .Where(x => x.IsActive)
+                .Select(x => x);
+        }
+
+        return await query
+            .Where(x => x.ParentServiceCatalogItemId == null)
+            .OrderBy(x => x.ServiceName)
+            .ToListAsync();
+    }
+
     public async Task<ServiceCatalogItem?> GetByIdAsync(Guid id)
         => await _db.ServiceCatalogItems.FirstOrDefaultAsync(s => s.ServiceCatalogItemId == id);
+
+    public async Task<List<ServiceCatalogItem>> GetChildrenAsync(Guid parentId, bool includeInactive = false)
+        => await _db.ServiceCatalogItems
+            .Where(s => s.ParentServiceCatalogItemId == parentId
+                     && (includeInactive || s.IsActive))
+            .OrderBy(s => s.ServiceName)
+            .ToListAsync();
 
     public async Task<bool> ExistsNameAsync(string name, Guid? excludeId = null)
         => await _db.ServiceCatalogItems
             .AnyAsync(s => s.ServiceName.ToUpper() == name.ToUpper()
                         && (excludeId == null || s.ServiceCatalogItemId != excludeId.Value));
+
+    public async Task<bool> HasChildrenAsync(Guid parentId, bool activeOnly = false)
+        => await _db.ServiceCatalogItems
+            .AnyAsync(x => x.ParentServiceCatalogItemId == parentId
+                        && (!activeOnly || x.IsActive));
 
     public async Task<ServiceCatalogItem> CreateAsync(ServiceCatalogItem item)
     {

@@ -16,6 +16,19 @@ public class BookingController(IBookingService bookingService) : BaseApiControll
 {
     private readonly IBookingService _bookingService = bookingService;
 
+    /// <summary>
+    /// Preview selection parent-child trước khi tính giá. Endpoint không giữ slot,
+    /// không đọc voucher/loyalty và không ghi database.
+    /// </summary>
+    [HttpPost("service-selection/preview")]
+    public async Task<IActionResult> PreviewServiceSelection(
+        [FromBody] ServiceSelectionPreviewRequest request,
+        CancellationToken ct)
+    {
+        var preview = await _bookingService.PreviewServiceSelectionAsync(request, ct);
+        return Success(preview);
+    }
+
     /// <summary>Tính giá preview cho các dịch vụ đã chọn (trước khi đặt) — "Calculate Booking Price".</summary>
     /// <remarks>
     /// Gọi: BookingService.QuoteAsync → IBookingRepository.GetSlotForReserveAsync → helper BuildLinesAsync

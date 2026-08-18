@@ -9,6 +9,11 @@ public class ServiceCatalogDto
     public short   DurationMinutes      { get; set; }
     public byte    ServicePackageType   { get; set; }
     public string  ServicePackageTypeName { get; set; } = null!;
+    public byte    ServiceNodeType      { get; set; }
+    public string  ServiceNodeTypeName  { get; set; } = null!;
+    public Guid?   ParentServiceCatalogItemId { get; set; }
+    public byte?   SelectionMode        { get; set; }
+    public bool    IsBookable           { get; set; }
     public bool    IsActive             { get; set; }
     public DateTime CreatedAtUtc        { get; set; }
 }

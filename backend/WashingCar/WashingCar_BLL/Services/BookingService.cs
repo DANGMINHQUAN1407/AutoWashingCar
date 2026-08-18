@@ -39,6 +39,37 @@ public class BookingService(
     // Số ngày được đặt trước tối đa mặc định — hạng có benefit AdvanceBookingDays sẽ override giá trị này.
     private const int DefaultMaxAdvanceBookingDays = 3;
 
+    /// <summary>
+    /// Normalize selection parent-child và trả trạng thái checkbox trước khi tính giá.
+    /// Dùng cùng ExpandToLeafSelectionsAsync với quote/create nên không tạo ra
+    /// một quy tắc selection thứ hai. Workflow này không đọc slot, không tính tiền
+    /// và không ghi database.
+    /// </summary>
+    public async Task<ServiceSelectionPreviewDto> PreviewServiceSelectionAsync(
+        ServiceSelectionPreviewRequest request,
+        CancellationToken ct = default)
+    {
+        if (request is null)
+            throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
+
+        var normalized = await ExpandToLeafSelectionsAsync(request.Services, ct);
+        var selectedLeafIds = normalized
+            .Select(selection => selection.ServiceCatalogItemId)
+            .ToHashSet();
+        var roots = await serviceCatalogRepo.GetHierarchyAsync(includeInactive: false);
+        var states = new List<ServiceSelectionStateDto>();
+
+        foreach (var root in roots)
+            AddSelectionStates(root, selectedLeafIds, states);
+
+        return new ServiceSelectionPreviewDto
+        {
+            NormalizedLeafSelections = normalized,
+            States = states,
+            SelectedLeafCount = normalized.Count,
+        };
+    }
+
     /// <summary>Tính giá preview (dịch vụ + voucher + tier discount + redeem điểm) trước khi đặt — không ghi DB.</summary>
     /// <remarks>
     /// Gọi: IBookingRepository.GetSlotForReserveAsync → helper BuildLinesAsync (→ IServiceCatalogRepository.GetByIdAsync
@@ -915,15 +946,19 @@ public class BookingService(
         _ => false,
     };
 
-    /// <summary>Dựng nhiều BookingLine từ danh sách chọn.</summary>
+    /// <summary>
+    /// Dựng BookingLine từ selection cuối cùng. Nếu request chọn Group, group được
+    /// expand thành các Leaf active; Group không bao giờ trở thành BookingLine.
+    /// </summary>
     private async Task<List<BookingLine>> BuildLinesAsync(
         Guid branchId, List<BookingServiceSelection> selections, CancellationToken ct)
     {
         if (selections is null || selections.Count == 0)
             throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
 
+        var normalized = await ExpandToLeafSelectionsAsync(selections, ct);
         var loaded = new List<(BookingServiceSelection Selection, ServiceCatalogItem Service)>();
-        foreach (var selection in selections)
+        foreach (var selection in normalized)
         {
             var service = await LoadServiceForBookingAsync(branchId, selection.ServiceCatalogItemId, ct);
             loaded.Add((selection, service));
@@ -938,6 +973,124 @@ public class BookingService(
         return loaded
             .Select(item => CreateBookingLine(item.Service, item.Selection.Quantity))
             .ToList();
+    }
+
+    /// <summary>
+    /// Chuyển selection UI thành tập Leaf cuối cùng. Chọn Group tương đương chọn
+    /// toàn bộ child active; nếu request đồng thời có Group và một Child thì child
+    /// được gộp theo ID và quantity explicit của child được ưu tiên.
+    /// </summary>
+    private async Task<List<BookingServiceSelection>> ExpandToLeafSelectionsAsync(
+        IReadOnlyCollection<BookingServiceSelection> selections, CancellationToken ct)
+    {
+        var normalized = new Dictionary<Guid, short>();
+
+        foreach (var selection in selections)
+        {
+            if (selection.Quantity < 1)
+                throw AppException.BadRequest(ValidationMessage.Booking.InvalidServiceQuantity);
+
+            var selected = await serviceCatalogRepo.GetByIdAsync(selection.ServiceCatalogItemId)
+                ?? throw AppException.NotFound(ValidationMessage.Booking.ServiceNotFound(selection.ServiceCatalogItemId));
+
+            if (selected.ServiceNodeType == (byte)ServiceNodeType.Leaf)
+            {
+                if (!selected.IsActive)
+                    throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(selected.ServiceName));
+
+                AddLeafSelection(normalized, selected.ServiceCatalogItemId, selection.Quantity, overwrite: true);
+                continue;
+            }
+
+            if (selected.ServiceNodeType != (byte)ServiceNodeType.Group)
+                throw AppException.BadRequest(ValidationMessage.ServiceCatalog.InvalidNodeType);
+
+            if (!selected.IsActive)
+                throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(selected.ServiceName));
+
+            var children = await serviceCatalogRepo.GetChildrenAsync(selected.ServiceCatalogItemId);
+            if (children.Count == 0)
+                throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupHasNoActiveChildren);
+
+            foreach (var child in children)
+            {
+                if (child.ServiceNodeType != (byte)ServiceNodeType.Leaf)
+                    throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupContainsNonBookableChild);
+
+                AddLeafSelection(normalized, child.ServiceCatalogItemId, selection.Quantity, overwrite: false);
+            }
+        }
+
+        if (normalized.Count == 0)
+            throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
+
+        return normalized
+            .Select(item => new BookingServiceSelection
+            {
+                ServiceCatalogItemId = item.Key,
+                Quantity = item.Value,
+            })
+            .ToList();
+    }
+
+    private static void AddSelectionStates(
+        ServiceCatalogItem node,
+        ISet<Guid> selectedLeafIds,
+        ICollection<ServiceSelectionStateDto> states)
+    {
+        var activeChildren = node.ChildServiceCatalogItems
+            .Where(child => child.IsActive)
+            .OrderBy(child => child.ServiceName)
+            .ToList();
+
+        if (node.ServiceNodeType == (byte)ServiceNodeType.Group)
+        {
+            var selectedChildCount = activeChildren.Count(child => selectedLeafIds.Contains(child.ServiceCatalogItemId));
+            var activeChildCount = activeChildren.Count;
+
+            states.Add(new ServiceSelectionStateDto
+            {
+                ServiceCatalogItemId = node.ServiceCatalogItemId,
+                ParentServiceCatalogItemId = node.ParentServiceCatalogItemId,
+                ServiceNodeType = node.ServiceNodeType,
+                IsChecked = activeChildCount > 0 && selectedChildCount == activeChildCount,
+                IsIndeterminate = selectedChildCount > 0 && selectedChildCount < activeChildCount,
+                SelectedChildCount = selectedChildCount,
+                ActiveChildCount = activeChildCount,
+                IsBookable = false,
+            });
+
+            foreach (var child in activeChildren)
+                AddSelectionStates(child, selectedLeafIds, states);
+
+            return;
+        }
+
+        states.Add(new ServiceSelectionStateDto
+        {
+            ServiceCatalogItemId = node.ServiceCatalogItemId,
+            ParentServiceCatalogItemId = node.ParentServiceCatalogItemId,
+            ServiceNodeType = node.ServiceNodeType,
+            IsChecked = selectedLeafIds.Contains(node.ServiceCatalogItemId),
+            IsIndeterminate = false,
+            SelectedChildCount = 0,
+            ActiveChildCount = 0,
+            IsBookable = node.ServiceNodeType == (byte)ServiceNodeType.Leaf,
+        });
+    }
+
+    private static void AddLeafSelection(
+        IDictionary<Guid, short> normalized,
+        Guid serviceCatalogItemId,
+        short quantity,
+        bool overwrite)
+    {
+        // A duplicate leaf is one logical selection. Explicit child selection wins
+        // over the quantity inherited from a parent group.
+        if (!overwrite && normalized.ContainsKey(serviceCatalogItemId))
+            return;
+
+        normalized[serviceCatalogItemId] = quantity;
     }
 
     /// <summary>Dựng 1 BookingLine: validate dịch vụ active + thuộc chi nhánh, snapshot giá.</summary>
@@ -956,6 +1109,12 @@ public class BookingService(
             ?? throw AppException.NotFound(ValidationMessage.Booking.ServiceNotFound(serviceCatalogItemId));
         if (!service.IsActive)
             throw AppException.BadRequest(ValidationMessage.Booking.ServiceInactive(service.ServiceName));
+
+        if (service.ServiceNodeType == (byte)ServiceNodeType.Group)
+            throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupCannotBeBooked);
+
+        if (service.ServiceNodeType != (byte)ServiceNodeType.Leaf)
+            throw AppException.BadRequest(ValidationMessage.ServiceCatalog.InvalidNodeType);
 
         var branchService = await branchRepo.GetBranchServiceAsync(branchId, serviceCatalogItemId, ct);
         if (branchService is null || !branchService.IsActive)
