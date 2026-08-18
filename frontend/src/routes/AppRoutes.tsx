@@ -35,6 +35,7 @@ import AdminSettings from '../pages/admin/AdminSettings'
 import AdminVouchers from '../pages/admin/AdminVouchers'
 import AdminTiers from '../pages/admin/AdminTiers'
 import AdminReviews from '../pages/admin/AdminReviews'
+import AdminVehicleCatalogs from '../pages/admin/AdminVehicleCatalogs'
 
 export default function AppRoutes() {
   return (
@@ -104,6 +105,7 @@ export default function AppRoutes() {
         <Route path="customers" element={<ManagerCustomers />} />
         <Route path="vouchers" element={<ManagerVouchers />} />
         <Route path="reviews" element={<ManagerReviews />} />
+        <Route path="vehicle-catalogs" element={<AdminVehicleCatalogs />} />
         <Route path="profile" element={<ManagerProfile />} />
       </Route>
 
@@ -125,6 +127,7 @@ export default function AppRoutes() {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="vouchers" element={<AdminVouchers />} />
         <Route path="reviews" element={<AdminReviews />} />
+        <Route path="vehicle-catalogs" element={<AdminVehicleCatalogs />} />
       </Route>
     </Routes>
   )
