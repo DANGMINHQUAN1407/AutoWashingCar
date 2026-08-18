@@ -23,6 +23,10 @@ public partial class Vehicle
 
     public byte? BodyStyle { get; set; }
 
+    public Guid? EngineCatalogId { get; set; }
+
+    public Guid? BodyStyleCatalogId { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAtUtc { get; set; }
@@ -40,4 +44,8 @@ public partial class Vehicle
     public virtual User? DeletedByUser { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual VehicleEngineCatalog? EngineCatalog { get; set; }
+
+    public virtual VehicleBodyStyleCatalog? BodyStyleCatalog { get; set; }
 }

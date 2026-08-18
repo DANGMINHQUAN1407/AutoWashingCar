@@ -58,6 +58,10 @@ public partial class WashingCarDbContext : DbContext
 
     public virtual DbSet<VehicleImage> VehicleImages { get; set; }
 
+    public virtual DbSet<VehicleEngineCatalog> VehicleEngineCatalogs { get; set; }
+
+    public virtual DbSet<VehicleBodyStyleCatalog> VehicleBodyStyleCatalogs { get; set; }
+
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
     private string GetConnectionString()
@@ -611,11 +615,39 @@ public partial class WashingCarDbContext : DbContext
                 .HasConstraintName("FK_UserVoucher_Voucher");
         });
 
+        modelBuilder.Entity<VehicleEngineCatalog>(entity =>
+        {
+            entity.ToTable("VehicleEngineCatalog");
+            entity.HasIndex(e => e.Code, "UQ_VehicleEngineCatalog_Code").IsUnique();
+            entity.Property(e => e.VehicleEngineCatalogId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<VehicleBodyStyleCatalog>(entity =>
+        {
+            entity.ToTable("VehicleBodyStyleCatalog");
+            entity.HasIndex(e => e.Code, "UQ_VehicleBodyStyleCatalog_Code").IsUnique();
+            entity.Property(e => e.VehicleBodyStyleCatalogId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+        });
+
         modelBuilder.Entity<Vehicle>(entity =>
         {
             entity.ToTable("Vehicle");
 
             entity.HasIndex(e => e.UserId, "IX_Vehicle_UserId");
+            entity.HasIndex(e => e.EngineCatalogId, "IX_Vehicle_EngineCatalogId");
+            entity.HasIndex(e => e.BodyStyleCatalogId, "IX_Vehicle_BodyStyleCatalogId");
 
             entity.HasIndex(e => e.LicensePlate, "UX_Vehicle_LicensePlate")
                 .IsUnique()
@@ -643,6 +675,16 @@ public partial class WashingCarDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vehicle_User");
+
+            entity.HasOne(d => d.EngineCatalog).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.EngineCatalogId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vehicle_EngineCatalog");
+
+            entity.HasOne(d => d.BodyStyleCatalog).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.BodyStyleCatalogId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vehicle_BodyStyleCatalog");
         });
 
         modelBuilder.Entity<VehicleImage>(entity =>

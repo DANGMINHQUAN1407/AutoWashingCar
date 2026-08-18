@@ -28,4 +28,10 @@ public class UpdateVehicleRequest
 
     [EnumDataType(typeof(BodyStyle))]
     public BodyStyle? BodyStyle { get; set; }
+
+    /// <summary>Catalog động cơ động. Nếu có, giá trị này được ưu tiên hơn EngineType legacy.</summary>
+    public Guid? EngineCatalogId { get; set; }
+
+    /// <summary>Catalog kiểu dáng động. Nếu có, giá trị này được ưu tiên hơn BodyStyle legacy.</summary>
+    public Guid? BodyStyleCatalogId { get; set; }
 }

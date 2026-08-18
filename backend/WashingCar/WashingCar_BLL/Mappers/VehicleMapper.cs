@@ -17,6 +17,10 @@ public static class VehicleMapper
         ManufactureYear = v.ManufactureYear,
         EngineType   = v.EngineType.HasValue ? (EngineType)v.EngineType.Value : null,
         BodyStyle    = v.BodyStyle.HasValue ? (BodyStyle)v.BodyStyle.Value : null,
+        EngineCatalogId = v.EngineCatalogId,
+        EngineCatalogName = v.EngineCatalog?.Name,
+        BodyStyleCatalogId = v.BodyStyleCatalogId,
+        BodyStyleCatalogName = v.BodyStyleCatalog?.Name,
         VehicleCondition = VehicleConditionPolicy.GetCondition(v.ManufactureYear).ToString(),
         PrimaryImageUrl = v.VehicleImages
             .Where(image => image.IsPrimary)

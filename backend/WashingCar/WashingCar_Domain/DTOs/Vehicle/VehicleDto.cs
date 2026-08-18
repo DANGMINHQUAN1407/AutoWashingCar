@@ -12,6 +12,10 @@ public class VehicleDto
     public int?        ManufactureYear { get; set; }
     public EngineType? EngineType   { get; set; }
     public BodyStyle?  BodyStyle    { get; set; }
+    public Guid?       EngineCatalogId { get; set; }
+    public string?     EngineCatalogName { get; set; }
+    public Guid?       BodyStyleCatalogId { get; set; }
+    public string?     BodyStyleCatalogName { get; set; }
     public string      VehicleCondition { get; set; } = null!;
     public string?     PrimaryImageUrl { get; set; }
     public DateTime    CreatedAtUtc { get; set; }

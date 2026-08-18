@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using WashingCar_BLL.Interfaces;
 using WashingCar_BLL.Mappers;
 using WashingCar_Common.Constant;
+using WashingCar_Common.Enum;
 using WashingCar_Common.Exceptions;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
@@ -12,11 +13,19 @@ namespace WashingCar_BLL.Services
     public class VehicleService : IVehicleService
     {
         private readonly IVehicleRepository _vehicleRepo;
+        private readonly IVehicleEngineCatalogRepository _engineCatalogRepo;
+        private readonly IVehicleBodyStyleCatalogRepository _bodyStyleCatalogRepo;
         private readonly ILogger<VehicleService> _logger;
 
-        public VehicleService(IVehicleRepository vehicleRepo, ILogger<VehicleService> logger)
+        public VehicleService(
+            IVehicleRepository vehicleRepo,
+            IVehicleEngineCatalogRepository engineCatalogRepo,
+            IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
+            ILogger<VehicleService> logger)
         {
             _vehicleRepo = vehicleRepo;
+            _engineCatalogRepo = engineCatalogRepo;
+            _bodyStyleCatalogRepo = bodyStyleCatalogRepo;
             _logger = logger;
         }
 
@@ -45,6 +54,8 @@ namespace WashingCar_BLL.Services
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
+            var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
+            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle);
             var vehicle = new Vehicle
             {
                 UserId = userId,
@@ -53,8 +64,10 @@ namespace WashingCar_BLL.Services
                 Brand = NormalizeOptionalText(request.Brand),
                 Model = NormalizeOptionalText(request.Model),
                 ManufactureYear = request.ManufactureYear,
-                EngineType = request.EngineType.HasValue ? (byte)request.EngineType.Value : null,
-                BodyStyle = request.BodyStyle.HasValue ? (byte)request.BodyStyle.Value : null,
+                EngineCatalogId = engine.CatalogId,
+                EngineType = engine.LegacyValue,
+                BodyStyleCatalogId = bodyStyle.CatalogId,
+                BodyStyle = bodyStyle.LegacyValue,
                 IsDeleted = false,
                 CreatedAtUtc = DateTime.UtcNow,
                 RowVersion = [],
@@ -82,13 +95,41 @@ namespace WashingCar_BLL.Services
             vehicle.Brand = NormalizeOptionalText(request.Brand);
             vehicle.Model = NormalizeOptionalText(request.Model);
             vehicle.ManufactureYear = request.ManufactureYear;
-            vehicle.EngineType = request.EngineType.HasValue ? (byte)request.EngineType.Value : null;
-            vehicle.BodyStyle = request.BodyStyle.HasValue ? (byte)request.BodyStyle.Value : null;
+            var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
+            var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle);
+            vehicle.EngineCatalogId = engine.CatalogId;
+            vehicle.EngineType = engine.LegacyValue;
+            vehicle.BodyStyleCatalogId = bodyStyle.CatalogId;
+            vehicle.BodyStyle = bodyStyle.LegacyValue;
 
             await _vehicleRepo.UpdateAsync(vehicle);
             _logger.LogInformation("User {UserId} updated vehicle {VehicleId}", userId, vehicleId);
             return vehicle.ToDto();
 
+        }
+
+        private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveEngineAsync(Guid? catalogId, EngineType? legacyValue)
+        {
+            if (!catalogId.HasValue)
+                return (null, legacyValue.HasValue ? (byte)legacyValue.Value : null);
+
+            var catalog = await _engineCatalogRepo.GetByIdAsync(catalogId.Value)
+                ?? throw AppException.NotFound("Không tìm thấy loại động cơ.");
+            if (!catalog.IsActive)
+                throw AppException.BadRequest("Loại động cơ đã bị vô hiệu hóa.");
+            return (catalog.VehicleEngineCatalogId, catalog.LegacyEnumValue ?? (legacyValue.HasValue ? (byte)legacyValue.Value : null));
+        }
+
+        private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveBodyStyleAsync(Guid? catalogId, BodyStyle? legacyValue)
+        {
+            if (!catalogId.HasValue)
+                return (null, legacyValue.HasValue ? (byte)legacyValue.Value : null);
+
+            var catalog = await _bodyStyleCatalogRepo.GetByIdAsync(catalogId.Value)
+                ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.");
+            if (!catalog.IsActive)
+                throw AppException.BadRequest("Kiểu dáng xe đã bị vô hiệu hóa.");
+            return (catalog.VehicleBodyStyleCatalogId, catalog.LegacyEnumValue ?? (legacyValue.HasValue ? (byte)legacyValue.Value : null));
         }
 
         public async Task<List<VehicleImageDto>> GetImagesAsync(Guid userId, Guid vehicleId)

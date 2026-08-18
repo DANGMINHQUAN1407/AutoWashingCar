@@ -35,6 +35,8 @@ namespace WashingCar_DAL.Repositories
         {
             return await _context.Vehicles
                 .Include(vehicle => vehicle.VehicleImages)
+                .Include(vehicle => vehicle.EngineCatalog)
+                .Include(vehicle => vehicle.BodyStyleCatalog)
                 .FirstOrDefaultAsync(
                     vehicle => vehicle.VehicleId == vehicleId
                         && vehicle.UserId == userId
@@ -46,6 +48,8 @@ namespace WashingCar_DAL.Repositories
             return await _context.Vehicles
                 .AsNoTracking()
                 .Include(vehicle => vehicle.VehicleImages)
+                .Include(vehicle => vehicle.EngineCatalog)
+                .Include(vehicle => vehicle.BodyStyleCatalog)
                 .Where(vehicle => vehicle.UserId == userId && !vehicle.IsDeleted)
                 .OrderBy(vehicle => vehicle.CreatedAtUtc)
                 .ToListAsync();
