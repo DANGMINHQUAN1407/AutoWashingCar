@@ -61,6 +61,13 @@ public class ServiceCatalogRepository(WashingCarDbContext db) : IServiceCatalogR
     public async Task<ServiceCatalogItem?> GetByIdAsync(Guid id)
         => await _db.ServiceCatalogItems.FirstOrDefaultAsync(s => s.ServiceCatalogItemId == id);
 
+    public async Task<List<ServiceCatalogItem>> GetChildrenAsync(Guid parentId, bool includeInactive = false)
+        => await _db.ServiceCatalogItems
+            .Where(s => s.ParentServiceCatalogItemId == parentId
+                     && (includeInactive || s.IsActive))
+            .OrderBy(s => s.ServiceName)
+            .ToListAsync();
+
     public async Task<bool> ExistsNameAsync(string name, Guid? excludeId = null)
         => await _db.ServiceCatalogItems
             .AnyAsync(s => s.ServiceName.ToUpper() == name.ToUpper()

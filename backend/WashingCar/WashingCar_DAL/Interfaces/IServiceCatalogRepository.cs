@@ -8,6 +8,7 @@ public interface IServiceCatalogRepository
     Task<(List<ServiceCatalogItem> Items, int TotalCount)> GetAllPaginatedAsync(ServiceCatalogQuery query);
     Task<List<ServiceCatalogItem>> GetHierarchyAsync(bool includeInactive = false);
     Task<ServiceCatalogItem?>  GetByIdAsync(Guid id);
+    Task<List<ServiceCatalogItem>> GetChildrenAsync(Guid parentId, bool includeInactive = false);
     Task<bool>                 ExistsNameAsync(string name, Guid? excludeId = null);
     Task<bool>                 HasChildrenAsync(Guid parentId, bool activeOnly = false);
     Task<ServiceCatalogItem>   CreateAsync(ServiceCatalogItem item);

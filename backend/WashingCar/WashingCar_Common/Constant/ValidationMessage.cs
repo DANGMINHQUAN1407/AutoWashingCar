@@ -96,6 +96,7 @@ public static class ValidationMessage
         public const string OnlyCancelWhenPendingOrConfirmed      = "Chỉ huỷ được khi đơn ở Pending/Confirmed (trước check-in)";
         public const string PhoneRequired                         = "Vui lòng nhập số điện thoại";
         public const string MustSelectAtLeastOneService           = "Phải chọn ít nhất 1 dịch vụ";
+        public const string InvalidServiceQuantity                = "Số lượng dịch vụ phải lớn hơn hoặc bằng 1";
         public const string DuplicateServiceSelection             = "Không được chọn trùng cùng một dịch vụ trong booking";
         public const string PremiumServiceExcludesOthers          = "Gói Premium không thể kết hợp với dịch vụ khác";
         public const string StandardServiceSelectionConflict      = "Chỉ được chọn một gói Standard trong mỗi booking";
@@ -170,6 +171,8 @@ public static class ValidationMessage
         public const string GroupCannotHaveParent = "Nhóm dịch vụ không được nằm dưới một dịch vụ khác";
         public const string LeafMustHaveParentOrBeRoot = "Dịch vụ con phải tham chiếu đến nhóm dịch vụ cha";
         public const string GroupCannotBeBooked = "Không thể đặt trực tiếp nhóm dịch vụ; hãy chọn dịch vụ con";
+        public const string GroupHasNoActiveChildren = "Nhóm dịch vụ hiện chưa có dịch vụ con đang hoạt động";
+        public const string GroupContainsNonBookableChild = "Nhóm dịch vụ chứa một node con không thể đặt";
         public const string HierarchyCycle = "Quan hệ cha-con của dịch vụ tạo thành vòng lặp";
         public const string GroupCannotBeAssignedToBranch = "Không thể gán nhóm dịch vụ trực tiếp cho chi nhánh";
         public const string GroupWithChildrenCannotBecomeLeaf = "Nhóm còn dịch vụ con nên không thể đổi thành dịch vụ đơn";
