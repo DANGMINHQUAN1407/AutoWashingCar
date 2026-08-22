@@ -80,4 +80,7 @@ public interface IBookingService
 
     /// <summary>Quét & gửi email nhắc lịch cho booking Confirmed có slot bắt đầu trong ~1 giờ tới. Trả về số mail đã gửi. (Background job gọi.)</summary>
     Task<int> SendDueRemindersAsync(CancellationToken ct = default);
+
+    /// <summary>Hủy các Pending booking quá thời hạn, nhả slot, hoàn voucher và hoàn điểm redeem thực tế.</summary>
+    Task<int> ExpirePendingBookingsAsync(CancellationToken ct = default);
 }

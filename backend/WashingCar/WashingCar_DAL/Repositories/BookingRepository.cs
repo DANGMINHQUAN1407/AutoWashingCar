@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WashingCar_Common.Enum;
 using WashingCar_Common.Helpers;
 using WashingCar_DAL.Data;
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
 using WashingCar_Domain.DTOs.Booking;
@@ -60,6 +61,45 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
                      && b.ReminderSentAtUtc == null
                      && b.SlotInventory.SlotDate >= fromDate
                      && b.SlotInventory.SlotDate <= toDate)
+            .ToListAsync(ct);
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
+        => await _db.Database.BeginTransactionAsync(ct);
+
+    public async Task AcquireUserLockAsync(Guid userId, CancellationToken ct = default)
+        => await AcquireTransactionLockAsync($"AutoWashingCar:Booking:User:{userId:N}", ct);
+
+    public async Task AcquireVehicleLockAsync(Guid vehicleId, CancellationToken ct = default)
+        => await AcquireTransactionLockAsync($"AutoWashingCar:Booking:Vehicle:{vehicleId:N}", ct);
+
+    public async Task AcquireBookingLockAsync(Guid bookingId, CancellationToken ct = default)
+        => await AcquireTransactionLockAsync($"AutoWashingCar:Booking:Booking:{bookingId:N}", ct);
+
+    private async Task AcquireTransactionLockAsync(string resource, CancellationToken ct)
+    {
+        // Transaction-owned application lock serializes the same logical resource
+        // even when requests target different SlotInventory rows.
+        await _db.Database.ExecuteSqlInterpolatedAsync($"""
+            EXEC sp_getapplock
+                @Resource = {resource},
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = -1;
+            """, ct);
+    }
+
+    public async Task<List<Guid>> GetExpiredPendingBookingIdsAsync(
+        DateTime expiresBeforeUtc,
+        int batchSize,
+        CancellationToken ct = default)
+        => await _db.Bookings
+            .AsNoTracking()
+            .Where(b => b.BookingStatus == BookingStatus.Pending
+                     && b.CreatedAtUtc <= expiresBeforeUtc)
+            .OrderBy(b => b.CreatedAtUtc)
+            .ThenBy(b => b.BookingId)
+            .Select(b => b.BookingId)
+            .Take(batchSize)
             .ToListAsync(ct);
 
     public async Task SaveChangesAsync(CancellationToken ct = default)

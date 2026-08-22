@@ -10,6 +10,7 @@ public interface ILoyaltyRepository
     Task<(List<LoyaltyLedgerEntry> Items, int TotalCount)> GetLedgerAsync(Guid loyaltyAccountId, LoyaltyLedgerQuery query, CancellationToken ct = default);
     Task AddLedgerEntryAsync(LoyaltyLedgerEntry entry, CancellationToken ct = default);
     Task<bool> HasEarnedForBookingAsync(Guid bookingId, CancellationToken ct = default);
+    Task<int> GetRedeemedPointsForBookingAsync(Guid bookingId, CancellationToken ct = default);
     Task<bool> HasBookingAtBranchAsync(Guid userId, Guid branchId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

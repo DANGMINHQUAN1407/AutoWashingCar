@@ -33,6 +33,14 @@ public class PaymentRepository(WashingCarDbContext db) : IPaymentRepository
     public async Task<bool> ExistsTransactionCodeAsync(string transactionCode, CancellationToken ct = default)
         => await _db.Payments.AnyAsync(p => p.TransactionCode == transactionCode, ct);
 
+    public async Task<bool> HasPendingOrCompletedPaymentAsync(Guid bookingId, CancellationToken ct = default)
+        => await _db.Payments.AnyAsync(p => p.BookingId == bookingId
+                                         && (p.PaymentStatus == PaymentStatus.Pending
+                                          || p.PaymentStatus == PaymentStatus.Completed), ct);
+
+    public async Task ReloadAsync(Payment payment, CancellationToken ct = default)
+        => await _db.Entry(payment).ReloadAsync(ct);
+
     public async Task<decimal> GetCompletedAmountAsync(Guid bookingId, CancellationToken ct = default)
         => await _db.Payments
             .Where(p => p.BookingId == bookingId

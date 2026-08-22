@@ -40,6 +40,9 @@ public class PaymentService(
     public async Task<DepositInitResponseDto> CreateDepositAsync(
         Guid userId, CreateDepositRequest request, string clientIp, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(request.BookingId, ct);
+
         var booking = await bookingRepo.GetDetailAsync(request.BookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
@@ -75,6 +78,7 @@ public class PaymentService(
 
         await paymentRepo.AddAsync(payment, ct);
         await paymentRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         var orderInfo = $"Thanh toan booking {booking.BookingCode}";
         var url = VnPayHelper.CreatePaymentUrl(_vnpay, txnRef, amount, orderInfo, clientIp, request.FrontendUrl);
@@ -145,6 +149,9 @@ public class PaymentService(
     public async Task<DepositInitResponseDto> CreateCounterQrAsync(
         Guid staffId, CreateCounterQrRequest request, string clientIp, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(request.BookingId, ct);
+
         var booking = await bookingRepo.GetDetailAsync(request.BookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
@@ -171,6 +178,7 @@ public class PaymentService(
 
         await paymentRepo.AddAsync(payment, ct);
         await paymentRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         var orderInfo = $"TT quay {booking.BookingCode}";
         var url = VnPayHelper.CreatePaymentUrl(_vnpay, txnRef, remaining, orderInfo, clientIp, request.FrontendUrl);
@@ -196,6 +204,9 @@ public class PaymentService(
     public async Task<PaymentDto> CreateFinalPaymentAsync(
         Guid staffId, CreateFinalPaymentRequest request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(request.BookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(request.BookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
@@ -235,6 +246,7 @@ public class PaymentService(
 
         await paymentRepo.AddAsync(payment, ct);
         await paymentRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // Walk-in trả đủ khi đơn còn Pending → xác nhận đơn luôn
         if (booking.BookingStatus == BookingStatus.Pending)
@@ -304,9 +316,17 @@ public class PaymentService(
     /// <summary>Cập nhật trạng thái payment theo kết quả cổng. Idempotent: chỉ xử lý khi đang Pending.</summary>
     private async Task ApplyGatewayResultAsync(Payment payment, bool gatewaySuccess, CancellationToken ct)
     {
-        if (payment.PaymentStatus != PaymentStatus.Pending)
-            return;
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(payment.BookingId, ct);
+        await paymentRepo.ReloadAsync(payment, ct);
 
+        if (payment.PaymentStatus != PaymentStatus.Pending)
+        {
+            await transaction.RollbackAsync(ct);
+            return;
+        }
+
+        var closeAfterCommit = false;
         if (gatewaySuccess)
         {
             payment.PaymentStatus = PaymentStatus.Completed;
@@ -324,18 +344,23 @@ public class PaymentService(
                 if (booking is not null) booking.DepositAmount = payment.Amount;
             }
 
-            await paymentRepo.SaveChangesAsync(ct);
-            await TryConfirmBookingAsync(payment.BookingId, ct);
-
-            // Counter QR: nếu booking đã Completed (rửa xong) thì đóng luôn và tích điểm
             var bookingCheck = await bookingRepo.GetTrackedByIdAsync(payment.BookingId, ct);
-            if (bookingCheck?.BookingStatus == BookingStatus.Completed)
+            if (bookingCheck is not null && bookingCheck.BookingStatus == BookingStatus.Pending)
+                bookingCheck.BookingStatus = BookingStatus.Confirmed;
+            closeAfterCommit = bookingCheck?.BookingStatus == BookingStatus.Completed;
+
+            await paymentRepo.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            // Counter QR: nếu booking đã Completed (rửa xong) thì đóng sau khi transaction payment commit.
+            if (closeAfterCommit)
                 await TryCloseBookingAsync(payment.BookingId, ct);
         }
         else
         {
             payment.PaymentStatus = PaymentStatus.Failed;
             await paymentRepo.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
     }
 

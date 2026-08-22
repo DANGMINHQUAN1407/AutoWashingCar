@@ -18,6 +18,12 @@ public interface IPaymentRepository
 
     Task<bool> ExistsTransactionCodeAsync(string transactionCode, CancellationToken ct = default);
 
+    /// <summary>Booking còn payment Pending hoặc Completed, tức chưa an toàn để auto-expire.</summary>
+    Task<bool> HasPendingOrCompletedPaymentAsync(Guid bookingId, CancellationToken ct = default);
+
+    /// <summary>Refresh scalar state của payment sau khi đã lấy application lock.</summary>
+    Task ReloadAsync(Payment payment, CancellationToken ct = default);
+
     /// <summary>Tổng tiền đã thanh toán (Completed, không tính Refund) của 1 booking — để tính phần còn lại.</summary>
     Task<decimal> GetCompletedAmountAsync(Guid bookingId, CancellationToken ct = default);
 

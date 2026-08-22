@@ -47,6 +47,7 @@ namespace WashingCar_API
             services.AddJwt(config);
             services.AddSwaggerWithAuth();
             services.AddHostedService<BookingReminderBackgroundService>();
+            services.AddHostedService<PendingBookingExpiryBackgroundService>();
             return services;
         }
 

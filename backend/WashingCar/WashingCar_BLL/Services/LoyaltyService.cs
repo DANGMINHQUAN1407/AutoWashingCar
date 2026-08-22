@@ -367,6 +367,35 @@ public class LoyaltyService : ILoyaltyService
         return account?.CurrentPoints ?? 0;
     }
 
+    /// <summary>Hoàn đúng số điểm đã ghi nhận trong ledger khi Pending booking tự hết hạn.</summary>
+    public async Task<int> ReleaseRedeemedPointsForBookingAsync(
+        Guid userId, Guid bookingId, CancellationToken ct = default)
+    {
+        // Booking ghi RedeemedPoints trước khi gọi redeem best-effort,
+        // nên đọc ledger thực tế thay vì tin riêng snapshot trên Booking.
+        var points = await _repo.GetRedeemedPointsForBookingAsync(bookingId, ct);
+        if (points <= 0) return 0;
+
+        var account = await _repo.GetByUserIdAsync(userId, ct)
+            ?? throw AppException.NotFound(ValidationMessage.Loyalty.AccountNotFound);
+
+        account.CurrentPoints += points;
+        var entry = new LoyaltyLedgerEntry
+        {
+            LoyaltyAccountId = account.LoyaltyAccountId,
+            UserId = userId,
+            BookingId = bookingId,
+            EntryType = LoyaltyEntryType.Expire,
+            Points = points,
+            BalanceAfter = account.CurrentPoints,
+            Description = $"Hoàn {points} điểm do booking Pending hết hạn",
+        };
+
+        // AddLedgerEntryAsync tự save; cùng DbContext transaction nên rollback đồng bộ.
+        await _repo.AddLedgerEntryAsync(entry, ct);
+        return points;
+    }
+
     /// <summary>Được BookingService.CreateAsync/CreateWalkInAsync gọi khi khách dùng điểm giảm giá — chỉ trừ CurrentPoints.</summary>
     /// <remarks>Gọi: ILoyaltyRepository.GetByUserIdAsync → AddLedgerEntryAsync.</remarks>
     public async Task<int> RedeemForBookingAsync(Guid userId, int points, Guid bookingId, CancellationToken ct = default)

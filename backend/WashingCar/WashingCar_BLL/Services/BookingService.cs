@@ -38,6 +38,8 @@ public class BookingService(
 
     // Số ngày được đặt trước tối đa mặc định — hạng có benefit AdvanceBookingDays sẽ override giá trị này.
     private const int DefaultMaxAdvanceBookingDays = 3;
+    private const int PendingBookingExpiryMinutes = 15;
+    private const int PendingExpiryBatchSize = 100;
 
     // Booking limit áp dụng cho luồng Customer tạo booking online.
     private const int MaxPendingBookingsPerCustomer = 1;
@@ -152,6 +154,11 @@ public class BookingService(
         var vehicle = await vehicleRepo.GetByIdAsync(request.VehicleId, userId)
             ?? throw AppException.NotFound(ValidationMessage.Booking.MyVehicleNotFound);
 
+        // Khóa User + Vehicle trong cùng transaction để serialize count/overlap rồi mới insert.
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireUserLockAsync(userId, ct);
+        await bookingRepo.AcquireVehicleLockAsync(vehicle.VehicleId, ct);
+
         // 2. Slot (tracked để giữ chỗ) — branch lấy từ slot
         var slot = await bookingRepo.GetSlotForReserveAsync(request.SlotInventoryId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
@@ -247,17 +254,24 @@ public class BookingService(
         try
         {
             await bookingRepo.SaveChangesAsync(ct);
+
+            // Redeem trong cùng transaction với booking để expiry không chạy giữa hai side effect.
+            if (redeemPoints > 0)
+            {
+                try { await loyaltyService.RedeemForBookingAsync(userId, redeemPoints, booking.BookingId, ct); }
+                catch (Exception ex)
+                {
+                    booking.RedeemedPoints = 0;
+                    logger.LogWarning(ex, "Trừ điểm loyalty cho booking {Code} thất bại", code);
+                }
+            }
+
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateConcurrencyException)
         {
+            await transaction.RollbackAsync(ct);
             throw AppException.Conflict(ValidationMessage.Booking.SlotJustFilled);
-        }
-
-        // 7. Trừ điểm loyalty — best-effort
-        if (redeemPoints > 0)
-        {
-            try { await loyaltyService.RedeemForBookingAsync(userId, redeemPoints, booking.BookingId, ct); }
-            catch (Exception ex) { logger.LogWarning(ex, "Trừ điểm loyalty cho booking {Code} thất bại", code); }
         }
 
         // 8. Email xác nhận — best-effort, lỗi không rollback booking
@@ -291,6 +305,9 @@ public class BookingService(
         if (customer.Role != UserRole.Customer)
             throw AppException.BadRequest(ValidationMessage.Booking.OnlyForCustomerRole);
 
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireUserLockAsync(customer.UserId, ct);
+
         // 2. Slot (tracked để giữ chỗ) — branch lấy từ slot
         var slot = await bookingRepo.GetSlotForReserveAsync(request.SlotInventoryId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
@@ -307,6 +324,7 @@ public class BookingService(
 
         // 4. Xe của khách: chọn xe có sẵn hoặc tạo mới ad-hoc sau khi đã validate dịch vụ.
         var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
+        await bookingRepo.AcquireVehicleLockAsync(vehicle.VehicleId, ct);
         await EnsureVehicleSlotNotOverlappingAsync(vehicle.VehicleId, slot, ct);
 
         var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
@@ -388,17 +406,24 @@ public class BookingService(
         try
         {
             await bookingRepo.SaveChangesAsync(ct);
+
+            // Redeem trong cùng transaction với booking để expiry không chạy giữa hai side effect.
+            if (redeemPoints > 0)
+            {
+                try { await loyaltyService.RedeemForBookingAsync(customer.UserId, redeemPoints, booking.BookingId, ct); }
+                catch (Exception ex)
+                {
+                    booking.RedeemedPoints = 0;
+                    logger.LogWarning(ex, "Trừ điểm loyalty cho walk-in booking {Code} thất bại", code);
+                }
+            }
+
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateConcurrencyException)
         {
+            await transaction.RollbackAsync(ct);
             throw AppException.Conflict(ValidationMessage.Booking.SlotJustFilled);
-        }
-
-        // 7. Trừ điểm loyalty — best-effort
-        if (redeemPoints > 0)
-        {
-            try { await loyaltyService.RedeemForBookingAsync(customer.UserId, redeemPoints, booking.BookingId, ct); }
-            catch (Exception ex) { logger.LogWarning(ex, "Trừ điểm loyalty cho walk-in booking {Code} thất bại", code); }
         }
 
         // 8. Email xác nhận — best-effort (khách guest có thể không có email)
@@ -417,6 +442,9 @@ public class BookingService(
     /// </remarks>
     public async Task<BookingDto> MarkConfirmedAsync(Guid bookingId, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
@@ -425,6 +453,7 @@ public class BookingService(
 
         booking.BookingStatus = BookingStatus.Confirmed;
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         logger.LogInformation("Booking {Id} confirmed (đã thu tiền)", bookingId);
         return booking.ToDto();
@@ -755,6 +784,9 @@ public class BookingService(
     public async Task<BookingDto> CancelAsync(
         Guid userId, bool isPrivileged, Guid bookingId, CancelBookingRequest? request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
@@ -789,6 +821,7 @@ public class BookingService(
         booking.BookingStatus = BookingStatus.Cancelled;
         // 🔌 Seam: KHÔNG tạo row Refund — quyết định hoàn tiền thuộc module Payment (mặc định không)
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         if (booking.DepositAmount.HasValue && booking.DepositAmount.Value > 0)
         {
@@ -864,6 +897,85 @@ public class BookingService(
             await bookingRepo.SaveChangesAsync(ct);
 
         return sent;
+    }
+
+    /// <summary>
+    /// Tự động hủy Pending booking đã quá 15 phút kể từ CreatedAtUtc.
+    /// Chỉ xử lý booking không có payment Pending/Completed để không tranh chấp callback/tiền đã thu.
+    /// </summary>
+    public async Task<int> ExpirePendingBookingsAsync(CancellationToken ct = default)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var cutoffUtc = nowUtc.AddMinutes(-PendingBookingExpiryMinutes);
+        var candidates = await bookingRepo.GetExpiredPendingBookingIdsAsync(
+            cutoffUtc, PendingExpiryBatchSize, ct);
+        var expired = 0;
+
+        foreach (var bookingId in candidates)
+        {
+            try
+            {
+                await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+                await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
+                var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct);
+                if (booking is null
+                    || booking.BookingStatus != BookingStatus.Pending
+                    || booking.CreatedAtUtc > cutoffUtc)
+                {
+                    await transaction.RollbackAsync(ct);
+                    continue;
+                }
+
+                if (await paymentRepo.HasPendingOrCompletedPaymentAsync(bookingId, ct))
+                {
+                    await transaction.RollbackAsync(ct);
+                    continue;
+                }
+
+                var slot = booking.SlotInventory;
+                if (slot is not null)
+                {
+                    if (booking.BookingType == BookingType.WalkIn && slot.WalkInReservedCount > 0)
+                        slot.WalkInReservedCount--;
+                    else if (slot.OnlineReservedCount > 0)
+                        slot.OnlineReservedCount--;
+                }
+
+                if (booking.UserVoucherId.HasValue)
+                {
+                    var userVoucher = await voucherRepo.GetUserVoucherByIdAsync(booking.UserVoucherId.Value, ct);
+                    if (userVoucher is not null && userVoucher.VoucherStatus == UserVoucherStatus.Used)
+                    {
+                        userVoucher.VoucherStatus = UserVoucherStatus.Redeemed;
+                        userVoucher.UsedAtUtc = null;
+                    }
+                    booking.UserVoucherId = null;
+                }
+
+                if (booking.RedeemedPoints > 0)
+                {
+                    await loyaltyService.ReleaseRedeemedPointsForBookingAsync(
+                        booking.UserId, booking.BookingId, ct);
+                    booking.RedeemedPoints = 0;
+                }
+
+                booking.BookingStatus = BookingStatus.Cancelled;
+                await bookingRepo.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+                expired++;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Pending expiry gặp concurrency conflict ở booking {BookingId}", bookingId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Không thể expire Pending booking {BookingId}", bookingId);
+            }
+        }
+
+        return expired;
     }
 
     // ─── Customer Support tại quầy (Staff đặt hộ khách walk-in) ───────────────

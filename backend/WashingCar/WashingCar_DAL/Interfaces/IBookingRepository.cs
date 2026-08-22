@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_DAL.Entities;
 using WashingCar_Domain.DTOs.Booking;
 
@@ -40,6 +41,15 @@ public interface IBookingRepository
     Task<List<Booking>> GetRemindableAsync(DateOnly fromDate, DateOnly toDate, CancellationToken ct = default);
 
     Task<Booking?> GetTrackedByUserVoucherIdAsync(Guid userVoucherId, CancellationToken ct = default);
+
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default);
+    Task AcquireUserLockAsync(Guid userId, CancellationToken ct = default);
+    Task AcquireVehicleLockAsync(Guid vehicleId, CancellationToken ct = default);
+    Task AcquireBookingLockAsync(Guid bookingId, CancellationToken ct = default);
+    Task<List<Guid>> GetExpiredPendingBookingIdsAsync(
+        DateTime expiresBeforeUtc,
+        int batchSize,
+        CancellationToken ct = default);
 
     Task SaveChangesAsync(CancellationToken ct = default);
     Task<int> GetTotalBookingsCountAsync(CancellationToken ct = default);

@@ -53,6 +53,15 @@ public class LoyaltyRepository(WashingCarDbContext db) : ILoyaltyRepository
         => await _db.LoyaltyLedgerEntries
             .AnyAsync(e => e.BookingId == bookingId && e.EntryType == LoyaltyEntryType.Earn, ct);
 
+    public async Task<int> GetRedeemedPointsForBookingAsync(Guid bookingId, CancellationToken ct)
+    {
+        var netRedeemed = await _db.LoyaltyLedgerEntries
+            .Where(e => e.BookingId == bookingId && e.EntryType == LoyaltyEntryType.Redeem)
+            .SumAsync(e => (int?)e.Points, ct) ?? 0;
+
+        return netRedeemed < 0 ? -netRedeemed : 0;
+    }
+
     public async Task<bool> HasBookingAtBranchAsync(Guid userId, Guid branchId, CancellationToken ct)
         => await _db.Bookings.AnyAsync(b => b.UserId == userId && b.BranchId == branchId, ct);
 
