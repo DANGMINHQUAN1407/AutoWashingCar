@@ -5,6 +5,8 @@ import type { Slot } from '../../types/slot'
 import type { Booking } from '../../types/booking'
 import './Staff.css'
 
+const CUSTOM_BRAND_VALUE = '__custom__'
+
 const BOOKING_STATUS_LABEL: Record<number, { label: string; color: string }> = {
   1: { label: 'Pending', color: 'var(--color-text-muted)' },
   2: { label: 'Confirmed', color: '#3b82f6' },
@@ -60,6 +62,8 @@ export default function StaffCustomers() {
   const [newPlate, setNewPlate] = useState('')
   const [newType, setNewType] = useState(2)
   const [newBrand, setNewBrand] = useState('')
+  const [newBrandCatalogId, setNewBrandCatalogId] = useState('')
+  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([])
 
   const [services, setServices] = useState<BranchService[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -90,6 +94,9 @@ export default function StaffCustomers() {
       try {
         const me = await api.getMe()
         const currentBranchId = me?.branchId ?? me?.BranchId ?? ''
+        api.getVehicleBrands({ isActive: true, page: 1, pageSize: 9999 })
+          .then(res => setBrandCatalogs(res.items || []))
+          .catch(() => setBrandCatalogs([]))
 
         if (currentBranchId) {
           setBranchId(currentBranchId)
@@ -236,7 +243,7 @@ export default function StaffCustomers() {
         SlotInventoryId: slotId,
         Services: Array.from(selected).map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         ExistingVehicleId: !addNew && selectedVehicleId ? selectedVehicleId : undefined,
-        NewVehicle: addNew ? { LicensePlate: newPlate.trim(), VehicleType: newType, Brand: newBrand || undefined } : undefined,
+        NewVehicle: addNew ? { LicensePlate: newPlate.trim(), VehicleType: newType, Brand: newBrand || undefined, BrandCatalogId: newBrandCatalogId && newBrandCatalogId !== CUSTOM_BRAND_VALUE ? newBrandCatalogId : undefined } : undefined,
         VoucherCode: voucherCode.trim() || undefined,
       })
       setSuccess(`Walk-in booking ${booking.bookingCode} created — vehicle added to queue!`)
@@ -247,6 +254,7 @@ export default function StaffCustomers() {
       setAddNew(false)
       setNewPlate('')
       setNewBrand('')
+      setNewBrandCatalogId('')
       setVoucherCode('')
       setCustomerVouchers([])
       setSearchDone(false)
@@ -421,7 +429,7 @@ export default function StaffCustomers() {
                   <div className="form-row-2">
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ color: 'var(--color-heading)' }}>Loại xe</label>
-                      <select className="form-input" value={newType} onChange={e => setNewType(Number(e.target.value))} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
+                      <select className="form-input" value={newType} onChange={e => { setNewType(Number(e.target.value)); setNewBrandCatalogId(''); setNewBrand('') }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
                         <option value={1}>Xe máy</option>
                         <option value={2}>Ô tô</option>
                         <option value={3}>Xe tải</option>
@@ -429,7 +437,33 @@ export default function StaffCustomers() {
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ color: 'var(--color-heading)' }}>Hãng xe</label>
-                      <input className="form-input" placeholder="VD: Toyota…" value={newBrand} onChange={e => setNewBrand(e.target.value)} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
+                      <select
+                        className="form-input"
+                        value={newBrandCatalogId}
+                        onChange={e => {
+                          const catId = e.target.value
+                          const matched = brandCatalogs.find(c => c.id === catId)
+                          setNewBrandCatalogId(catId)
+                          setNewBrand(catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '')
+                        }}
+                        style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}
+                      >
+                        <option value="">-- Chá»n hÃ£ng xe --</option>
+                        {brandCatalogs.filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(newType)).map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                        <option value={CUSTOM_BRAND_VALUE}>KhÃ¡c / tá»± nháº­p</option>
+                      </select>
+                      {newBrandCatalogId === CUSTOM_BRAND_VALUE && (
+                        <input
+                          className="form-input"
+                          placeholder="Nháº­p hÃ£ng xe"
+                          value={newBrand}
+                          onChange={e => setNewBrand(e.target.value)}
+                          maxLength={50}
+                          style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42, marginTop: 8 }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
