@@ -23,15 +23,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseCors();
 
 // Thứ tự middleware quan trọng:
 app.UseMiddleware<ExceptionHandlingMiddleware>(); // 1. bắt exception toàn bộ
 app.UseMiddleware<RequestLoggingMiddleware>();     // 2. log request/response
 app.UseMiddleware<IdempotencyMiddleware>();        // 3. chống double-submit
 
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 app.Run();
 
