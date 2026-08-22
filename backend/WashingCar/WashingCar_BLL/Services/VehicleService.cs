@@ -46,13 +46,13 @@ namespace WashingCar_BLL.Services
             return vehicle.ToDto();
         }
 
-        /// <summary>Đăng ký xe mới cho khách. Biển số được chuẩn hoá viết hoa và phải duy nhất trong các xe chưa xoá.</summary>
+        /// <summary>Đăng ký xe mới cho khách. Biển số phải duy nhất trên toàn bộ xe chưa xoá.</summary>
         /// <remarks>Gọi: IVehicleRepository.ExistsLicensePlateAsync → CreateAsync.</remarks>
         public async Task<VehicleDto> CreateAsync(Guid userId, CreateVehicleRequest request)
         {
             var plate = request.LicensePlate.ToUpperInvariant();
 
-            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId))
+            if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
             var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
@@ -78,7 +78,7 @@ namespace WashingCar_BLL.Services
             return created.ToDto();
         }
 
-        /// <summary>Cập nhật xe của chính khách (biển số/loại/hãng). Kiểm tra quyền sở hữu và biển số không trùng xe khác.</summary>
+        /// <summary>Cập nhật xe của chính khách (biển số/loại/hãng). Kiểm tra quyền sở hữu và biển số không trùng xe active nào khác.</summary>
         /// <remarks>Gọi: IVehicleRepository.GetByIdAsync + ExistsLicensePlateAsync (excludeId) → UpdateAsync.</remarks>
         public async Task<VehicleDto> UpdateAsync(Guid userId, Guid vehicleId, UpdateVehicleRequest request)
         {
@@ -87,7 +87,7 @@ namespace WashingCar_BLL.Services
 
             var plate = request.LicensePlate.ToUpperInvariant();
 
-            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId, excludeId: vehicleId))
+            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, excludeId: vehicleId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
             vehicle.LicensePlate = plate;

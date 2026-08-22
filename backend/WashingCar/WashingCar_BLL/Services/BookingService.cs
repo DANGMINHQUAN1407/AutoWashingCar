@@ -1408,8 +1408,8 @@ public class BookingService(
             throw AppException.BadRequest(ValidationMessage.Booking.MustChooseOrCreateVehicle);
 
         var plate = request.NewVehicle.LicensePlate.ToUpperInvariant();
-        if (await vehicleRepo.ExistsLicensePlateAsync(plate, customerId))
-            throw AppException.Conflict(ValidationMessage.Booking.LicensePlateExistsForCustomer);
+        if (await vehicleRepo.ExistsLicensePlateAsync(plate))
+            throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
         var bodyStyleCatalog = request.NewVehicle.BodyStyleCatalogId is { } bodyStyleId
             ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
