@@ -15,4 +15,10 @@ public interface IVehicleCatalogService
     Task<VehicleCatalogItemDto> CreateBodyStyleAsync(CreateVehicleCatalogRequest request);
     Task<VehicleCatalogItemDto> UpdateBodyStyleAsync(Guid id, UpdateVehicleCatalogRequest request);
     Task SetBodyStyleActiveAsync(Guid id, bool isActive);
+
+    Task<PagedResult<VehicleCatalogItemDto>> GetBrandsAsync(VehicleCatalogQuery query);
+    Task<VehicleCatalogItemDto> GetBrandByIdAsync(Guid id);
+    Task<VehicleCatalogItemDto> CreateBrandAsync(CreateVehicleCatalogRequest request);
+    Task<VehicleCatalogItemDto> UpdateBrandAsync(Guid id, UpdateVehicleCatalogRequest request);
+    Task SetBrandActiveAsync(Guid id, bool isActive);
 }

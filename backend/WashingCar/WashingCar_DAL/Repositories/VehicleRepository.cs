@@ -46,6 +46,7 @@ namespace WashingCar_DAL.Repositories
                 .Include(vehicle => vehicle.VehicleImages)
                 .Include(vehicle => vehicle.EngineCatalog)
                 .Include(vehicle => vehicle.BodyStyleCatalog)
+                .Include(vehicle => vehicle.BrandCatalog)
                 .FirstOrDefaultAsync(
                     vehicle => vehicle.VehicleId == vehicleId
                         && vehicle.UserId == userId
@@ -59,6 +60,7 @@ namespace WashingCar_DAL.Repositories
                 .Include(vehicle => vehicle.VehicleImages)
                 .Include(vehicle => vehicle.EngineCatalog)
                 .Include(vehicle => vehicle.BodyStyleCatalog)
+                .Include(vehicle => vehicle.BrandCatalog)
                 .Where(vehicle => vehicle.UserId == userId && !vehicle.IsDeleted)
                 .OrderBy(vehicle => vehicle.CreatedAtUtc)
                 .ToListAsync();

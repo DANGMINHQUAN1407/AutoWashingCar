@@ -17,6 +17,9 @@ public class CreateVehicleRequest
     [StringLength(50)]
     public string? Brand { get; set; }
 
+    /// <summary>Brand catalog động. Nếu có, catalog là nguồn chính và Brand được đồng bộ theo Name.</summary>
+    public Guid? BrandCatalogId { get; set; }
+
     [StringLength(100)]
     public string? Model { get; set; }
 

@@ -15,17 +15,20 @@ namespace WashingCar_BLL.Services
         private readonly IVehicleRepository _vehicleRepo;
         private readonly IVehicleEngineCatalogRepository _engineCatalogRepo;
         private readonly IVehicleBodyStyleCatalogRepository _bodyStyleCatalogRepo;
+        private readonly IVehicleBrandCatalogRepository _brandCatalogRepo;
         private readonly ILogger<VehicleService> _logger;
 
         public VehicleService(
             IVehicleRepository vehicleRepo,
             IVehicleEngineCatalogRepository engineCatalogRepo,
             IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
+            IVehicleBrandCatalogRepository brandCatalogRepo,
             ILogger<VehicleService> logger)
         {
             _vehicleRepo = vehicleRepo;
             _engineCatalogRepo = engineCatalogRepo;
             _bodyStyleCatalogRepo = bodyStyleCatalogRepo;
+            _brandCatalogRepo = brandCatalogRepo;
             _logger = logger;
         }
 
@@ -54,6 +57,7 @@ namespace WashingCar_BLL.Services
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
+            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand);
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
             var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
             var vehicle = new Vehicle
@@ -61,7 +65,8 @@ namespace WashingCar_BLL.Services
                 UserId = userId,
                 LicensePlate = plate,
                 VehicleType = (byte)request.VehicleType,
-                Brand = NormalizeOptionalText(request.Brand),
+                BrandCatalogId = brand.CatalogId,
+                Brand = brand.Name,
                 Model = NormalizeOptionalText(request.Model),
                 ManufactureYear = request.ManufactureYear,
                 EngineCatalogId = engine.CatalogId,
@@ -92,7 +97,9 @@ namespace WashingCar_BLL.Services
 
             vehicle.LicensePlate = plate;
             vehicle.VehicleType = (byte)request.VehicleType;
-            vehicle.Brand = NormalizeOptionalText(request.Brand);
+            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand);
+            vehicle.BrandCatalogId = brand.CatalogId;
+            vehicle.Brand = brand.Name;
             vehicle.Model = NormalizeOptionalText(request.Model);
             vehicle.ManufactureYear = request.ManufactureYear;
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
@@ -106,6 +113,19 @@ namespace WashingCar_BLL.Services
             _logger.LogInformation("User {UserId} updated vehicle {VehicleId}", userId, vehicleId);
             return vehicle.ToDto();
 
+        }
+
+        private async Task<(Guid? CatalogId, string? Name)> ResolveBrandAsync(Guid? catalogId, string? legacyName)
+        {
+            if (!catalogId.HasValue)
+                return (null, NormalizeOptionalText(legacyName));
+
+            var catalog = await _brandCatalogRepo.GetByIdAsync(catalogId.Value)
+                ?? throw AppException.NotFound("Không tìm thấy hãng xe.");
+            if (!catalog.IsActive)
+                throw AppException.BadRequest("Hãng xe đã bị vô hiệu hóa.");
+
+            return (catalog.VehicleBrandCatalogId, catalog.Name);
         }
 
         private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveEngineAsync(Guid? catalogId, EngineType? legacyValue)

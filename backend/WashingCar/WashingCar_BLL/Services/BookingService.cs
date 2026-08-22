@@ -31,6 +31,7 @@ public class BookingService(
     IReviewRepository         reviewRepo,
     IPaymentRepository        paymentRepo,
     IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
+    IVehicleBrandCatalogRepository brandCatalogRepo,
     ILogger<BookingService>   logger) : IBookingService
 {
     // Slot lưu theo giờ địa phương; VN = UTC+7 (không DST). Xem WashingCar_Common.Helpers.VietnamTimeHelper.
@@ -1411,6 +1412,14 @@ public class BookingService(
         if (await vehicleRepo.ExistsLicensePlateAsync(plate))
             throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
+        var brandCatalog = request.NewVehicle.BrandCatalogId is { } brandId
+            ? await brandCatalogRepo.GetByIdAsync(brandId)
+                ?? throw AppException.NotFound("Không tìm thấy hãng xe.")
+            : null;
+
+        if (brandCatalog is not null && !brandCatalog.IsActive)
+            throw AppException.BadRequest("Hãng xe đã bị vô hiệu hóa.");
+
         var bodyStyleCatalog = request.NewVehicle.BodyStyleCatalogId is { } bodyStyleId
             ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
                 ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.")
@@ -1429,7 +1438,9 @@ public class BookingService(
             UserId       = customerId,
             LicensePlate = plate,
             VehicleType  = (byte)request.NewVehicle.VehicleType,
-            Brand        = string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim(),
+            BrandCatalogId = brandCatalog?.VehicleBrandCatalogId,
+            Brand        = brandCatalog?.Name
+                ?? (string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim()),
             Model        = string.IsNullOrWhiteSpace(request.NewVehicle.Model) ? null : request.NewVehicle.Model.Trim(),
             ManufactureYear = request.NewVehicle.ManufactureYear,
             EngineCatalogId = request.NewVehicle.EngineCatalogId,

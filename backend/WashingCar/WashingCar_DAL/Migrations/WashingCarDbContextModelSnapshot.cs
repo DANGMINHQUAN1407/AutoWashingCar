@@ -1006,6 +1006,9 @@ namespace WashingCar_DAL.Migrations
                     b.Property<Guid?>("BodyStyleCatalogId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BrandCatalogId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Brand")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -1063,6 +1066,8 @@ namespace WashingCar_DAL.Migrations
 
                     b.HasIndex(new[] { "BodyStyleCatalogId" }, "IX_Vehicle_BodyStyleCatalogId");
 
+                    b.HasIndex(new[] { "BrandCatalogId" }, "IX_Vehicle_BrandCatalogId");
+
                     b.HasIndex(new[] { "EngineCatalogId" }, "IX_Vehicle_EngineCatalogId");
 
                     b.HasIndex(new[] { "UserId" }, "IX_Vehicle_UserId");
@@ -1074,6 +1079,55 @@ namespace WashingCar_DAL.Migrations
                     b.ToTable("Vehicle", (string)null);
                 });
 
+            modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBrandCatalog", b =>
+                {
+                    b.Property<Guid>("VehicleBrandCatalogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newsequentialid())");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("VehicleBrandCatalogId");
+
+                    b.HasIndex(new[] { "Code" }, "UQ_VehicleBrandCatalog_Code")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "Name" }, "UQ_VehicleBrandCatalog_Name")
+                        .IsUnique();
+
+                    b.ToTable("VehicleBrandCatalog", (string)null);
+                });
             modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBodyStyleCatalog", b =>
                 {
                     b.Property<Guid>("VehicleBodyStyleCatalogId")
@@ -1649,6 +1703,12 @@ namespace WashingCar_DAL.Migrations
 
             modelBuilder.Entity("WashingCar_DAL.Entities.Vehicle", b =>
                 {
+                    b.HasOne("WashingCar_DAL.Entities.VehicleBrandCatalog", "BrandCatalog")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("BrandCatalogId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_Vehicle_BrandCatalog");
+
                     b.HasOne("WashingCar_DAL.Entities.VehicleBodyStyleCatalog", "BodyStyleCatalog")
                         .WithMany("Vehicles")
                         .HasForeignKey("BodyStyleCatalogId")
@@ -1820,10 +1880,14 @@ namespace WashingCar_DAL.Migrations
             modelBuilder.Entity("WashingCar_DAL.Entities.Vehicle", b =>
                 {
                     b.Navigation("Bookings");
-
+                    b.Navigation("BrandCatalog");
                     b.Navigation("VehicleImages");
                 });
 
+            modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBrandCatalog", b =>
+                {
+                    b.Navigation("Vehicles");
+                });
             modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBodyStyleCatalog", b =>
                 {
                     b.Navigation("Vehicles");
