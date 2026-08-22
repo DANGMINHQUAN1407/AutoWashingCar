@@ -63,7 +63,8 @@ public class SlotController(ISlotService slotService, IBranchService branchServi
     [Authorize(Roles = UserRole.Manager)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var slot = await _slotService.GetByIdAsync(id, ct);
+        var managerBranchId = await ResolveBranchIdAsync(null, ct);
+        var slot = await _slotService.GetByIdAsync(id, managerBranchId, ct);
         return Success(slot);
     }
 
@@ -112,7 +113,8 @@ public class SlotController(ISlotService slotService, IBranchService branchServi
     [Authorize(Roles = UserRole.Manager)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSlotRequest request, CancellationToken ct)
     {
-        var slot = await _slotService.UpdateAsync(id, request, ct);
+        var managerBranchId = await ResolveBranchIdAsync(null, ct);
+        var slot = await _slotService.UpdateAsync(id, request, managerBranchId, ct);
         return Success(slot, "Cập nhật slot thành công.");
     }
 
@@ -127,7 +129,8 @@ public class SlotController(ISlotService slotService, IBranchService branchServi
     [Authorize(Roles = UserRole.Manager)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        await _slotService.DeleteAsync(id, ct);
+        var managerBranchId = await ResolveBranchIdAsync(null, ct);
+        await _slotService.DeleteAsync(id, managerBranchId, ct);
         return Success("Đã xóa slot.");
     }
 

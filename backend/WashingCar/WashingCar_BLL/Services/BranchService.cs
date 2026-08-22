@@ -26,6 +26,19 @@ public class BranchService(
     IServiceCatalogRepository serviceCatalogRepo,
     ILogger<BranchService> logger) : IBranchService
 {
+    private async Task<Branch> GetBranchForManagerScopeAsync(
+        Guid branchId,
+        Guid? managerId,
+        CancellationToken ct)
+    {
+        var branch = await branchRepo.GetByIdAsync(branchId, ct)
+            ?? throw AppException.NotFound(ValidationMessage.Branch.NotFound);
+
+        if (managerId.HasValue && branch.ManagerId != managerId.Value)
+            throw AppException.Forbidden(ValidationMessage.Branch.ForbiddenOtherBranch);
+
+        return branch;
+    }
     /// <summary>Filter theo city/isActive nếu có, phân trang, include Manager.</summary>
     /// <remarks>Gọi: IBranchRepository.GetAllAsync.</remarks>
     public async Task<PagedResult<BranchDto>> GetAllAsync(BranchQuery query, CancellationToken ct = default)
@@ -191,10 +204,12 @@ public class BranchService(
 
     /// <summary>Danh sách nhân viên (Staff) thuộc 1 chi nhánh. Ném 404 nếu chi nhánh không tồn tại.</summary>
     /// <remarks>Gọi: IBranchRepository.GetByIdAsync + GetStaffAsync.</remarks>
-    public async Task<List<BranchStaffDto>> GetStaffAsync(Guid branchId, CancellationToken ct = default)
+    public async Task<List<BranchStaffDto>> GetStaffAsync(
+        Guid branchId,
+        Guid? managerId = null,
+        CancellationToken ct = default)
     {
-        if (await branchRepo.GetByIdAsync(branchId, ct) is null)
-            throw AppException.NotFound(ValidationMessage.Branch.NotFound);
+        await GetBranchForManagerScopeAsync(branchId, managerId, ct);
 
         var staff = await branchRepo.GetStaffAsync(branchId, ct);
         return staff.Select(u => u.ToStaffDto()).ToList();
@@ -265,10 +280,13 @@ public class BranchService(
     /// Gọi: IBranchRepository.GetByIdAsync → GetBranchServiceAsync (loop từng serviceId) → AddBranchServicesAsync
     /// (bulk cho service mới) → SaveChangesAsync.
     /// </remarks>
-    public async Task AssignServicesAsync(Guid branchId, List<Guid> serviceIds, CancellationToken ct = default)
+    public async Task AssignServicesAsync(
+        Guid branchId,
+        List<Guid> serviceIds,
+        Guid? managerId = null,
+        CancellationToken ct = default)
     {
-        if (await branchRepo.GetByIdAsync(branchId, ct) is null)
-            throw AppException.NotFound(ValidationMessage.Branch.NotFound);
+        await GetBranchForManagerScopeAsync(branchId, managerId, ct);
 
         var toAdd = new List<BranchServiceEntity>();
         foreach (var serviceId in serviceIds.Distinct())
@@ -304,8 +322,15 @@ public class BranchService(
 
     /// <summary>Bật/tắt 1 dịch vụ Ở CẤP CHI NHÁNH (BranchService.IsActive) — không đụng định nghĩa dịch vụ chung, nên chỉ ảnh hưởng chi nhánh này.</summary>
     /// <remarks>Gọi: IBranchRepository.GetBranchServiceAsync → SaveChangesAsync.</remarks>
-    public async Task ToggleServiceAsync(Guid branchId, Guid serviceId, bool isActive, CancellationToken ct = default)
+    public async Task ToggleServiceAsync(
+        Guid branchId,
+        Guid serviceId,
+        bool isActive,
+        Guid? managerId = null,
+        CancellationToken ct = default)
     {
+        await GetBranchForManagerScopeAsync(branchId, managerId, ct);
+
         var bs = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Branch.ServiceNotAssigned);
 

@@ -57,10 +57,15 @@ public class SlotService : ISlotService
     /// Từ chối nếu slot đã có booking — phải hủy booking trước mới xóa được.
     /// </summary>
     /// <remarks>Gọi: ISlotRepository.GetByIdAsync + HasBookingsAsync → RemoveAsync + SaveChangesAsync.</remarks>
-    public async Task DeleteAsync(Guid slotId, CancellationToken ct = default)
+    public async Task DeleteAsync(
+        Guid slotId,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default)
     {
         var slot = await slotRepo.GetByIdAsync(slotId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
+
+        EnsureManagerBranchScope(slot, managerBranchId);
 
         if (await slotRepo.HasBookingsAsync(slotId, ct))
             throw AppException.BadRequest(ValidationMessage.Slot.HasBookingsCannotDelete);
@@ -145,10 +150,15 @@ public class SlotService : ISlotService
     /// Lấy 1 slot theo ID, trả về 404 nếu không tồn tại.
     /// </summary>
     /// <remarks>Gọi: ISlotRepository.GetByIdAsync.</remarks>
-    public async Task<SlotDto> GetByIdAsync(Guid slotId, CancellationToken ct = default)
+    public async Task<SlotDto> GetByIdAsync(
+        Guid slotId,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default)
     {
         var slot = await slotRepo.GetByIdAsync(slotId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
+
+        EnsureManagerBranchScope(slot, managerBranchId);
         return slot.ToDto();
     }
 
@@ -176,14 +186,28 @@ public class SlotService : ISlotService
     /// Không cho đổi ngày/giờ — muốn đổi phải xóa rồi tạo lại.
     /// </summary>
     /// <remarks>Gọi: ISlotRepository.GetByIdAsync → SaveChangesAsync.</remarks>
-    public async Task<SlotDto> UpdateAsync(Guid slotId, UpdateSlotRequest request, CancellationToken ct = default)
+    public async Task<SlotDto> UpdateAsync(
+        Guid slotId,
+        UpdateSlotRequest request,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default)
     {
         var slot = await slotRepo.GetByIdAsync(slotId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
+
+        EnsureManagerBranchScope(slot, managerBranchId);
 
         slot.Capacity = request.Capacity;
         await slotRepo.SaveChangesAsync(ct);
 
         return slot.ToDto();
+    }
+
+    private static void EnsureManagerBranchScope(
+        SlotInventory slot,
+        Guid? managerBranchId)
+    {
+        if (managerBranchId.HasValue && slot.BranchId != managerBranchId.Value)
+            throw AppException.Forbidden(ValidationMessage.Branch.ForbiddenOtherBranch);
     }
 }

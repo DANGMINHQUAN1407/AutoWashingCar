@@ -151,7 +151,11 @@ public class BranchController(IBranchService service) : BaseApiController
     [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> GetStaff(Guid id, CancellationToken ct)
     {
-        var staff = await _service.GetStaffAsync(id, ct);
+        var managerId = User.IsInRole(UserRole.Manager)
+            ? CurrentUserId
+            : (Guid?)null;
+
+        var staff = await _service.GetStaffAsync(id, managerId, ct);
         return Success(staff);
     }
 
@@ -194,7 +198,15 @@ public class BranchController(IBranchService service) : BaseApiController
     [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> AssignServices(Guid id, [FromBody] AssignServicesRequest request, CancellationToken ct)
     {
-        await _service.AssignServicesAsync(id, request.ServiceCatalogItemIds, ct);
+        var managerId = User.IsInRole(UserRole.Manager)
+            ? CurrentUserId
+            : (Guid?)null;
+
+        await _service.AssignServicesAsync(
+            id,
+            request.ServiceCatalogItemIds,
+            managerId,
+            ct);
         return Success("Đã gán dịch vụ cho chi nhánh.");
     }
 
@@ -206,7 +218,16 @@ public class BranchController(IBranchService service) : BaseApiController
     [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
     public async Task<IActionResult> ToggleService(Guid id, Guid serviceId, [FromBody] ToggleServiceRequest request, CancellationToken ct)
     {
-        await _service.ToggleServiceAsync(id, serviceId, request.IsActive, ct);
+        var managerId = User.IsInRole(UserRole.Manager)
+            ? CurrentUserId
+            : (Guid?)null;
+
+        await _service.ToggleServiceAsync(
+            id,
+            serviceId,
+            request.IsActive,
+            managerId,
+            ct);
         return Success(request.IsActive ? "Đã bật dịch vụ." : "Đã tắt dịch vụ.");
     }
 

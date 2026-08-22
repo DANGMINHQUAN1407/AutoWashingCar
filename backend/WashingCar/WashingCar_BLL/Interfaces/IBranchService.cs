@@ -15,12 +15,40 @@ public interface IBranchService
     Task<BranchDto>              AssignManagerAsync(Guid branchId, Guid managerId, CancellationToken ct = default);
     Task<BranchDto>              RemoveManagerAsync(Guid branchId, CancellationToken ct = default);
 
-    Task<List<BranchStaffDto>>   GetStaffAsync(Guid branchId, CancellationToken ct = default);
-    Task                         AssignStaffAsync(Guid branchId, List<Guid> userIds, CancellationToken ct = default);
-    Task                         RemoveStaffAsync(Guid branchId, Guid userId, CancellationToken ct = default);
+    Task<List<BranchStaffDto>> GetStaffAsync(
+        Guid branchId,
+        Guid? managerId = null,
+        CancellationToken ct = default);
 
-    Task<List<BranchServiceDto>> GetServicesAsync(Guid branchId, CancellationToken ct = default);
-    Task                         AssignServicesAsync(Guid branchId, List<Guid> serviceIds, CancellationToken ct = default);
-    Task                         ToggleServiceAsync(Guid branchId, Guid serviceId, bool isActive, CancellationToken ct = default);
-    Task                         RemoveServiceAsync(Guid branchId, Guid serviceId, CancellationToken ct = default);
+    Task AssignStaffAsync(
+        Guid branchId,
+        List<Guid> userIds,
+        CancellationToken ct = default);
+
+    Task RemoveStaffAsync(
+        Guid branchId,
+        Guid userId,
+        CancellationToken ct = default);
+
+    Task<List<BranchServiceDto>> GetServicesAsync(
+        Guid branchId,
+        CancellationToken ct = default);
+
+    Task AssignServicesAsync(
+        Guid branchId,
+        List<Guid> serviceIds,
+        Guid? managerId = null,
+        CancellationToken ct = default);
+
+    Task ToggleServiceAsync(
+        Guid branchId,
+        Guid serviceId,
+        bool isActive,
+        Guid? managerId = null,
+        CancellationToken ct = default);
+
+    Task RemoveServiceAsync(
+        Guid branchId,
+        Guid serviceId,
+        CancellationToken ct = default);
 }

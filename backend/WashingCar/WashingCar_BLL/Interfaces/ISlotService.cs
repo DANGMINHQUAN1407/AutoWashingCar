@@ -7,7 +7,10 @@ public interface ISlotService
 {
     Task<PagedResult<SlotDto>> GetPagedAsync(Guid branchId, SlotQuery query, CancellationToken ct = default);
 
-    Task<SlotDto> GetByIdAsync(Guid slotId, CancellationToken ct = default);
+    Task<SlotDto> GetByIdAsync(
+        Guid slotId,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default);
 
     Task<List<SlotDto>> GetAvailableAsync(Guid branchId, DateOnly date, CancellationToken ct = default);
 
@@ -15,7 +18,14 @@ public interface ISlotService
 
     Task<int> GenerateAsync(Guid branchId, GenerateSlotsRequest request, CancellationToken ct = default);
 
-    Task<SlotDto> UpdateAsync(Guid slotId, UpdateSlotRequest request, CancellationToken ct = default);
+    Task<SlotDto> UpdateAsync(
+        Guid slotId,
+        UpdateSlotRequest request,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default);
 
-    Task DeleteAsync(Guid slotId, CancellationToken ct = default);
+    Task DeleteAsync(
+        Guid slotId,
+        Guid? managerBranchId = null,
+        CancellationToken ct = default);
 }
