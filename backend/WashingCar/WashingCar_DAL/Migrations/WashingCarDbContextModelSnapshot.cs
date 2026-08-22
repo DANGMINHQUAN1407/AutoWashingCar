@@ -1010,6 +1010,9 @@ namespace WashingCar_DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("BrandCatalogId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(3)
@@ -1062,6 +1065,8 @@ namespace WashingCar_DAL.Migrations
                     b.HasIndex("DeletedByUserId");
 
                     b.HasIndex(new[] { "BodyStyleCatalogId" }, "IX_Vehicle_BodyStyleCatalogId");
+
+                    b.HasIndex(new[] { "BrandCatalogId" }, "IX_Vehicle_BrandCatalogId");
 
                     b.HasIndex(new[] { "EngineCatalogId" }, "IX_Vehicle_EngineCatalogId");
 
@@ -1179,6 +1184,65 @@ namespace WashingCar_DAL.Migrations
                         .IsUnique();
 
                     b.ToTable("VehicleEngineCatalog", (string)null);
+                });
+
+            modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBrandCatalog", b =>
+                {
+                    b.Property<Guid>("VehicleBrandCatalogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newsequentialid())");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsLuxury")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<byte>("VehicleType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)2);
+
+                    b.HasKey("VehicleBrandCatalogId");
+
+                    b.HasIndex(new[] { "Code" }, "UQ_VehicleBrandCatalog_Code")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "VehicleType" }, "IX_VehicleBrandCatalog_VehicleType");
+
+                    b.ToTable("VehicleBrandCatalog", (string)null);
                 });
 
             modelBuilder.Entity("WashingCar_DAL.Entities.VehicleImage", b =>
@@ -1655,6 +1719,12 @@ namespace WashingCar_DAL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("FK_Vehicle_BodyStyleCatalog");
 
+                    b.HasOne("WashingCar_DAL.Entities.VehicleBrandCatalog", "BrandCatalog")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("BrandCatalogId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_Vehicle_BrandCatalog");
+
                     b.HasOne("WashingCar_DAL.Entities.User", "DeletedByUser")
                         .WithMany("VehicleDeletedByUsers")
                         .HasForeignKey("DeletedByUserId")
@@ -1673,6 +1743,8 @@ namespace WashingCar_DAL.Migrations
                         .HasConstraintName("FK_Vehicle_User");
 
                     b.Navigation("BodyStyleCatalog");
+
+                    b.Navigation("BrandCatalog");
 
                     b.Navigation("DeletedByUser");
 
@@ -1830,6 +1902,11 @@ namespace WashingCar_DAL.Migrations
                 });
 
             modelBuilder.Entity("WashingCar_DAL.Entities.VehicleEngineCatalog", b =>
+                {
+                    b.Navigation("Vehicles");
+                });
+
+            modelBuilder.Entity("WashingCar_DAL.Entities.VehicleBrandCatalog", b =>
                 {
                     b.Navigation("Vehicles");
                 });

@@ -89,4 +89,42 @@ public class VehicleCatalogController(IVehicleCatalogService service) : BaseApiC
         await _service.SetBodyStyleActiveAsync(id, false);
         return Success("Đã vô hiệu hóa kiểu dáng xe.");
     }
+    [AllowAnonymous]
+    [HttpGet("brands")]
+    public async Task<IActionResult> GetBrands([FromQuery] VehicleCatalogQuery query)
+        => Paged(await _service.GetBrandsAsync(query));
+
+    [AllowAnonymous]
+    [HttpGet("brands/{id:guid}")]
+    public async Task<IActionResult> GetBrandById(Guid id)
+        => Success(await _service.GetBrandByIdAsync(id));
+
+    [Authorize(Roles = ManageRoles)]
+    [HttpPost("brands")]
+    public async Task<IActionResult> CreateBrand([FromBody] CreateVehicleCatalogRequest request)
+    {
+        var item = await _service.CreateBrandAsync(request);
+        return Created(nameof(GetBrandById), new { id = item.Id }, item, "Tạo hãng xe thành công.");
+    }
+
+    [Authorize(Roles = ManageRoles)]
+    [HttpPut("brands/{id:guid}")]
+    public async Task<IActionResult> UpdateBrand(Guid id, [FromBody] UpdateVehicleCatalogRequest request)
+        => Success(await _service.UpdateBrandAsync(id, request), "Cập nhật hãng xe thành công.");
+
+    [Authorize(Roles = ManageRoles)]
+    [HttpPost("brands/{id:guid}/activate")]
+    public async Task<IActionResult> ActivateBrand(Guid id)
+    {
+        await _service.SetBrandActiveAsync(id, true);
+        return Success("Đã kích hoạt hãng xe.");
+    }
+
+    [Authorize(Roles = ManageRoles)]
+    [HttpPost("brands/{id:guid}/deactivate")]
+    public async Task<IActionResult> DeactivateBrand(Guid id)
+    {
+        await _service.SetBrandActiveAsync(id, false);
+        return Success("Đã vô hiệu hóa hãng xe.");
+    }
 }

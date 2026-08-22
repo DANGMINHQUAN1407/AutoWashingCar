@@ -15,4 +15,6 @@ public class CreateVehicleCatalogRequest
 
     /// <summary>Required for body-style catalogs; ignored for engine catalogs.</summary>
     public VehicleType? VehicleType { get; set; }
+
+    public bool IsLuxury { get; set; }
 }

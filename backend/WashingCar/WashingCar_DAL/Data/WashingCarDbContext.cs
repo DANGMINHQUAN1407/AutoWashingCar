@@ -62,6 +62,8 @@ public partial class WashingCarDbContext : DbContext
 
     public virtual DbSet<VehicleBodyStyleCatalog> VehicleBodyStyleCatalogs { get; set; }
 
+    public virtual DbSet<VehicleBrandCatalog> VehicleBrandCatalogs { get; set; }
+
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
     private string GetConnectionString()
@@ -669,6 +671,24 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
         });
 
+        modelBuilder.Entity<VehicleBrandCatalog>(entity =>
+        {
+            entity.ToTable("VehicleBrandCatalog");
+            entity.HasIndex(e => e.Code, "UQ_VehicleBrandCatalog_Code").IsUnique();
+            entity.Property(e => e.VehicleBrandCatalogId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.VehicleType)
+                .IsRequired()
+                .HasDefaultValue((byte)VehicleType.Car);
+            entity.HasIndex(e => e.VehicleType, "IX_VehicleBrandCatalog_VehicleType");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsLuxury).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+        });
+
         modelBuilder.Entity<Vehicle>(entity =>
         {
             entity.ToTable("Vehicle");
@@ -676,6 +696,7 @@ public partial class WashingCarDbContext : DbContext
             entity.HasIndex(e => e.UserId, "IX_Vehicle_UserId");
             entity.HasIndex(e => e.EngineCatalogId, "IX_Vehicle_EngineCatalogId");
             entity.HasIndex(e => e.BodyStyleCatalogId, "IX_Vehicle_BodyStyleCatalogId");
+            entity.HasIndex(e => e.BrandCatalogId, "IX_Vehicle_BrandCatalogId");
 
             entity.HasIndex(e => e.LicensePlate, "UX_Vehicle_LicensePlate")
                 .IsUnique()
@@ -713,6 +734,11 @@ public partial class WashingCarDbContext : DbContext
                 .HasForeignKey(d => d.BodyStyleCatalogId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("FK_Vehicle_BodyStyleCatalog");
+
+            entity.HasOne(d => d.BrandCatalog).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.BrandCatalogId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Vehicle_BrandCatalog");
         });
 
         modelBuilder.Entity<VehicleImage>(entity =>
