@@ -45,6 +45,20 @@ public interface IBookingRepository
     Task<int> GetTotalBookingsCountAsync(CancellationToken ct = default);
     Task<int> GetBranchBookingsCountAsync(Guid branchId, CancellationToken ct = default);
 
+    Task<int> CountByUserAndStatusesAsync(
+        Guid userId,
+        IReadOnlyCollection<byte> statuses,
+        CancellationToken ct = default);
+
+    Task<bool> HasVehicleOverlapAsync(
+        Guid vehicleId,
+        DateOnly slotDate,
+        TimeOnly slotStartTime,
+        TimeOnly slotEndTime,
+        IReadOnlyCollection<byte> blockingStatuses,
+        Guid? excludingBookingId = null,
+        CancellationToken ct = default);
+
     /// <summary>Booking thô (chỉ BookingType/BookingFinalAmount/CreatedAtUtc) cho báo cáo thống kê theo kỳ.</summary>
     Task<List<Booking>> GetForStatsAsync(
         Guid? branchId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct = default);

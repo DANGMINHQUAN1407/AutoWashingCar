@@ -154,6 +154,37 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
         return await _db.Bookings.CountAsync(b => b.BranchId == branchId, ct);
     }
 
+    public async Task<int> CountByUserAndStatusesAsync(
+        Guid userId,
+        IReadOnlyCollection<byte> statuses,
+        CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .AsNoTracking()
+            .CountAsync(b => b.UserId == userId && statuses.Contains(b.BookingStatus), ct);
+    }
+
+    public async Task<bool> HasVehicleOverlapAsync(
+        Guid vehicleId,
+        DateOnly slotDate,
+        TimeOnly slotStartTime,
+        TimeOnly slotEndTime,
+        IReadOnlyCollection<byte> blockingStatuses,
+        Guid? excludingBookingId = null,
+        CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .AsNoTracking()
+            .Where(b => b.VehicleId == vehicleId)
+            .Where(b => blockingStatuses.Contains(b.BookingStatus))
+            .Where(b => !excludingBookingId.HasValue || b.BookingId != excludingBookingId.Value)
+            .AnyAsync(b =>
+                b.SlotInventory.SlotDate == slotDate
+                && b.SlotInventory.SlotStartTime < slotEndTime
+                && slotStartTime < b.SlotInventory.SlotEndTime,
+                ct);
+    }
+
     public async Task<List<Booking>> GetForStatsAsync(
         Guid? branchId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct = default)
     {

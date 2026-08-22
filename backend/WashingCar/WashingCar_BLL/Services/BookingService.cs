@@ -39,6 +39,18 @@ public class BookingService(
     // Số ngày được đặt trước tối đa mặc định — hạng có benefit AdvanceBookingDays sẽ override giá trị này.
     private const int DefaultMaxAdvanceBookingDays = 3;
 
+    // Booking limit áp dụng cho luồng Customer tạo booking online.
+    private const int MaxPendingBookingsPerCustomer = 1;
+    private const int MaxConfirmedBookingsPerCustomer = 3;
+
+    private static readonly byte[] VehicleBlockingStatuses =
+    [
+        BookingStatus.Pending,
+        BookingStatus.Confirmed,
+        BookingStatus.CheckedIn,
+        BookingStatus.InProgress,
+    ];
+
     /// <summary>
     /// Normalize selection parent-child và trả trạng thái checkbox trước khi tính giá.
     /// Dùng cùng ExpandToLeafSelectionsAsync với quote/create nên không tạo ra
@@ -153,7 +165,10 @@ public class BookingService(
         var tierBenefits = await loyaltyService.GetActiveTierBenefitsAsync(userId, ct);
         ValidateAdvanceBookingWindow(slot.SlotDate, tierBenefits);
 
-        // 3. Dựng booking lines (snapshot giá) và phụ thu theo tình trạng xe.
+        // 3. Booking limit của Customer và không cho cùng xe trùng thời gian.
+        await ValidateOnlineBookingLimitsAsync(userId, vehicle.VehicleId, slot, ct);
+
+        // 4. Dựng booking lines (snapshot giá) và phụ thu theo tình trạng xe.
         var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
         var serviceSubtotal = lines.Sum(line => line.LineTotal);
         var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
@@ -175,7 +190,7 @@ public class BookingService(
         var totalDiscount    = discount + redeemDiscount;
         var final            = subtotal - totalDiscount;
 
-        // 4. Sinh mã booking + QR token duy nhất
+        // 5. Sinh mã booking + QR token duy nhất
         var code = await GenerateUniqueCodeAsync(ct);
         var qr   = await GenerateUniqueQrAsync(ct);
 
@@ -202,7 +217,7 @@ public class BookingService(
             BookingLines          = lines,
         };
 
-        // 5. Giữ chỗ slot + tạo booking trong 1 SaveChanges (concurrency qua RowVersion)
+        // 6. Giữ chỗ slot + tạo booking trong 1 SaveChanges (concurrency qua RowVersion)
         slot.OnlineReservedCount++;
 
         if (userVoucher is not null)
@@ -238,14 +253,14 @@ public class BookingService(
             throw AppException.Conflict(ValidationMessage.Booking.SlotJustFilled);
         }
 
-        // 6. Trừ điểm loyalty — best-effort
+        // 7. Trừ điểm loyalty — best-effort
         if (redeemPoints > 0)
         {
             try { await loyaltyService.RedeemForBookingAsync(userId, redeemPoints, booking.BookingId, ct); }
             catch (Exception ex) { logger.LogWarning(ex, "Trừ điểm loyalty cho booking {Code} thất bại", code); }
         }
 
-        // 7. Email xác nhận — best-effort, lỗi không rollback booking
+        // 8. Email xác nhận — best-effort, lỗi không rollback booking
         await TrySendConfirmationEmailAsync(userId, booking, slot);
 
         booking.SlotInventory = slot;
@@ -292,6 +307,8 @@ public class BookingService(
 
         // 4. Xe của khách: chọn xe có sẵn hoặc tạo mới ad-hoc sau khi đã validate dịch vụ.
         var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
+        await EnsureVehicleSlotNotOverlappingAsync(vehicle.VehicleId, slot, ct);
+
         var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
         var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
         var discount = 0m;
@@ -931,6 +948,47 @@ public class BookingService(
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private async Task ValidateOnlineBookingLimitsAsync(
+        Guid userId,
+        Guid vehicleId,
+        SlotInventory slot,
+        CancellationToken ct)
+    {
+        var pendingCount = await bookingRepo.CountByUserAndStatusesAsync(
+            userId,
+            [BookingStatus.Pending],
+            ct);
+        if (pendingCount >= MaxPendingBookingsPerCustomer)
+            throw AppException.Conflict(ValidationMessage.Booking.TooManyPendingBookings);
+
+        var confirmedCount = await bookingRepo.CountByUserAndStatusesAsync(
+            userId,
+            [BookingStatus.Confirmed],
+            ct);
+        if (confirmedCount >= MaxConfirmedBookingsPerCustomer)
+            throw AppException.Conflict(ValidationMessage.Booking.TooManyConfirmedBookings);
+
+        await EnsureVehicleSlotNotOverlappingAsync(vehicleId, slot, ct);
+    }
+
+    private async Task EnsureVehicleSlotNotOverlappingAsync(
+        Guid vehicleId,
+        SlotInventory slot,
+        CancellationToken ct)
+    {
+        var overlaps = await bookingRepo.HasVehicleOverlapAsync(
+            vehicleId,
+            slot.SlotDate,
+            slot.SlotStartTime,
+            slot.SlotEndTime,
+            VehicleBlockingStatuses,
+            excludingBookingId: null,
+            ct: ct);
+
+        if (overlaps)
+            throw AppException.Conflict(ValidationMessage.Booking.VehicleAlreadyBookedForSlot);
+    }
 
     private async Task<Guid> ResolveBranchIdAsync(Guid currentUserId, Guid? explicitBranchId)
     {

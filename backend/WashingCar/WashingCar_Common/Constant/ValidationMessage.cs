@@ -124,6 +124,9 @@ public static class ValidationMessage
         public const string StaffNotAtBranch                      = "Nhân viên không thuộc chi nhánh của booking này";
         public const string ForbiddenAssignOtherBranch            = "Bạn không có quyền gán nhân viên cho chi nhánh khác";
         public const string ConcurrentUpdateConflict              = "Booking vừa được cập nhật bởi thao tác khác, vui lòng tải lại và thử lại";
+        public const string TooManyPendingBookings                   = "Bạn chỉ được có tối đa 1 booking đang chờ thanh toán";
+        public const string TooManyConfirmedBookings                 = "Bạn chỉ được có tối đa 3 booking đã xác nhận";
+        public const string VehicleAlreadyBookedForSlot              = "Xe này đã có booking trùng thời gian với slot đã chọn";
 
         public static string InvalidTransition(byte from, byte to) =>
             $"Không thể chuyển trạng thái {from} → {to}";
