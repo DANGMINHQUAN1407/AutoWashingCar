@@ -775,11 +775,11 @@ public class BookingService(
         return booking.ToDto();
     }
 
-    /// <summary>Huỷ đơn trước check-in (chủ đơn hoặc Staff/Manager) — nhả slot, hoàn voucher, không hoàn tiền.</summary>
+    /// <summary>Huỷ đơn trước check-in — tính phí theo thời điểm hủy, nhả slot và ghi refund ledger nội bộ nếu có tiền đã thu.</summary>
     /// <remarks>
-    /// Gọi: IBookingRepository.GetTrackedByIdAsync → IVoucherRepository.GetUserVoucherByIdAsync (hoàn voucher)
-    /// → SaveChangesAsync → ILoyaltyService.EarnFromCancelledBookingAsync + IBranchRepository.GetByIdAsync
-    /// + IEmailService.SendManagerBookingCancelledNotificationEmailAsync (best-effort, chỉ khi đã có cọc).
+    /// Gọi: IBookingRepository.GetTrackedByIdAsync → IPaymentRepository.GetTrackedPendingPaymentsAsync
+    /// → IVoucherRepository.GetUserVoucherByIdAsync → IPaymentRepository.GetCompletedPaymentsForRefundAsync
+    /// → tạo Refund rows → SaveChangesAsync → thông báo manager (best-effort).
     /// </remarks>
     public async Task<BookingDto> CancelAsync(
         Guid userId, bool isPrivileged, Guid bookingId, CancelBookingRequest? request, CancellationToken ct = default)
@@ -796,6 +796,14 @@ public class BookingService(
         if (booking.BookingStatus is not (BookingStatus.Pending or BookingStatus.Confirmed))
             throw AppException.BadRequest(ValidationMessage.Booking.OnlyCancelWhenPendingOrConfirmed);
 
+        var nowUtc = DateTime.UtcNow;
+        var nowLocal = nowUtc.AddHours(VietnamUtcOffsetHours);
+        var slotStartLocal = booking.SlotInventory.SlotDate
+            .ToDateTime(booking.SlotInventory.SlotStartTime);
+        var cancellation = CancellationPolicy.Evaluate(nowLocal, slotStartLocal);
+        if (cancellation.IsAfterSlotStart)
+            throw AppException.BadRequest(ValidationMessage.Booking.CancellationWindowClosed);
+
         // Nhả chỗ slot đã giữ (booking.SlotInventory đã được Include)
         var slot = booking.SlotInventory;
         if (slot is not null)
@@ -805,6 +813,11 @@ public class BookingService(
             else if (slot.OnlineReservedCount > 0)
                 slot.OnlineReservedCount--;
         }
+
+        // Hủy các payment Pending cùng transaction để callback gateway đến muộn không còn được áp dụng.
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(bookingId, ct);
+        foreach (var pendingPayment in pendingPayments)
+            pendingPayment.PaymentStatus = PaymentStatus.Cancelled;
 
         // Hoàn trả voucher nếu có sử dụng
         if (booking.UserVoucherId.HasValue)
@@ -818,39 +831,83 @@ public class BookingService(
             booking.UserVoucherId = null; // Gỡ liên kết voucher khỏi booking cũ để tránh vi phạm ràng buộc UNIQUE khi đặt lại
         }
 
+        // Tính trên tổng Payment Completed gốc; các Refund row bị loại khỏi nguồn tính tiền.
+        var completedPayments = await paymentRepo.GetCompletedPaymentsForRefundAsync(bookingId, ct);
+        var paidAmount = completedPayments.Sum(p => p.Amount);
+        var cancellationFeeAmount = cancellation.CalculateFee(paidAmount);
+        var refundAmount = Math.Max(0m, paidAmount - cancellationFeeAmount);
+
+        // Refund là ledger nội bộ: mỗi row liên kết đúng payment gốc và không vượt số tiền gốc.
+        // Việc tạo row nằm trong cùng transaction với việc chuyển Booking -> Cancelled.
+        var refundRemaining = refundAmount;
+        var refundReason = $"Hủy booking {booking.BookingCode}; phí hủy {cancellation.FeeRate:P0}";
+        if (!string.IsNullOrWhiteSpace(request?.Reason))
+            refundReason += $"; {request.Reason.Trim()}";
+        if (refundReason.Length > 500)
+            refundReason = refundReason[..500];
+
+        foreach (var original in completedPayments)
+        {
+            if (refundRemaining <= 0) break;
+
+            var refundedAmount = await paymentRepo.GetRefundedAmountAsync(original.PaymentId, ct);
+            var available = Math.Max(0m, original.Amount - refundedAmount);
+            var amountForThisPayment = Math.Min(refundRemaining, available);
+            if (amountForThisPayment <= 0) continue;
+
+            await paymentRepo.AddAsync(new Payment
+            {
+                BookingId = booking.BookingId,
+                PaymentType = PaymentType.Refund,
+                PaymentMethod = original.PaymentMethod,
+                PaymentStatus = PaymentStatus.Completed,
+                Amount = amountForThisPayment,
+                TransactionCode = $"REF-{booking.BookingCode}-{original.PaymentId:N}",
+                PaidAtUtc = nowUtc,
+                OriginalPaymentId = original.PaymentId,
+                RefundReason = refundReason,
+                RefundedByUserId = userId,
+                CreatedAtUtc = nowUtc,
+            }, ct);
+
+            refundRemaining -= amountForThisPayment;
+        }
+
+        if (refundRemaining > 0)
+            throw AppException.BadRequest(ValidationMessage.Payment.RefundAmountInvalid);
+
         booking.BookingStatus = BookingStatus.Cancelled;
-        // 🔌 Seam: KHÔNG tạo row Refund — quyết định hoàn tiền thuộc module Payment (mặc định không)
         await bookingRepo.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        if (booking.DepositAmount.HasValue && booking.DepositAmount.Value > 0)
+        if (paidAmount > 0)
         {
             try
             {
-                var depositAmount = booking.DepositAmount.Value;
-                var pointsEarned = await loyaltyService.EarnFromCancelledBookingAsync(
-                    booking.UserId, depositAmount, booking.BookingCode, booking.BookingId, ct);
-
                 var branch = await branchRepo.GetByIdAsync(booking.BranchId, ct);
-                if (branch?.Manager != null)
+                if (branch?.Manager != null && !string.IsNullOrWhiteSpace(branch.Manager.Email))
                 {
-                    var manager = branch.Manager;
-                    if (!string.IsNullOrWhiteSpace(manager.Email))
-                    {
-                        await emailService.SendManagerBookingCancelledNotificationEmailAsync(
-                            manager.Email, manager.FullName, booking.BookingCode, depositAmount, pointsEarned);
-                    }
+                    // Email contract cũ có tham số pointsEarned; hủy/refund không được cộng điểm nên truyền 0.
+                    await emailService.SendManagerBookingCancelledNotificationEmailAsync(
+                        branch.Manager.Email, branch.Manager.FullName, booking.BookingCode, paidAmount, 0);
                 }
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Cộng điểm cho khách hàng/Gửi thông báo cho manager khi hủy booking {Code} thất bại", booking.BookingCode);
+                logger.LogWarning(ex, "Gửi thông báo hủy booking {Code} cho manager thất bại", booking.BookingCode);
             }
         }
 
-        logger.LogInformation("Booking {Code} cancelled (lý do: {Reason}); không hoàn tiền",
-            booking.BookingCode, request?.Reason ?? "(không)");
-        return booking.ToDto();
+        logger.LogInformation(
+            "Booking {Code} cancelled; paid={PaidAmount}, fee={FeeAmount}, refund={RefundAmount}, reason={Reason}",
+            booking.BookingCode, paidAmount, cancellationFeeAmount, refundAmount, request?.Reason ?? "(không)");
+
+        var result = booking.ToDto();
+        result.PaidAmountAtCancellation = paidAmount;
+        result.CancellationFeeRate = cancellation.FeeRate;
+        result.CancellationFeeAmount = cancellationFeeAmount;
+        result.RefundAmount = refundAmount;
+        return result;
     }
 
     /// <summary>Job nền (BookingReminderBackgroundService) — gửi email nhắc lịch cho booking Confirmed sắp tới trong 1h.</summary>

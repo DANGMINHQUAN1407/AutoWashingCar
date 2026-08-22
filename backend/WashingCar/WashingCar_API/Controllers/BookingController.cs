@@ -258,17 +258,17 @@ public class BookingController(IBookingService bookingService) : BaseApiControll
         return Success(booking, "Đã đóng đơn.");
     }
 
-    /// <summary>Huỷ đơn trước check-in (chủ đơn hoặc Staff/Manager) — nhả slot, không hoàn tiền.</summary>
+    /// <summary>Huỷ đơn trước check-in — tính phí theo thời điểm hủy, nhả slot và ghi refund ledger nội bộ nếu có tiền đã thu.</summary>
     /// <remarks>
     /// Gọi: BookingService.CancelAsync → IBookingRepository.GetTrackedByIdAsync → IVoucherRepository.GetUserVoucherByIdAsync
-    /// (hoàn voucher) → SaveChangesAsync → ILoyaltyService.EarnFromCancelledBookingAsync + IBranchRepository.GetByIdAsync
-    /// + IEmailService.SendManagerBookingCancelledNotificationEmailAsync (best-effort, chỉ khi đã có cọc).
+    /// (hoàn voucher) → IPaymentRepository.GetCompletedPaymentsForRefundAsync → tạo Refund rows → SaveChangesAsync
+    /// → IBranchRepository.GetByIdAsync + IEmailService.SendManagerBookingCancelledNotificationEmailAsync (best-effort).
     /// </remarks>
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelBookingRequest? request, CancellationToken ct)
     {
         var isPrivileged = User.IsInRole(UserRole.Staff) || User.IsInRole(UserRole.Manager) || User.IsInRole(UserRole.Admin);
         var booking = await _bookingService.CancelAsync(CurrentUserId, isPrivileged, id, request, ct);
-        return Success(booking, "Đã huỷ đơn.");
+        return Success(booking, "Đã huỷ đơn và ghi nhận phí/refund theo chính sách.");
     }
 }

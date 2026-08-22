@@ -34,6 +34,13 @@ public class BookingDto
     public decimal  BookingDiscountAmount { get; set; }
     public decimal  BookingFinalAmount    { get; set; }
     public decimal? DepositAmount         { get; set; }
+
+    // Kết quả tính tại thời điểm hủy; không lưu thêm column vào Booking.
+    public decimal  PaidAmountAtCancellation { get; set; }
+    public decimal  CancellationFeeRate       { get; set; }
+    public decimal  CancellationFeeAmount     { get; set; }
+    public decimal  RefundAmount              { get; set; }
+
     public int      EarnedPoints          { get; set; }
     public int      RedeemedPoints        { get; set; }
 

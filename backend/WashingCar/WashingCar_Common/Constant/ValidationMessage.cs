@@ -94,6 +94,7 @@ public static class ValidationMessage
         public const string OnlyCloseWhenCompleted                = "Chỉ đóng đơn khi đã Completed";
         public const string ForbiddenCancel                       = "Bạn không có quyền huỷ booking này";
         public const string OnlyCancelWhenPendingOrConfirmed      = "Chỉ huỷ được khi đơn ở Pending/Confirmed (trước check-in)";
+        public const string CancellationWindowClosed               = "Không thể huỷ vì slot đã bắt đầu";
         public const string PhoneRequired                         = "Vui lòng nhập số điện thoại";
         public const string MustSelectAtLeastOneService           = "Phải chọn ít nhất 1 dịch vụ";
         public const string InvalidServiceQuantity                = "Số lượng dịch vụ phải lớn hơn hoặc bằng 1";
@@ -158,6 +159,7 @@ public static class ValidationMessage
         public const string NotFound                  = "Không tìm thấy giao dịch";
         public const string ForbiddenView             = "Bạn không có quyền xem giao dịch này";
         public const string TxnRefGenerationFailed    = "Không sinh được mã giao dịch, vui lòng thử lại";
+        public const string RefundAmountInvalid       = "Số tiền hoàn không hợp lệ";
 
         public static string TenderSumMismatch(decimal sum, decimal remaining) =>
             $"Tổng tiền ({sum:N0}) phải bằng số còn lại phải thu ({remaining:N0})";

@@ -48,6 +48,33 @@ public class PaymentRepository(WashingCarDbContext db) : IPaymentRepository
                      && p.PaymentType   != PaymentType.Refund)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
 
+    public async Task<List<Payment>> GetCompletedPaymentsForRefundAsync(
+        Guid bookingId, CancellationToken ct = default)
+        => await _db.Payments
+            .AsNoTracking()
+            .Where(p => p.BookingId == bookingId
+                     && p.PaymentStatus == PaymentStatus.Completed
+                     && p.PaymentType != PaymentType.Refund
+                     && p.Amount > 0)
+            .OrderBy(p => p.CreatedAtUtc)
+            .ThenBy(p => p.PaymentId)
+            .ToListAsync(ct);
+
+    public async Task<List<Payment>> GetTrackedPendingPaymentsAsync(
+        Guid bookingId, CancellationToken ct = default)
+        => await _db.Payments
+            .Where(p => p.BookingId == bookingId
+                     && p.PaymentStatus == PaymentStatus.Pending)
+            .ToListAsync(ct);
+
+    public async Task<decimal> GetRefundedAmountAsync(
+        Guid originalPaymentId, CancellationToken ct = default)
+        => await _db.Payments
+            .Where(p => p.OriginalPaymentId == originalPaymentId
+                     && p.PaymentType == PaymentType.Refund
+                     && p.PaymentStatus == PaymentStatus.Completed)
+            .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
+
     public async Task<bool> HasCompletedFullPaymentAsync(Guid bookingId, CancellationToken ct = default)
         => await _db.Payments.AnyAsync(p => p.BookingId == bookingId
                                           && p.PaymentStatus == PaymentStatus.Completed

@@ -21,8 +21,11 @@ public static class PaymentMapper
         PaymentMethod   = p.PaymentMethod,
         PaymentStatus   = p.PaymentStatus,
         Amount          = p.Amount,
-        TransactionCode = p.TransactionCode,
-        PaidAtUtc       = p.PaidAtUtc,
+        TransactionCode   = p.TransactionCode,
+        OriginalPaymentId = p.OriginalPaymentId,
+        RefundReason      = p.RefundReason,
+        RefundedByUserId  = p.RefundedByUserId,
+        PaidAtUtc         = p.PaidAtUtc,
         CreatedAtUtc    = p.CreatedAtUtc,
         Tenders         = p.TenderAllocations.Select(t => t.ToDto()).ToList(),
     };
@@ -36,8 +39,11 @@ public static class PaymentMapper
         PaymentMethod   = p.PaymentMethod,
         PaymentStatus   = p.PaymentStatus,
         Amount          = p.Amount,
-        TransactionCode = p.TransactionCode,
-        PaidAtUtc       = p.PaidAtUtc,
+        TransactionCode   = p.TransactionCode,
+        OriginalPaymentId = p.OriginalPaymentId,
+        RefundReason      = p.RefundReason,
+        RefundedByUserId  = p.RefundedByUserId,
+        PaidAtUtc         = p.PaidAtUtc,
         CreatedAtUtc    = p.CreatedAtUtc,
     };
 }

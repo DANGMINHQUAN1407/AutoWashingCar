@@ -10,6 +10,9 @@ public class PaymentListItemDto
     public byte    PaymentStatus   { get; set; }
     public decimal Amount          { get; set; }
     public string? TransactionCode { get; set; }
+    public Guid? OriginalPaymentId { get; set; }
+    public string? RefundReason { get; set; }
+    public Guid? RefundedByUserId { get; set; }
     public DateTime? PaidAtUtc     { get; set; }
     public DateTime  CreatedAtUtc  { get; set; }
 }

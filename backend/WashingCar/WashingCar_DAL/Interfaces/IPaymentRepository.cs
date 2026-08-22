@@ -27,6 +27,15 @@ public interface IPaymentRepository
     /// <summary>Tổng tiền đã thanh toán (Completed, không tính Refund) của 1 booking — để tính phần còn lại.</summary>
     Task<decimal> GetCompletedAmountAsync(Guid bookingId, CancellationToken ct = default);
 
+    /// <summary>Các payment Completed có thể làm nguồn hoàn tiền, không bao gồm Refund.</summary>
+    Task<List<Payment>> GetCompletedPaymentsForRefundAsync(Guid bookingId, CancellationToken ct = default);
+
+    /// <summary>Payment Pending của booking để hủy giao dịch chưa hoàn tất cùng lúc với Cancel.</summary>
+    Task<List<Payment>> GetTrackedPendingPaymentsAsync(Guid bookingId, CancellationToken ct = default);
+
+    /// <summary>Tổng số tiền Refund Completed đã ghi cho một payment gốc.</summary>
+    Task<decimal> GetRefundedAmountAsync(Guid originalPaymentId, CancellationToken ct = default);
+
     /// <summary>Booking có payment Completed loại FullPayment (thanh toán 100% 1 lần, không qua cọc) không — dùng để cộng bonus điểm loyalty.</summary>
     Task<bool> HasCompletedFullPaymentAsync(Guid bookingId, CancellationToken ct = default);
 
