@@ -39,11 +39,26 @@ public class VehicleCatalogService(
         };
     }
 
+    public async Task<PagedResult<VehicleCatalogItemDto>> GetBrandsAsync(VehicleCatalogQuery query)
+    {
+        var (items, totalCount) = await brandRepo.GetAllPaginatedAsync(query);
+        return new PagedResult<VehicleCatalogItemDto>
+        {
+            Items = items.Select(ToDto).ToList(),
+            TotalCount = totalCount,
+            PageNumber = query.Page,
+            PageSize = query.PageSize,
+        };
+    }
+
     public async Task<VehicleCatalogItemDto> GetEngineTypeByIdAsync(Guid id)
         => ToDto(await engineRepo.GetByIdAsync(id) ?? throw AppException.NotFound("Không tìm thấy loại động cơ."));
 
     public async Task<VehicleCatalogItemDto> GetBodyStyleByIdAsync(Guid id)
         => ToDto(await bodyStyleRepo.GetByIdAsync(id) ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe."));
+
+    public async Task<VehicleCatalogItemDto> GetBrandByIdAsync(Guid id)
+        => ToDto(await brandRepo.GetByIdAsync(id) ?? throw AppException.NotFound("KhÃ´ng tÃ¬m tháº¥y hÃ£ng xe."));
 
     public async Task<VehicleCatalogItemDto> CreateEngineTypeAsync(CreateVehicleCatalogRequest request)
     {
@@ -142,29 +157,18 @@ public class VehicleCatalogService(
         await bodyStyleRepo.UpdateAsync(item);
     }
 
-    public async Task<PagedResult<VehicleCatalogItemDto>> GetBrandsAsync(VehicleCatalogQuery query)
-    {
-        var (items, totalCount) = await brandRepo.GetAllPaginatedAsync(query);
-        return new PagedResult<VehicleCatalogItemDto>
-        {
-            Items = items.Select(ToDto).ToList(),
-            TotalCount = totalCount,
-            PageNumber = query.Page,
-            PageSize = query.PageSize,
-        };
-    }
-
-    public async Task<VehicleCatalogItemDto> GetBrandByIdAsync(Guid id)
-        => ToDto(await brandRepo.GetByIdAsync(id) ?? throw AppException.NotFound("Không tìm thấy hãng xe."));
-
     public async Task<VehicleCatalogItemDto> CreateBrandAsync(CreateVehicleCatalogRequest request)
     {
+        if (request.VehicleType is null)
+            throw AppException.BadRequest("Pháº£i chá»n loáº¡i phÆ°Æ¡ng tiá»‡n cho hÃ£ng xe.");
+
+        var vehicleType = EnsureSupportedVehicleType(request.VehicleType.Value);
         var code = NormalizeCode(request.Code);
         var name = NormalizeName(request.Name);
         if (await brandRepo.ExistsCodeAsync(code))
-            throw AppException.Conflict("Mã hãng xe đã tồn tại.");
-        if (await brandRepo.ExistsNameAsync(name))
-            throw AppException.Conflict("Tên hãng xe đã tồn tại.");
+            throw AppException.Conflict("MÃ£ hÃ£ng xe Ä‘Ã£ tá»“n táº¡i.");
+        if (await brandRepo.ExistsNameAsync(name, (byte)vehicleType))
+            throw AppException.Conflict("TÃªn hÃ£ng xe Ä‘Ã£ tá»“n táº¡i.");
 
         var item = await brandRepo.CreateAsync(new VehicleBrandCatalog
         {
@@ -172,6 +176,8 @@ public class VehicleCatalogService(
             Code = code,
             Name = name,
             IsActive = true,
+            VehicleType = (byte)vehicleType,
+            IsLuxury = request.IsLuxury,
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion = [],
         });
@@ -182,13 +188,13 @@ public class VehicleCatalogService(
     public async Task<VehicleCatalogItemDto> UpdateBrandAsync(Guid id, UpdateVehicleCatalogRequest request)
     {
         var item = await brandRepo.GetByIdAsync(id)
-            ?? throw AppException.NotFound("Không tìm thấy hãng xe.");
+            ?? throw AppException.NotFound("KhÃ´ng tÃ¬m tháº¥y hÃ£ng xe.");
         var name = NormalizeName(request.Name);
-        if (await brandRepo.ExistsNameAsync(name, excludeId: id))
-            throw AppException.Conflict("Tên hãng xe đã tồn tại.");
-
+        if (await brandRepo.ExistsNameAsync(name, item.VehicleType, excludeId: id))
+            throw AppException.Conflict("TÃªn hÃ£ng xe Ä‘Ã£ tá»“n táº¡i.");
         item.Name = name;
         item.IsActive = request.IsActive;
+        item.IsLuxury = request.IsLuxury;
         item.UpdatedAtUtc = DateTime.UtcNow;
         await brandRepo.UpdateAsync(item);
         return ToDto(item);
@@ -197,7 +203,7 @@ public class VehicleCatalogService(
     public async Task SetBrandActiveAsync(Guid id, bool isActive)
     {
         var item = await brandRepo.GetByIdAsync(id)
-            ?? throw AppException.NotFound("Không tìm thấy hãng xe.");
+            ?? throw AppException.NotFound("KhÃ´ng tÃ¬m tháº¥y hÃ£ng xe.");
         if (item.IsActive == isActive) return;
         item.IsActive = isActive;
         item.UpdatedAtUtc = DateTime.UtcNow;
@@ -243,6 +249,8 @@ public class VehicleCatalogService(
         Code = item.Code,
         Name = item.Name,
         IsActive = item.IsActive,
+        VehicleType = (VehicleType)item.VehicleType,
+        IsLuxury = item.IsLuxury,
     };
 
     private static VehicleType EnsureSupportedVehicleType(VehicleType vehicleType)
