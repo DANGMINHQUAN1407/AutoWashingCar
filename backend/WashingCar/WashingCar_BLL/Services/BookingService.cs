@@ -1449,17 +1449,14 @@ public class BookingService(
         if (await vehicleRepo.ExistsLicensePlateAsync(plate))
             throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
-        var brandCatalog = request.NewVehicle.BrandCatalogId is { } brandId
-            ? await brandCatalogRepo.GetByIdAsync(brandId)
-                ?? throw AppException.NotFound("Không tìm thấy hãng xe.")
-            : null;
-
-        if (brandCatalog is not null && !brandCatalog.IsActive)
-            throw AppException.BadRequest("Hãng xe đã bị vô hiệu hóa.");
-
         var bodyStyleCatalog = request.NewVehicle.BodyStyleCatalogId is { } bodyStyleId
             ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
                 ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.")
+            : null;
+
+        var brandCatalog = request.NewVehicle.BrandCatalogId is { } brandId
+            ? await brandCatalogRepo.GetByIdAsync(brandId)
+                ?? throw AppException.NotFound("KhÃ´ng tÃ¬m tháº¥y hÃ£ng xe.")
             : null;
 
         if (bodyStyleCatalog is not null)
@@ -1470,14 +1467,18 @@ public class BookingService(
                 throw AppException.BadRequest("Kiểu dáng xe không phù hợp với loại phương tiện đã chọn.");
         }
 
+        if (brandCatalog is not null && !brandCatalog.IsActive)
+            throw AppException.BadRequest("HÃ£ng xe Ä‘Ã£ bá»‹ vÃ´ hiá»‡u hÃ³a.");
+        if (brandCatalog is not null && brandCatalog.VehicleType != (byte)request.NewVehicle.VehicleType)
+            throw AppException.BadRequest("HÃ£ng xe khÃ´ng phÃ¹ há»£p vá»›i loáº¡i phÆ°Æ¡ng tiá»‡n Ä‘Ã£ chá»n.");
+
         var vehicle = new Vehicle
         {
             UserId       = customerId,
             LicensePlate = plate,
             VehicleType  = (byte)request.NewVehicle.VehicleType,
+            Brand        = brandCatalog?.Name ?? (string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim()),
             BrandCatalogId = brandCatalog?.VehicleBrandCatalogId,
-            Brand        = brandCatalog?.Name
-                ?? (string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim()),
             Model        = string.IsNullOrWhiteSpace(request.NewVehicle.Model) ? null : request.NewVehicle.Model.Trim(),
             ManufactureYear = request.NewVehicle.ManufactureYear,
             EngineCatalogId = request.NewVehicle.EngineCatalogId,

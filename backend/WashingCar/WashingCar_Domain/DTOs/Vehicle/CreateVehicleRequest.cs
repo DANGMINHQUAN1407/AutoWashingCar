@@ -37,4 +37,6 @@ public class CreateVehicleRequest
 
     /// <summary>Catalog kiểu dáng động. Nếu có, giá trị này được ưu tiên hơn BodyStyle legacy.</summary>
     public Guid? BodyStyleCatalogId { get; set; }
+
+    public Guid? BrandCatalogId { get; set; }
 }
