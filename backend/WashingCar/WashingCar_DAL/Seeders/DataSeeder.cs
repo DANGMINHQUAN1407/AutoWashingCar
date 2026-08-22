@@ -29,6 +29,7 @@ public static class DataSeeder
     private static async Task SeedVehicleCatalogsAsync(WashingCarDbContext db)
     {
         var now = DateTime.UtcNow;
+        await EnsureVehicleBrandCatalogSchemaAsync(db);
         var engines = new[]
         {
             (Code: "GASOLINE", Name: "Xăng (Gasoline)", Legacy: (byte)1),
@@ -103,6 +104,61 @@ public static class DataSeeder
             }
         }
 
+        var brands = new[]
+        {
+            (Code: "TOYOTA", Name: "Toyota", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "HONDA", Name: "Honda", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "HYUNDAI", Name: "Hyundai", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "KIA", Name: "Kia", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "MAZDA", Name: "Mazda", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "FORD", Name: "Ford", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "MITSUBISHI", Name: "Mitsubishi", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "NISSAN", Name: "Nissan", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "SUZUKI", Name: "Suzuki", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "VINFAST", Name: "VinFast", VehicleType: VehicleType.Car, IsLuxury: false),
+            (Code: "MERCEDES_BENZ", Name: "Mercedes-Benz", VehicleType: VehicleType.Car, IsLuxury: true),
+            (Code: "BMW", Name: "BMW", VehicleType: VehicleType.Car, IsLuxury: true),
+            (Code: "AUDI", Name: "Audi", VehicleType: VehicleType.Car, IsLuxury: true),
+            (Code: "PORSCHE", Name: "Porsche", VehicleType: VehicleType.Car, IsLuxury: true),
+            (Code: "LEXUS", Name: "Lexus", VehicleType: VehicleType.Car, IsLuxury: true),
+            (Code: "MOTORBIKE_HONDA", Name: "Honda", VehicleType: VehicleType.Motorbike, IsLuxury: false),
+            (Code: "MOTORBIKE_YAMAHA", Name: "Yamaha", VehicleType: VehicleType.Motorbike, IsLuxury: false),
+            (Code: "MOTORBIKE_SUZUKI", Name: "Suzuki", VehicleType: VehicleType.Motorbike, IsLuxury: false),
+            (Code: "MOTORBIKE_PIAGGIO", Name: "Piaggio", VehicleType: VehicleType.Motorbike, IsLuxury: false),
+            (Code: "MOTORBIKE_VESPA", Name: "Vespa", VehicleType: VehicleType.Motorbike, IsLuxury: false),
+            (Code: "TRUCK_THACO", Name: "Thaco", VehicleType: VehicleType.Truck, IsLuxury: false),
+            (Code: "TRUCK_HINO", Name: "Hino", VehicleType: VehicleType.Truck, IsLuxury: false),
+            (Code: "TRUCK_ISUZU", Name: "Isuzu", VehicleType: VehicleType.Truck, IsLuxury: false),
+            (Code: "TRUCK_HYUNDAI", Name: "Hyundai", VehicleType: VehicleType.Truck, IsLuxury: false),
+            (Code: "TRUCK_SUZUKI", Name: "Suzuki", VehicleType: VehicleType.Truck, IsLuxury: false),
+        };
+        foreach (var seed in brands)
+        {
+            var item = await db.VehicleBrandCatalogs.FirstOrDefaultAsync(x => x.Code == seed.Code);
+            if (item is null)
+            {
+                await db.VehicleBrandCatalogs.AddAsync(new VehicleBrandCatalog
+                {
+                    VehicleBrandCatalogId = Guid.NewGuid(),
+                    Code = seed.Code,
+                    Name = seed.Name,
+                    VehicleType = (byte)seed.VehicleType,
+                    IsActive = true,
+                    IsLuxury = seed.IsLuxury,
+                    CreatedAtUtc = now,
+                    RowVersion = [],
+                });
+            }
+            else
+            {
+                var changed = false;
+                if (item.Name != seed.Name) { item.Name = seed.Name; changed = true; }
+                if (item.VehicleType != (byte)seed.VehicleType) { item.VehicleType = (byte)seed.VehicleType; changed = true; }
+                if (item.IsLuxury != seed.IsLuxury) { item.IsLuxury = seed.IsLuxury; changed = true; }
+                if (changed) item.UpdatedAtUtc = now;
+            }
+        }
+
         await db.SaveChangesAsync();
 
         await db.Database.ExecuteSqlRawAsync("""
@@ -119,6 +175,61 @@ public static class DataSeeder
                 ON c.LegacyEnumValue = v.BodyStyle
                AND c.VehicleType = v.VehicleType
             WHERE v.BodyStyleCatalogId IS NULL AND v.BodyStyle IS NOT NULL;
+
+            UPDATE v
+            SET v.BrandCatalogId = c.VehicleBrandCatalogId,
+                v.Brand = c.Name
+            FROM Vehicle v
+            INNER JOIN VehicleBrandCatalog c
+                ON v.VehicleType = c.VehicleType
+               AND (
+                    UPPER(REPLACE(REPLACE(LTRIM(RTRIM(v.Brand)), ' ', '_'), '-', '_')) = c.Code
+                    OR UPPER(LTRIM(RTRIM(v.Brand))) = UPPER(c.Name)
+               )
+            WHERE v.BrandCatalogId IS NULL AND v.Brand IS NOT NULL;
+            """);
+    }
+
+    private static async Task EnsureVehicleBrandCatalogSchemaAsync(WashingCarDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID('dbo.VehicleBrandCatalog', 'U') IS NULL
+            BEGIN
+                CREATE TABLE [dbo].[VehicleBrandCatalog] (
+                    [VehicleBrandCatalogId] UNIQUEIDENTIFIER NOT NULL DEFAULT (newsequentialid()),
+                    [Code] VARCHAR(50) NOT NULL,
+                    [Name] NVARCHAR(100) NOT NULL,
+                    [IsActive] BIT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_IsActive] DEFAULT ((1)),
+                    [VehicleType] TINYINT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_VehicleType] DEFAULT ((2)),
+                    [IsLuxury] BIT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_IsLuxury] DEFAULT ((0)),
+                    [CreatedAtUtc] DATETIME2(3) NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_CreatedAtUtc] DEFAULT (sysutcdatetime()),
+                    [UpdatedAtUtc] DATETIME2(3) NULL,
+                    [RowVersion] ROWVERSION NOT NULL,
+                    CONSTRAINT [PK_VehicleBrandCatalog] PRIMARY KEY CLUSTERED ([VehicleBrandCatalogId] ASC)
+                );
+            END;
+
+            IF COL_LENGTH('dbo.VehicleBrandCatalog', 'VehicleType') IS NULL
+                ALTER TABLE [dbo].[VehicleBrandCatalog] ADD [VehicleType] TINYINT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_VehicleType] DEFAULT ((2));
+
+            IF COL_LENGTH('dbo.Vehicle', 'BrandCatalogId') IS NULL
+                ALTER TABLE [dbo].[Vehicle] ADD [BrandCatalogId] UNIQUEIDENTIFIER NULL;
+
+            IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_VehicleBrandCatalog_Name' AND object_id = OBJECT_ID('dbo.VehicleBrandCatalog'))
+                DROP INDEX [UQ_VehicleBrandCatalog_Name] ON [dbo].[VehicleBrandCatalog];
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_VehicleBrandCatalog_Code' AND object_id = OBJECT_ID('dbo.VehicleBrandCatalog'))
+                CREATE UNIQUE INDEX [UQ_VehicleBrandCatalog_Code] ON [dbo].[VehicleBrandCatalog] ([Code] ASC);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_VehicleBrandCatalog_VehicleType' AND object_id = OBJECT_ID('dbo.VehicleBrandCatalog'))
+                CREATE INDEX [IX_VehicleBrandCatalog_VehicleType] ON [dbo].[VehicleBrandCatalog] ([VehicleType] ASC);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Vehicle_BrandCatalogId' AND object_id = OBJECT_ID('dbo.Vehicle'))
+                CREATE INDEX [IX_Vehicle_BrandCatalogId] ON [dbo].[Vehicle] ([BrandCatalogId] ASC);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Vehicle_BrandCatalog')
+                ALTER TABLE [dbo].[Vehicle] WITH CHECK ADD CONSTRAINT [FK_Vehicle_BrandCatalog]
+                    FOREIGN KEY([BrandCatalogId]) REFERENCES [dbo].[VehicleBrandCatalog] ([VehicleBrandCatalogId]);
             """);
     }
 
