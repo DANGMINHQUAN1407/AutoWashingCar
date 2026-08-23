@@ -42,6 +42,71 @@ function isSlotInPast(slotDateStr: string, slotStartTimeStr: string) {
   return false;
 }
 
+// Chinh sach phi huy (khop CancellationPolicy.cs cua backend)
+const FREE_CANCELLATION_HOURS = 24;
+const SAME_DAY_CANCELLATION_HOURS = 2;
+
+type CancellationEstimate = {
+  hoursRemaining: number;
+  feeRate: number;
+  feeAmount: number;
+  refundAmount: number;
+  isWindowClosed: boolean;
+};
+
+function estimateCancellationFee(
+  slotDateStr?: string,
+  slotStartTimeStr?: string,
+  paidAmount = 0
+): CancellationEstimate | null {
+  if (!slotDateStr || !slotStartTimeStr) return null;
+
+  const [hh, mm] = slotStartTimeStr.split(':');
+  const slotStart = new Date(`${slotDateStr}T${hh.padStart(2, '0')}:${(mm ?? '00').padStart(2, '0')}:00`);
+  if (Number.isNaN(slotStart.getTime())) return null;
+
+  const hoursRemaining = (slotStart.getTime() - Date.now()) / 3600000;
+  if (hoursRemaining <= 0) {
+    return {
+      hoursRemaining: 0,
+      feeRate: 0.3,
+      feeAmount: 0,
+      refundAmount: 0,
+      isWindowClosed: true,
+    };
+  }
+
+  const feeRate =
+    hoursRemaining >= FREE_CANCELLATION_HOURS
+      ? 0
+      : hoursRemaining >= SAME_DAY_CANCELLATION_HOURS
+        ? 0.1
+        : 0.3;
+  const feeAmount = Math.round(paidAmount * feeRate);
+
+  return {
+    hoursRemaining,
+    feeRate,
+    feeAmount,
+    refundAmount: Math.max(paidAmount - feeAmount, 0),
+    isWindowClosed: false,
+  };
+}
+
+// Backend tra ve chuoi UTC khong kem hau to 'Z' — them vao truoc khi parse
+// de tranh trinh duyet hieu nham la gio local.
+function parseUtcDate(value?: string): Date | null {
+  if (!value) return null;
+  const normalized = /(Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// Gioi han dat lich phia backend: toi da 1 don Pending con hieu luc va 3 don Confirmed
+const PENDING_BOOKING_EXPIRY_MINUTES = 15;
+const MAX_PENDING_BOOKINGS = 1;
+const MAX_CONFIRMED_BOOKINGS = 3;
+
 export default function CustomerBookings() {
   // Helper to load cached wizard state from sessionStorage
   const getCached = (key: string, fallback: any) => {
@@ -746,6 +811,21 @@ export default function CustomerBookings() {
     return true;
   });
 
+  // Kiem tra gioi han dat lich truoc khi cho phep sang Buoc 2
+  const activePendingBookings = bookings.filter(b => {
+    if (b.bookingStatus !== 1) return false;
+    const createdAt = parseUtcDate(b.createdAtUtc);
+    if (!createdAt) return true;
+    return Date.now() - createdAt.getTime() < PENDING_BOOKING_EXPIRY_MINUTES * 60 * 1000;
+  });
+  const confirmedBookingsCount = bookings.filter(b => b.bookingStatus === 2).length;
+  const bookingLimitMessage =
+    activePendingBookings.length >= MAX_PENDING_BOOKINGS
+      ? `Bạn đang có ${activePendingBookings.length} đơn chờ thanh toán (hết hạn sau ${PENDING_BOOKING_EXPIRY_MINUTES} phút kể từ lúc tạo). Vui lòng hoàn tất hoặc huỷ đơn đó trước khi đặt lịch mới.`
+      : confirmedBookingsCount >= MAX_CONFIRMED_BOOKINGS
+        ? `Bạn đã có ${confirmedBookingsCount} lịch hẹn đã xác nhận — đạt giới hạn ${MAX_CONFIRMED_BOOKINGS} đơn. Vui lòng hoàn tất hoặc huỷ bớt trước khi đặt thêm.`
+        : null;
+
   // Dynamic client-side total pages computation
   useEffect(() => {
     const pages = Math.max(1, Math.ceil(filteredBookings.length / 3));
@@ -1075,6 +1155,21 @@ export default function CustomerBookings() {
                 Please select the branch most convenient for you.
               </p>
 
+              {bookingLimitMessage && (
+                <div
+                  className="badge badge-warning"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  ⚠️ {bookingLimitMessage}
+                </div>
+              )}
+
               {branchesLoading ? (
                 <p>Loading branches...</p>
               ) : branches.length === 0 ? (
@@ -1117,7 +1212,7 @@ export default function CustomerBookings() {
                 <AnimatedButton
                   type="button"
                   variant="primary"
-                  disabled={!selectedBranchId}
+                  disabled={!selectedBranchId || !!bookingLimitMessage}
                   onClick={() => setWizardStep(2)}
                 >
                   Next
@@ -1398,46 +1493,146 @@ export default function CustomerBookings() {
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
                 {/* Services list (Left) */}
                 <div>
-                  <h4
-                    style={{
-                      borderBottom: '1px solid var(--color-border-dim)',
-                      paddingBottom: '8px',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    Car Wash Services
-                  </h4>
-                  {services.length === 0 ? (
-                    <p style={{ color: 'var(--color-text-muted)' }}>
-                      No services available at this branch.
-                    </p>
-                  ) : (
-                    <div className="wizard-service-list">
-                      {services.map(s => {
-                        const isSelected = selectedServiceIds.includes(s.serviceId);
-                        return (
-                          <div
-                            key={s.serviceId}
-                            className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
-                            onClick={() => {
-                              setSelectedServiceIds(prev =>
-                                isSelected
-                                  ? prev.filter(id => id !== s.serviceId)
-                                  : [...prev, s.serviceId]
+                  {(() => {
+                    const mainPackages = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const addOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+                    const selectedMain = mainPackages.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
+                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+
+                    const selectMainPackage = (svc: BranchService) => {
+                      setSelectedServiceIds(prev => {
+                        // Premium loai tru moi add-on; Standard giu lai add-on dang chon
+                        const keptAddOns = (svc.servicePackageType ?? 1) === 3
+                          ? []
+                          : prev.filter(id => addOns.some(a => a.serviceId === id));
+                        return [svc.serviceId, ...keptAddOns];
+                      });
+                    };
+
+                    const toggleAddOn = (svc: BranchService) => {
+                      if (isPremiumSelected) return;
+                      setSelectedServiceIds(prev =>
+                        prev.includes(svc.serviceId)
+                          ? prev.filter(id => id !== svc.serviceId)
+                          : [...prev, svc.serviceId]
+                      );
+                    };
+
+                    return (
+                      <>
+                        <h4
+                          style={{
+                            borderBottom: '1px solid var(--color-border-dim)',
+                            paddingBottom: '8px',
+                            marginBottom: '12px',
+                          }}
+                        >
+                          Gói Dịch Vụ Chính
+                        </h4>
+                        {mainPackages.length === 0 ? (
+                          <p style={{ color: 'var(--color-text-muted)' }}>
+                            Chi nhánh này chưa có gói dịch vụ chính nào.
+                          </p>
+                        ) : (
+                          <div className="wizard-service-list">
+                            {mainPackages.map(s => {
+                              const isSelected = selectedServiceIds.includes(s.serviceId);
+                              return (
+                                <div
+                                  key={s.serviceId}
+                                  className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
+                                  onClick={() => selectMainPackage(s)}
+                                >
+                                  <div className="wizard-service-checkbox" style={{ borderRadius: '50%' }} />
+                                  <div className="wizard-service-info">
+                                    <h5>
+                                      {s.serviceName}
+                                      {(s.servicePackageType ?? 1) === 3 && (
+                                        <span className="badge badge-warning" style={{ marginLeft: '8px' }}>
+                                          Trọn gói
+                                        </span>
+                                      )}
+                                    </h5>
+                                    <p>⏱️ Thời gian: {s.durationMinutes} phút</p>
+                                  </div>
+                                  <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
+                                </div>
                               );
-                            }}
-                          >
-                            <div className="wizard-service-checkbox" />
-                            <div className="wizard-service-info">
-                              <h5>{s.serviceName}</h5>
-                              <p>⏱️ Est. Duration: {s.durationMinutes} mins</p>
-                            </div>
-                            <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+
+                        <h4
+                          style={{
+                            borderBottom: '1px solid var(--color-border-dim)',
+                            paddingBottom: '8px',
+                            margin: '24px 0 12px',
+                          }}
+                        >
+                          Dịch Vụ Bổ Sung
+                        </h4>
+                        {isPremiumSelected ? (
+                          <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
+                            Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
+                          </div>
+                        ) : addOns.length === 0 ? (
+                          <p style={{ color: 'var(--color-text-muted)' }}>
+                            Chi nhánh này chưa có dịch vụ bổ sung nào.
+                          </p>
+                        ) : (
+                          <div className="wizard-service-list">
+                            {addOns.map(s => {
+                              const isSelected = selectedServiceIds.includes(s.serviceId);
+                              return (
+                                <div
+                                  key={s.serviceId}
+                                  className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
+                                  style={!selectedMain ? { opacity: 0.55 } : undefined}
+                                  onClick={() => selectedMain && toggleAddOn(s)}
+                                >
+                                  <div className="wizard-service-checkbox" />
+                                  <div className="wizard-service-info">
+                                    <h5>{s.serviceName}</h5>
+                                    <p>⏱️ +{s.durationMinutes} phút</p>
+                                  </div>
+                                  <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {!selectedMain && addOns.length > 0 && !isPremiumSelected && (
+                          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                            Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
+                          </p>
+                        )}
+
+                        {/* Thanh tổng kết cập nhật theo thời gian thực */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            marginTop: '20px',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--color-border-dim)',
+                            background: 'var(--color-surface-alt, rgba(255,255,255,0.03))',
+                          }}
+                        >
+                          <span style={{ color: 'var(--color-text-muted)' }}>
+                            ⏱️ Ước tính: <strong>{estimatedMinutes}</strong> phút
+                          </span>
+                          <span style={{ color: 'var(--color-heading)' }}>
+                            Tạm tính: <strong>{formatVND(estimatedPrice)}</strong>
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Date & Time Slot selection (Right) */}
@@ -1519,7 +1714,11 @@ export default function CustomerBookings() {
                 <AnimatedButton
                   type="button"
                   variant="primary"
-                  disabled={selectedServiceIds.length === 0 || !selectedSlotId}
+                  disabled={
+                    !services.some(
+                      s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
+                    ) || !selectedSlotId
+                  }
                   onClick={() => setWizardStep(4)}
                 >
                   View Quote &amp; Confirm
@@ -2736,12 +2935,52 @@ export default function CustomerBookings() {
                 required
               />
             </div>
-            <div
-              className="confirm-modal-warning"
-              style={{ fontSize: '0.8rem', marginTop: '12px' }}
-            >
-              This action will release your slot for other customers and free up the schedule.
-            </div>
+            {(() => {
+              const estimate = estimateCancellationFee(
+                bookingToCancel?.slotDate,
+                bookingToCancel?.slotStartTime,
+                bookingToCancel?.depositAmount ?? 0
+              );
+              if (!estimate) return null;
+              if (estimate.isWindowClosed) {
+                return (
+                  <div
+                    className="confirm-modal-warning"
+                    style={{ fontSize: '0.82rem', marginTop: '12px' }}
+                  >
+                    Lịch hẹn đã tới giờ, cổng huỷ đã đóng. Vui lòng liên hệ chi nhánh để được hỗ trợ.
+                  </div>
+                );
+              }
+              const hoursText =
+                estimate.hoursRemaining >= 1
+                  ? `${Math.floor(estimate.hoursRemaining)} giờ ${Math.round((estimate.hoursRemaining % 1) * 60)} phút`
+                  : `${Math.max(Math.round(estimate.hoursRemaining * 60), 1)} phút`;
+              const paidDeposit = bookingToCancel?.depositAmount ?? 0;
+              return (
+                <div
+                  className="confirm-modal-warning"
+                  style={{ fontSize: '0.82rem', marginTop: '12px', textAlign: 'left' }}
+                >
+                  <div>⏳ Còn <strong>{hoursText}</strong> trước giờ hẹn.</div>
+                  <div>
+                    💸 Phí huỷ áp dụng: <strong>{Math.round(estimate.feeRate * 100)}%</strong>
+                    {paidDeposit > 0 ? ` (-${formatVND(estimate.feeAmount)})` : ''}
+                  </div>
+                  {paidDeposit > 0 ? (
+                    <div>
+                      💰 Tiền cọc hoàn lại dự kiến: <strong>{formatVND(estimate.refundAmount)}</strong>
+                      {' '}/ {formatVND(paidDeposit)}
+                    </div>
+                  ) : (
+                    <div>💰 Đơn chưa thanh toán cọc nên không bị khấu trừ tiền.</div>
+                  )}
+                  <div style={{ marginTop: '6px' }}>
+                    Thao tác này sẽ giải phóng khung giờ của bạn cho khách hàng khác.
+                  </div>
+                </div>
+              );
+            })()}
           </>
         }
       />
