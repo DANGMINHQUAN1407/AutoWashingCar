@@ -1142,6 +1142,9 @@ public class BookingService(
         SlotInventory slot,
         CancellationToken ct)
     {
+        // Tự động giải phóng các đơn pending quá hạn 15 phút trước khi kiểm tra giới hạn
+        await ExpirePendingBookingsAsync(ct);
+
         var pendingCount = await bookingRepo.CountByUserAndStatusesAsync(
             userId,
             [BookingStatus.Pending],

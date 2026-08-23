@@ -23,6 +23,8 @@ export interface BranchService {
   description: string
   basePrice: number
   durationMinutes: number
+  servicePackageType?: number
+  servicePackageTypeName?: string
   isActive: boolean
 }
 
@@ -51,6 +53,8 @@ export function normalizeBranch(raw: Record<string, unknown>): Branch {
 
 export function normalizeBranchService(raw: Record<string, unknown>): BranchService {
   const serviceCatalogItemId = pick(raw, 'serviceCatalogItemId', 'ServiceCatalogItemId') as string | undefined
+  const packageTypeRaw = pick(raw, 'servicePackageType', 'ServicePackageType')
+  const packageTypeNameRaw = pick(raw, 'servicePackageTypeName', 'ServicePackageTypeName')
   return {
     branchServiceId: String(pick(raw, 'branchServiceId', 'BranchServiceId') ?? serviceCatalogItemId ?? ''),
     branchId: String(pick(raw, 'branchId', 'BranchId') ?? ''),
@@ -59,6 +63,8 @@ export function normalizeBranchService(raw: Record<string, unknown>): BranchServ
     description: String(pick(raw, 'description', 'Description') ?? ''),
     basePrice: Number(pick(raw, 'basePrice', 'BasePrice') ?? 0),
     durationMinutes: Number(pick(raw, 'durationMinutes', 'DurationMinutes') ?? 0),
+    servicePackageType: packageTypeRaw !== undefined && packageTypeRaw !== null ? Number(packageTypeRaw) : undefined,
+    servicePackageTypeName: packageTypeNameRaw ? String(packageTypeNameRaw) : undefined,
     isActive: Boolean(pick(raw, 'isActive', 'IsActive') ?? true),
   }
 }
