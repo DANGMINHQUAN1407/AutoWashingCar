@@ -1,10 +1,14 @@
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using WashingCar_DAL.Data;
 
 #nullable disable
 
 namespace WashingCar_DAL.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(WashingCarDbContext))]
+    [Migration("20260823021000_AddUniqueUserVoucherPerUser")]
     public partial class AddUniqueUserVoucherPerUser : Migration
     {
         /// <inheritdoc />
