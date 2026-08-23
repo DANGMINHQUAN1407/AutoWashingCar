@@ -448,16 +448,16 @@ export default function StaffCustomers() {
                         }}
                         style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}
                       >
-                        <option value="">-- Chá»n hÃ£ng xe --</option>
+                        <option value="">-- Chọn hãng xe --</option>
                         {brandCatalogs.filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(newType)).map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
-                        <option value={CUSTOM_BRAND_VALUE}>KhÃ¡c / tá»± nháº­p</option>
+                        <option value={CUSTOM_BRAND_VALUE}>Khác</option>
                       </select>
                       {newBrandCatalogId === CUSTOM_BRAND_VALUE && (
                         <input
                           className="form-input"
-                          placeholder="Nháº­p hÃ£ng xe"
+                          placeholder="Nhập hãng xe"
                           value={newBrand}
                           onChange={e => setNewBrand(e.target.value)}
                           maxLength={50}
