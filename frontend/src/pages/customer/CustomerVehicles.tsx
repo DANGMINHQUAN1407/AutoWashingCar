@@ -16,11 +16,14 @@ export default function CustomerVehicles() {
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null)
   const [engineCatalogs, setEngineCatalogs] = useState<any[]>([])
   const [bodyStyleCatalogs, setBodyStyleCatalogs] = useState<any[]>([])
+  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([])
+  const [isCustomBrand, setIsCustomBrand] = useState(false)
 
   const [vehicleForm, setVehicleForm] = useState({
     licensePlate: '',
     vehicleType: 2 as VehicleType,
     brand: '',
+    brandCatalogId: '',
     model: '',
     manufactureYear: '',
     engineType: '' as '' | number,
@@ -142,6 +145,10 @@ export default function CustomerVehicles() {
       .then(setVehicles)
       .catch(() => setVehicles([]))
 
+    api.getBrands({ isActive: true, page: 1, pageSize: 9999 })
+      .then(res => setBrandCatalogs(res.items))
+      .catch(() => setBrandCatalogs([]))
+
     api.getEngineTypes({ isActive: true, page: 1, pageSize: 9999 })
       .then(res => setEngineCatalogs(res.items))
       .catch(() => setEngineCatalogs([]))
@@ -197,10 +204,12 @@ export default function CustomerVehicles() {
 
   const openCreateVehicleForm = () => {
     setEditingVehicleId(null)
+    setIsCustomBrand(false)
     setVehicleForm({
       licensePlate: '',
       vehicleType: 2 as VehicleType,
       brand: '',
+      brandCatalogId: '',
       model: '',
       manufactureYear: '',
       engineType: '',
@@ -221,10 +230,15 @@ export default function CustomerVehicles() {
     setVehicleError(null)
     setVehicleSuccess(null)
     setEditingVehicleId(vehicleId)
+    const bName = vehicle.Brand || vehicle.brand || ''
+    const bCatId = vehicle.BrandCatalogId || vehicle.brandCatalogId || ''
+    const matchedBrand = brandCatalogs.find(b => b.id === bCatId || b.name.toLowerCase() === bName.toLowerCase())
+    setIsCustomBrand(!matchedBrand && !!bName)
     setVehicleForm({
       licensePlate: vehicle.LicensePlate || vehicle.licensePlate || '',
       vehicleType: (vehicle.VehicleType ?? vehicle.vehicleType ?? 2) as VehicleType,
-      brand: vehicle.Brand || vehicle.brand || '',
+      brand: bName,
+      brandCatalogId: bCatId || matchedBrand?.id || '',
       model: vehicle.Model || vehicle.model || '',
       manufactureYear: (vehicle.ManufactureYear ?? vehicle.manufactureYear ?? '').toString(),
       engineType: vehicle.EngineType ?? vehicle.engineType ?? '',
@@ -246,6 +260,7 @@ export default function CustomerVehicles() {
         LicensePlate: vehicleForm.licensePlate.trim().toUpperCase(),
         VehicleType: vehicleForm.vehicleType,
         Brand: vehicleForm.brand.trim() || undefined,
+        BrandCatalogId: vehicleForm.brandCatalogId || undefined,
         Model: vehicleForm.model.trim() || undefined,
         ManufactureYear: vehicleForm.manufactureYear ? Number(vehicleForm.manufactureYear) : undefined,
         EngineType: vehicleForm.engineType !== '' ? Number(vehicleForm.engineType) : undefined,
@@ -264,10 +279,12 @@ export default function CustomerVehicles() {
         }
         return [savedVehicle, ...prev]
       })
+      setIsCustomBrand(false)
       setVehicleForm({
         licensePlate: '',
         vehicleType: 2,
         brand: '',
+        brandCatalogId: '',
         model: '',
         manufactureYear: '',
         engineType: '',
@@ -424,14 +441,46 @@ export default function CustomerVehicles() {
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="vehicle-brand">Hãng xe</label>
-              <input
+              <select
                 id="vehicle-brand"
                 className="form-input"
-                value={vehicleForm.brand}
-                onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value }))}
-                placeholder="VD: Honda, Yamaha, Toyota, Ford..."
-                maxLength={50}
-              />
+                value={isCustomBrand ? '__custom__' : (vehicleForm.brandCatalogId || '')}
+                onChange={e => {
+                  const val = e.target.value
+                  if (val === '__custom__') {
+                    setIsCustomBrand(true)
+                    setVehicleForm(prev => ({ ...prev, brandCatalogId: '', brand: '' }))
+                  } else {
+                    setIsCustomBrand(false)
+                    const selected = brandCatalogs.find(b => b.id === val)
+                    setVehicleForm(prev => ({
+                      ...prev,
+                      brandCatalogId: selected ? selected.id : '',
+                      brand: selected ? selected.name : '',
+                    }))
+                  }
+                }}
+              >
+                <option value="">-- Chọn hãng xe --</option>
+                {brandCatalogs.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+                <option value="__custom__">➕ Hãng khác (Nhập tay)...</option>
+              </select>
+              {isCustomBrand && (
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ marginTop: '8px' }}
+                  value={vehicleForm.brand}
+                  onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value, brandCatalogId: '' }))}
+                  placeholder="Nhập tên hãng xe (VD: Audi, Porsche, Harley...)"
+                  maxLength={50}
+                  required
+                />
+              )}
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="vehicle-model">Dòng xe (Model)</label>

@@ -6,11 +6,11 @@ import Pagination from '../../components/Pagination'
 import './AdminVehicleCatalogs.css'
 import '../Dashboard.css'
 
-type ActiveTab = 'engine' | 'bodyStyle'
+type ActiveTab = 'brand' | 'engine' | 'bodyStyle'
 type ModalMode = 'create' | 'edit' | null
 
 export default function AdminVehicleCatalogs() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('engine')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('brand')
   const [items, setItems] = useState<VehicleCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +49,9 @@ export default function AdminVehicleCatalogs() {
     setError(null)
     try {
       let res
-      if (activeTab === 'engine') {
+      if (activeTab === 'brand') {
+        res = await api.getBrands({ page, pageSize, search: search.trim() || undefined })
+      } else if (activeTab === 'engine') {
         res = await api.getEngineTypes({ page, pageSize, search: search.trim() || undefined })
       } else {
         res = await api.getBodyStyles({ page, pageSize, search: search.trim() || undefined })
@@ -84,14 +86,18 @@ export default function AdminVehicleCatalogs() {
   const handleToggleStatus = async (item: VehicleCatalogItem) => {
     try {
       if (item.isActive) {
-        if (activeTab === 'engine') {
+        if (activeTab === 'brand') {
+          await api.deactivateBrand(item.id)
+        } else if (activeTab === 'engine') {
           await api.deactivateEngineType(item.id)
         } else {
           await api.deactivateBodyStyle(item.id)
         }
         showToast('Vô hiệu hóa thành công')
       } else {
-        if (activeTab === 'engine') {
+        if (activeTab === 'brand') {
+          await api.activateBrand(item.id)
+        } else if (activeTab === 'engine') {
           await api.activateEngineType(item.id)
         } else {
           await api.activateBodyStyle(item.id)
@@ -146,7 +152,9 @@ export default function AdminVehicleCatalogs() {
           Code: form.code.trim().toUpperCase(),
           Name: form.name.trim(),
         }
-        if (activeTab === 'engine') {
+        if (activeTab === 'brand') {
+          await api.createBrand(payload)
+        } else if (activeTab === 'engine') {
           await api.createEngineType(payload)
         } else {
           await api.createBodyStyle(payload)
@@ -157,7 +165,9 @@ export default function AdminVehicleCatalogs() {
           Name: form.name.trim(),
           IsActive: form.isActive,
         }
-        if (activeTab === 'engine') {
+        if (activeTab === 'brand') {
+          await api.updateBrand(selectedItem.id, payload)
+        } else if (activeTab === 'engine') {
           await api.updateEngineType(selectedItem.id, payload)
         } else {
           await api.updateBodyStyle(selectedItem.id, payload)
@@ -170,6 +180,14 @@ export default function AdminVehicleCatalogs() {
       setFormError(extractErrorMessage(err, 'Lỗi khi lưu thông tin danh mục.'))
     } finally {
       setFormLoading(false)
+    }
+  }
+
+  const getTabLabel = () => {
+    switch (activeTab) {
+      case 'brand': return 'hãng xe'
+      case 'engine': return 'loại động cơ'
+      case 'bodyStyle': return 'kiểu dáng xe'
     }
   }
 
@@ -188,7 +206,7 @@ export default function AdminVehicleCatalogs() {
       <div className="dash-header">
         <div>
           <h2>Quản lý Danh mục Xe</h2>
-          <p>Thiết lập và quản lý các loại động cơ và kiểu dáng xe có trong hệ thống.</p>
+          <p>Thiết lập và quản lý các hãng xe, loại động cơ và kiểu dáng xe có trong hệ thống.</p>
         </div>
         <AnimatedButton variant="primary" onClick={handleOpenCreateModal}>
           + Thêm danh mục
@@ -197,6 +215,12 @@ export default function AdminVehicleCatalogs() {
 
       {/* Tab Switcher */}
       <div className="catalogs-tabs-wrapper" style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '12px', marginBottom: '24px' }}>
+        <button
+          className={`btn ${activeTab === 'brand' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('brand')}
+        >
+          🏷️ Hãng Xe (Brand)
+        </button>
         <button
           className={`btn ${activeTab === 'engine' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => handleTabChange('engine')}
@@ -218,7 +242,7 @@ export default function AdminVehicleCatalogs() {
             type="text"
             className="form-input"
             style={{ width: '100%', paddingLeft: '32px' }}
-            placeholder={`Tìm kiếm theo tên hoặc mã ${activeTab === 'engine' ? 'động cơ' : 'kiểu dáng'}...`}
+            placeholder={`Tìm kiếm theo tên hoặc mã ${getTabLabel()}...`}
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
           />

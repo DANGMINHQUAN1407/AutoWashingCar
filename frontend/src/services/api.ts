@@ -38,6 +38,10 @@ export type Vehicle = {
   VehicleType?: VehicleType
   brand?: string | null
   Brand?: string | null
+  brandCatalogId?: string | null
+  BrandCatalogId?: string | null
+  brandCatalogName?: string | null
+  BrandCatalogName?: string | null
   model?: string | null
   Model?: string | null
   manufactureYear?: number | null
@@ -66,6 +70,7 @@ export type CreateVehicleRequest = {
   LicensePlate: string
   VehicleType: VehicleType
   Brand?: string
+  BrandCatalogId?: string
   Model?: string
   ManufactureYear?: number
   EngineType?: number
@@ -1847,6 +1852,46 @@ export async function deactivateBodyStyle(id: string): Promise<any> {
   return fetchWithAuth(`/api/vehicle-catalogs/body-styles/${id}/deactivate`, { method: 'POST' })
 }
 
+export async function getBrands(params?: { page?: number, pageSize?: number, search?: string, isActive?: boolean }): Promise<{ items: VehicleCatalogItem[], totalCount: number }> {
+  const search = new URLSearchParams()
+  if (params?.page) search.set('Page', String(params.page))
+  if (params?.pageSize) search.set('PageSize', String(params.pageSize))
+  if (params?.search) search.set('Search', params.search)
+  if (params?.isActive !== undefined) search.set('IsActive', String(params.isActive))
+  const qs = search.toString()
+  const res = await fetchWithAuth(`/api/vehicle-catalogs/brands${qs ? `?${qs}` : ''}`)
+  const data = unwrapData<{ items?: any[], Items?: any[], totalCount?: number, TotalCount?: number }>(res)
+  const items = data?.items ?? data?.Items ?? unwrapPagedItems(res)
+  const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
+  return { items, totalCount }
+}
+
+export async function createBrand(data: CreateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth('/api/vehicle-catalogs/brands', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function updateBrand(id: string, data: UpdateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+  const payload = await fetchWithAuth(`/api/vehicle-catalogs/brands/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function activateBrand(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/brands/${id}/activate`, { method: 'POST' })
+}
+
+export async function deactivateBrand(id: string): Promise<any> {
+  return fetchWithAuth(`/api/vehicle-catalogs/brands/${id}/deactivate`, { method: 'POST' })
+}
+
 export default {
   getHealth, login, register, googleLogin, logout, getMe, setAuthToken,
   forgotPassword, resetPassword, claimGuestAccount,
@@ -1871,6 +1916,7 @@ export default {
   getReviews, getReviewsForModeration, getMyReviews, createReview, deleteReview, toggleHideReview, getSystemStats,
   getEngineTypes, createEngineType, updateEngineType, activateEngineType, deactivateEngineType,
   getBodyStyles, createBodyStyle, updateBodyStyle, activateBodyStyle, deactivateBodyStyle,
+  getBrands, createBrand, updateBrand, activateBrand, deactivateBrand,
 }
 
 
