@@ -55,7 +55,7 @@ namespace WashingCar_BLL.Services
         {
             var plate = request.LicensePlate.ToUpperInvariant();
 
-            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId))
+            if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
             var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
@@ -92,7 +92,7 @@ namespace WashingCar_BLL.Services
 
             var plate = request.LicensePlate.ToUpperInvariant();
 
-            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, userId, excludeId: vehicleId))
+            if (await _vehicleRepo.ExistsLicensePlateAsync(plate, excludeId: vehicleId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
             vehicle.LicensePlate = plate;

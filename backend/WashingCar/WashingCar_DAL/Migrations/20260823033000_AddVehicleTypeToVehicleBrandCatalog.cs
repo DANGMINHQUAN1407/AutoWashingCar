@@ -19,6 +19,13 @@ namespace WashingCar_DAL.Migrations
                 nullable: false,
                 defaultValue: (byte)2);
 
+            migrationBuilder.AddColumn<bool>(
+                name: "IsLuxury",
+                table: "VehicleBrandCatalog",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
             migrationBuilder.CreateIndex(
                 name: "IX_VehicleBrandCatalog_VehicleType",
                 table: "VehicleBrandCatalog",
@@ -33,6 +40,10 @@ namespace WashingCar_DAL.Migrations
 
             migrationBuilder.DropColumn(
                 name: "VehicleType",
+                table: "VehicleBrandCatalog");
+
+            migrationBuilder.DropColumn(
+                name: "IsLuxury",
                 table: "VehicleBrandCatalog");
 
             migrationBuilder.CreateIndex(

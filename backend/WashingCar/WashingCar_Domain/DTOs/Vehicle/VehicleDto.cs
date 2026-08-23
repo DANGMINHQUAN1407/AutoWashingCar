@@ -18,8 +18,6 @@ public class VehicleDto
     public string?     EngineCatalogName { get; set; }
     public Guid?       BodyStyleCatalogId { get; set; }
     public string?     BodyStyleCatalogName { get; set; }
-    public Guid?       BrandCatalogId { get; set; }
-    public string?     BrandCatalogName { get; set; }
     public bool?       IsLuxuryBrand { get; set; }
     public string      VehicleCondition { get; set; } = null!;
     public string?     PrimaryImageUrl { get; set; }
