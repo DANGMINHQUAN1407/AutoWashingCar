@@ -33,35 +33,11 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             .CountAsync(u => u.Role == UserRole.Staff || u.Role == UserRole.Manager, ct);
 
         var completedStatuses = new byte[] { BookingStatus.Completed, BookingStatus.Closed };
-        var systemRevenue = await db.Bookings.AsNoTracking()
-            .Where(b => completedStatuses.Contains(b.BookingStatus))
-            .SumAsync(b => b.BookingFinalAmount, ct);
-
+        var systemLedger = await GetRevenueSummaryAsync(branchId: null, ct);
         var networkHealth = branches.Count > 0
             ? (int)Math.Round((double)activeBranches / branches.Count * 100)
             : 0;
-
-        var tenWeeksAgo = DateTime.UtcNow.Date.AddDays(-70);
-        var recentBookings = await db.Bookings.AsNoTracking()
-            .Where(b => completedStatuses.Contains(b.BookingStatus) && b.CreatedAtUtc >= tenWeeksAgo)
-            .Select(b => new { b.CreatedAtUtc, b.BookingFinalAmount })
-            .ToListAsync(ct);
-
-        var weeklyRevenues = new decimal[10];
-        var now = DateTime.UtcNow.Date;
-
-        foreach (var b in recentBookings)
-        {
-            var diff = (now - b.CreatedAtUtc.Date).Days;
-            if (diff >= 0 && diff < 70)
-            {
-                var weekIndex = 9 - (diff / 7);
-                weeklyRevenues[weekIndex] += b.BookingFinalAmount;
-            }
-        }
-
-        var maxRev = weeklyRevenues.Length > 0 ? weeklyRevenues.Max() : 0;
-        var revenueWeeks = weeklyRevenues.Select(r => maxRev > 0 ? (int)(r * 100 / maxRev) : 0).ToList();
+        var revenueWeeks = await GetWeeklyNetRevenuePercentagesAsync(branchId: null, ct);
 
         var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         var monthlyWashes = await db.Bookings.AsNoTracking()
@@ -72,7 +48,11 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             TotalBranches = branches.Count,
             ActiveBranches = activeBranches,
             TotalStaff = staffCount,
-            SystemRevenue = systemRevenue,
+            // SystemRevenue giữ tên cũ nhưng mang nghĩa net revenue từ payment ledger.
+            SystemRevenue = systemLedger.NetRevenue,
+            GrossCollected = systemLedger.GrossCollected,
+            RefundedAmount = systemLedger.RefundedAmount,
+            NetRevenue = systemLedger.NetRevenue,
             NetworkHealth = networkHealth,
             MonthlyWashes = monthlyWashes,
             RevenueWeeks = revenueWeeks
@@ -88,45 +68,183 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
 
         var services = await db.BranchServices.AsNoTracking().Where(s => s.BranchId == branch.BranchId).ToListAsync(ct);
 
-        var completedStatuses = new byte[] { BookingStatus.Completed, BookingStatus.Closed };
-        var branchRevenue = await db.Bookings.AsNoTracking()
-            .Where(b => b.BranchId == branch.BranchId && completedStatuses.Contains(b.BookingStatus))
-            .SumAsync(b => b.BookingFinalAmount, ct);
-
+        var branchLedger = await GetRevenueSummaryAsync(branch.BranchId, ct);
         var activeStatuses = new byte[] { BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.CheckedIn, BookingStatus.InProgress };
         var activeOrders = await db.Bookings.AsNoTracking()
             .CountAsync(b => b.BranchId == branch.BranchId && activeStatuses.Contains(b.BookingStatus), ct);
-
-        var tenWeeksAgo = DateTime.UtcNow.Date.AddDays(-70);
-        var recentBookings = await db.Bookings.AsNoTracking()
-            .Where(b => b.BranchId == branch.BranchId && completedStatuses.Contains(b.BookingStatus) && b.CreatedAtUtc >= tenWeeksAgo)
-            .Select(b => new { b.CreatedAtUtc, b.BookingFinalAmount })
-            .ToListAsync(ct);
-
-        var weeklyRevenues = new decimal[10];
-        var now = DateTime.UtcNow.Date;
-
-        foreach (var b in recentBookings)
-        {
-            var diff = (now - b.CreatedAtUtc.Date).Days;
-            if (diff >= 0 && diff < 70)
-            {
-                var weekIndex = 9 - (diff / 7);
-                weeklyRevenues[weekIndex] += b.BookingFinalAmount;
-            }
-        }
-
-        var maxRev = weeklyRevenues.Length > 0 ? weeklyRevenues.Max() : 0;
-        var revenueWeeks = weeklyRevenues.Select(r => maxRev > 0 ? (int)(r * 100 / maxRev) : 0).ToList();
+        var revenueWeeks = await GetWeeklyNetRevenuePercentagesAsync(branch.BranchId, ct);
 
         return new DashboardStatsDto
         {
             TotalServices = services.Count,
             ActiveServices = services.Count(s => s.IsActive),
-            BranchRevenue = branchRevenue,
+            // BranchRevenue giữ tên cũ nhưng mang nghĩa net revenue từ payment ledger.
+            BranchRevenue = branchLedger.NetRevenue,
+            GrossCollected = branchLedger.GrossCollected,
+            RefundedAmount = branchLedger.RefundedAmount,
+            NetRevenue = branchLedger.NetRevenue,
             ActiveOrders = activeOrders,
             RevenueWeeks = revenueWeeks
         };
+    }
+
+    public async Task<PaymentReconciliationDto> GetAdminPaymentReconciliationAsync(
+        PaymentReconciliationQuery query, CancellationToken ct = default)
+    {
+        ValidateDateRange(query.FromDate, query.ToDate);
+        return await BuildPaymentReconciliationAsync(query.BranchId, query, ct);
+    }
+
+    public async Task<PaymentReconciliationDto> GetManagerPaymentReconciliationAsync(
+        Guid managerId, PaymentReconciliationQuery query, CancellationToken ct = default)
+    {
+        ValidateDateRange(query.FromDate, query.ToDate);
+        var branch = await db.Branches.AsNoTracking()
+            .FirstOrDefaultAsync(b => b.ManagerId == managerId, ct);
+        if (branch == null)
+            return new PaymentReconciliationDto
+            {
+                FromDate = query.FromDate,
+                ToDate = query.ToDate,
+            };
+
+        // Không dùng query.BranchId của client; Manager chỉ được xem branch của mình.
+        return await BuildPaymentReconciliationAsync(branch.BranchId, query, ct);
+    }
+
+    public async Task<StaffOperationalStatsDto> GetStaffOperationalStatsAsync(
+        Guid staffId, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(VietnamTimeHelper.UtcOffsetHours));
+        var todayStartUtc = VietnamTimeHelper.SlotStartToUtc(today, TimeOnly.MinValue);
+        var activeStatuses = new byte[]
+        {
+            BookingStatus.Pending,
+            BookingStatus.Confirmed,
+            BookingStatus.CheckedIn,
+            BookingStatus.InProgress,
+        };
+
+        var assignedToday = db.Bookings.AsNoTracking()
+            .Where(b => b.AssignedStaffId == staffId
+                     && b.SlotInventory.SlotDate == today
+                     && b.BookingStatus != BookingStatus.Cancelled
+                     && b.BookingStatus != BookingStatus.NoShow);
+
+        return new StaffOperationalStatsDto
+        {
+            TotalAssignedToday = await assignedToday.CountAsync(ct),
+            AssignedActiveBookings = await assignedToday
+                .CountAsync(b => activeStatuses.Contains(b.BookingStatus), ct),
+            CheckedInBookings = await assignedToday
+                .CountAsync(b => b.BookingStatus == BookingStatus.CheckedIn, ct),
+            InProgressBookings = await assignedToday
+                .CountAsync(b => b.BookingStatus == BookingStatus.InProgress, ct),
+            CompletedToday = await db.Bookings.AsNoTracking()
+                .CountAsync(b => b.AssignedStaffId == staffId
+                              && (b.BookingStatus == BookingStatus.Completed
+                               || b.BookingStatus == BookingStatus.Closed)
+                              && b.CompletedAtUtc >= todayStartUtc, ct),
+        };
+    }
+
+    private async Task<PaymentReconciliationDto> BuildPaymentReconciliationAsync(
+        Guid? branchId,
+        PaymentReconciliationQuery query,
+        CancellationToken ct)
+    {
+        DateTime? fromUtc = query.FromDate.HasValue
+            ? VietnamTimeHelper.SlotStartToUtc(query.FromDate.Value, TimeOnly.MinValue)
+            : null;
+        DateTime? toExclusiveUtc = query.ToDate.HasValue
+            ? VietnamTimeHelper.SlotStartToUtc(query.ToDate.Value.AddDays(1), TimeOnly.MinValue)
+            : null;
+
+        var payments = db.Payments.AsNoTracking()
+            .Where(p => p.PaymentStatus == PaymentStatus.Completed)
+            .Where(p => !branchId.HasValue || p.Booking.BranchId == branchId.Value)
+            .Where(p => !fromUtc.HasValue || (p.PaidAtUtc ?? p.CreatedAtUtc) >= fromUtc.Value)
+            .Where(p => !toExclusiveUtc.HasValue || (p.PaidAtUtc ?? p.CreatedAtUtc) < toExclusiveUtc.Value);
+
+        var rows = await payments
+            .Select(p => new { p.PaymentType, p.Amount })
+            .ToListAsync(ct);
+        var gross = rows
+            .Where(p => p.PaymentType != PaymentType.Refund)
+            .Sum(p => p.Amount);
+        var refunded = rows
+            .Where(p => p.PaymentType == PaymentType.Refund)
+            .Sum(p => p.Amount);
+
+        return new PaymentReconciliationDto
+        {
+            FromDate = query.FromDate,
+            ToDate = query.ToDate,
+            BranchId = branchId,
+            CompletedPaymentCount = rows.Count(p => p.PaymentType != PaymentType.Refund),
+            CompletedRefundCount = rows.Count(p => p.PaymentType == PaymentType.Refund),
+            GrossCollected = gross,
+            RefundedAmount = refunded,
+            NetRevenue = gross - refunded,
+        };
+    }
+
+    private async Task<(decimal GrossCollected, decimal RefundedAmount, decimal NetRevenue)> GetRevenueSummaryAsync(
+        Guid? branchId, CancellationToken ct)
+    {
+        var rows = await db.Payments.AsNoTracking()
+            .Where(p => p.PaymentStatus == PaymentStatus.Completed)
+            .Where(p => !branchId.HasValue || p.Booking.BranchId == branchId.Value)
+            .Select(p => new { p.PaymentType, p.Amount })
+            .ToListAsync(ct);
+        var gross = rows.Where(p => p.PaymentType != PaymentType.Refund).Sum(p => p.Amount);
+        var refunded = rows.Where(p => p.PaymentType == PaymentType.Refund).Sum(p => p.Amount);
+        return (gross, refunded, gross - refunded);
+    }
+
+    private async Task<List<int>> GetWeeklyNetRevenuePercentagesAsync(
+        Guid? branchId, CancellationToken ct)
+    {
+        var cutoffUtc = DateTime.UtcNow.AddDays(-70);
+        var rows = await db.Payments.AsNoTracking()
+            .Where(p => p.PaymentStatus == PaymentStatus.Completed
+                     && (p.PaidAtUtc ?? p.CreatedAtUtc) >= cutoffUtc)
+            .Where(p => !branchId.HasValue || p.Booking.BranchId == branchId.Value)
+            .Select(p => new
+            {
+                p.PaymentType,
+                p.Amount,
+                EventUtc = p.PaidAtUtc ?? p.CreatedAtUtc,
+            })
+            .ToListAsync(ct);
+
+        var weeklyNet = new decimal[10];
+        var todayLocal = DateTime.UtcNow.AddHours(VietnamTimeHelper.UtcOffsetHours).Date;
+        foreach (var row in rows)
+        {
+            var eventLocalDate = row.EventUtc.AddHours(VietnamTimeHelper.UtcOffsetHours).Date;
+            var diff = (todayLocal - eventLocalDate).Days;
+            if (diff is < 0 or >= 70)
+                continue;
+
+            var weekIndex = 9 - (diff / 7);
+            weeklyNet[weekIndex] += row.PaymentType == PaymentType.Refund
+                ? -row.Amount
+                : row.Amount;
+        }
+
+        var maxRevenue = weeklyNet.Select(Math.Abs).DefaultIfEmpty(0m).Max();
+        return weeklyNet
+            .Select(value => maxRevenue > 0
+                ? (int)Math.Round(value * 100 / maxRevenue)
+                : 0)
+            .ToList();
+    }
+
+    private static void ValidateDateRange(DateOnly? fromDate, DateOnly? toDate)
+    {
+        if (fromDate.HasValue && toDate.HasValue && fromDate.Value > toDate.Value)
+            throw AppException.BadRequest(ValidationMessage.Report.InvalidDateRange);
     }
 
     /// <summary>Số lượng + tổng giá trị booking Online/WalkIn theo ngày/tuần/tháng — toàn hệ thống.</summary>

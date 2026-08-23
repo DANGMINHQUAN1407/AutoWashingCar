@@ -27,6 +27,8 @@ public partial class Vehicle
 
     public Guid? BodyStyleCatalogId { get; set; }
 
+    public Guid? BrandCatalogId { get; set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAtUtc { get; set; }
@@ -48,4 +50,6 @@ public partial class Vehicle
     public virtual VehicleEngineCatalog? EngineCatalog { get; set; }
 
     public virtual VehicleBodyStyleCatalog? BodyStyleCatalog { get; set; }
+
+    public virtual VehicleBrandCatalog? BrandCatalog { get; set; }
 }

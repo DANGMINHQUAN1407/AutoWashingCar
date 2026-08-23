@@ -31,6 +31,7 @@ public class BookingService(
     IReviewRepository         reviewRepo,
     IPaymentRepository        paymentRepo,
     IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
+    IVehicleBrandCatalogRepository brandCatalogRepo,
     ILogger<BookingService>   logger) : IBookingService
 {
     // Slot lưu theo giờ địa phương; VN = UTC+7 (không DST). Xem WashingCar_Common.Helpers.VietnamTimeHelper.
@@ -593,15 +594,23 @@ public class BookingService(
     public async Task<BookingDto> AddServiceLineAsync(
         Guid bookingId, AddServiceLineRequest request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
 
+        if (booking.BookingLines.Any(line => line.ServiceCatalogItemId == request.ServiceCatalogItemId))
+            throw AppException.BadRequest(ValidationMessage.Booking.DuplicateServiceSelection);
+
         var line = await BuildLineAsync(booking.BranchId, request.ServiceCatalogItemId, request.Quantity, ct);
         booking.BookingLines.Add(line);
+        await ValidateBookingLinePackagePolicyAsync(booking.BookingLines);
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         logger.LogInformation("Thêm dịch vụ {Svc} vào booking {Id}; tổng mới {Total}",
             request.ServiceCatalogItemId, bookingId, booking.BookingFinalAmount);
         return booking.ToDto();
@@ -612,6 +621,9 @@ public class BookingService(
     public async Task<BookingDto> UpdateLineAsync(
         Guid bookingId, Guid lineId, UpdateBookingLineRequest request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
@@ -625,6 +637,7 @@ public class BookingService(
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return booking.ToDto();
     }
 
@@ -632,6 +645,9 @@ public class BookingService(
     /// <remarks>Gọi: IBookingRepository.GetTrackedByIdAsync → SaveChangesAsync (orphan deletion nhờ cascade FK).</remarks>
     public async Task<BookingDto> RemoveLineAsync(Guid bookingId, Guid lineId, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
@@ -645,9 +661,11 @@ public class BookingService(
 
         // FK BookingId required + cascade ⇒ remove khỏi collection tracked sẽ xoá row (orphan deletion)
         booking.BookingLines.Remove(line);
+        await ValidateBookingLinePackagePolicyAsync(booking.BookingLines);
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         logger.LogInformation("Xoá dịch vụ {LineId} khỏi booking {Id}; tổng mới {Total}",
             lineId, bookingId, booking.BookingFinalAmount);
         return booking.ToDto();
@@ -1260,6 +1278,23 @@ public class BookingService(
             .ToList();
     }
 
+    private async Task ValidateBookingLinePackagePolicyAsync(
+        IEnumerable<BookingLine> lines)
+    {
+        var selections = new List<(Guid ServiceCatalogItemId, ServicePackageType PackageType)>();
+        foreach (var line in lines)
+        {
+            var service = await serviceCatalogRepo.GetByIdAsync(line.ServiceCatalogItemId)
+                ?? throw AppException.NotFound(ValidationMessage.Booking.ServiceNotFound(line.ServiceCatalogItemId));
+
+            selections.Add((
+                service.ServiceCatalogItemId,
+                (ServicePackageType)service.ServicePackageType));
+        }
+
+        ServicePackagePolicy.ValidateBookingLines(selections);
+    }
+
     private static void AddSelectionStates(
         ServiceCatalogItem node,
         ISet<Guid> selectedLeafIds,
@@ -1408,8 +1443,16 @@ public class BookingService(
             throw AppException.BadRequest(ValidationMessage.Booking.MustChooseOrCreateVehicle);
 
         var plate = request.NewVehicle.LicensePlate.ToUpperInvariant();
-        if (await vehicleRepo.ExistsLicensePlateAsync(plate, customerId))
-            throw AppException.Conflict(ValidationMessage.Booking.LicensePlateExistsForCustomer);
+        if (await vehicleRepo.ExistsLicensePlateAsync(plate))
+            throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
+
+        var brandCatalog = request.NewVehicle.BrandCatalogId is { } brandId
+            ? await brandCatalogRepo.GetByIdAsync(brandId)
+                ?? throw AppException.NotFound("Không tìm thấy hãng xe.")
+            : null;
+
+        if (brandCatalog is not null && !brandCatalog.IsActive)
+            throw AppException.BadRequest("Hãng xe đã bị vô hiệu hóa.");
 
         var bodyStyleCatalog = request.NewVehicle.BodyStyleCatalogId is { } bodyStyleId
             ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
@@ -1429,7 +1472,9 @@ public class BookingService(
             UserId       = customerId,
             LicensePlate = plate,
             VehicleType  = (byte)request.NewVehicle.VehicleType,
-            Brand        = string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim(),
+            BrandCatalogId = brandCatalog?.VehicleBrandCatalogId,
+            Brand        = brandCatalog?.Name
+                ?? (string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim()),
             Model        = string.IsNullOrWhiteSpace(request.NewVehicle.Model) ? null : request.NewVehicle.Model.Trim(),
             ManufactureYear = request.NewVehicle.ManufactureYear,
             EngineCatalogId = request.NewVehicle.EngineCatalogId,
@@ -1548,12 +1593,18 @@ public class BookingService(
             voucher = await voucherRepo.GetByCodeAsync(code, ct);
             if (voucher == null)
                 throw AppException.NotFound(ValidationMessage.Booking.VoucherCodeNotFound(code));
-
-            userVoucher = await voucherRepo.GetUserVoucherAsync(userId, voucher.VoucherId, ct);
         }
 
         if (voucher == null)
             throw AppException.BadRequest(ValidationMessage.Booking.VoucherInfoNotFound);
+
+        // Booking, explicit redeem và auto-claim dùng chung thứ tự lock: user-voucher rồi voucher stock.
+        // Resolve được gọi trong transaction của Create/CreateWalkIn.
+        await voucherRepo.AcquireUserVoucherLockAsync(userId, voucher.VoucherId, ct);
+        await voucherRepo.AcquireVoucherStockLockAsync(voucher.VoucherId, ct);
+
+        if (!userVoucherId.HasValue)
+            userVoucher = await voucherRepo.GetUserVoucherAsync(userId, voucher.VoucherId, ct);
 
         // Track if this is a newly created UserVoucher on-the-fly (meaning it wasn't already in the DB)
         var isNewClaim = userVoucher == null;

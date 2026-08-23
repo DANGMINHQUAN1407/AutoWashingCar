@@ -52,6 +52,9 @@ public class PaymentService(
         if (booking.BookingStatus != BookingStatus.Pending)
             throw AppException.BadRequest(ValidationMessage.Payment.OnlyPayWhenPending);
 
+        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
+            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+
         var alreadyPaid = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         if (alreadyPaid > 0)
             throw AppException.Conflict(ValidationMessage.Payment.AlreadyHasPayment);
@@ -158,6 +161,9 @@ public class PaymentService(
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCreateQrForClosed);
 
+        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
+            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;
         if (remaining <= 0)
@@ -212,6 +218,9 @@ public class PaymentService(
 
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCollectForClosed);
+
+        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
+            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
 
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;

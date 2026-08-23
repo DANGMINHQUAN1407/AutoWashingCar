@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
@@ -178,13 +179,35 @@ public class VoucherRepository(WashingCarDbContext db) : IVoucherRepository
     {
         var tierSpecificIds = await GetTierSpecificVoucherIdsAsync(ct);
         return await _db.Vouchers
-            .Where(v => v.BranchId == null 
-                        && v.IsActive 
-                        && v.ApprovalStatus == VoucherApprovalStatus.Approved 
-                        && v.StartUtc <= now 
+            .AsNoTracking()
+            .Where(v => v.BranchId == null
+                        && v.IsActive
+                        && v.ApprovalStatus == VoucherApprovalStatus.Approved
+                        && v.StartUtc <= now
                         && v.EndUtc > now
                         && v.UsedCount < v.Quantity
                         && !tierSpecificIds.Contains(v.VoucherId))
+            .OrderBy(v => v.VoucherId)
             .ToListAsync(ct);
+    }
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
+        => await _db.Database.BeginTransactionAsync(ct);
+
+    public Task AcquireVoucherStockLockAsync(Guid voucherId, CancellationToken ct = default)
+        => AcquireTransactionLockAsync($"AutoWashingCar:Voucher:Stock:{voucherId:N}", ct);
+
+    public Task AcquireUserVoucherLockAsync(Guid userId, Guid voucherId, CancellationToken ct = default)
+        => AcquireTransactionLockAsync($"AutoWashingCar:Voucher:User:{userId:N}:Voucher:{voucherId:N}", ct);
+
+    private async Task AcquireTransactionLockAsync(string resource, CancellationToken ct)
+    {
+        await _db.Database.ExecuteSqlInterpolatedAsync($"""
+            EXEC sp_getapplock
+                @Resource = {resource},
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = -1;
+            """, ct);
     }
 }

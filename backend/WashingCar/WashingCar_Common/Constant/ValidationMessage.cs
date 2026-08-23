@@ -101,6 +101,7 @@ public static class ValidationMessage
         public const string DuplicateServiceSelection             = "Không được chọn trùng cùng một dịch vụ trong booking";
         public const string PremiumServiceExcludesOthers          = "Gói Premium không thể kết hợp với dịch vụ khác";
         public const string StandardServiceSelectionConflict      = "Chỉ được chọn một gói Standard trong mỗi booking";
+        public const string AddOnRequiresMainService              = "Dịch vụ bổ sung phải đi kèm một gói dịch vụ chính";
         public const string InvalidServicePackageType              = "Loại gói dịch vụ không hợp lệ";
         public const string OnlyEditWhenEditableStatus            = "Chỉ thêm/sửa dịch vụ khi booking ở trạng thái Confirmed/CheckedIn/InProgress";
         public const string CustomerVehicleNotFound               = "Không tìm thấy xe của khách";
@@ -150,6 +151,7 @@ public static class ValidationMessage
         public const string ForbiddenPay             = "Bạn không có quyền thanh toán booking này";
         public const string OnlyPayWhenPending        = "Chỉ thanh toán online khi booking đang chờ thanh toán (Pending)";
         public const string AlreadyHasPayment         = "Booking đã có thanh toán trước đó";
+        public const string PendingPaymentExists      = "Booking đang có giao dịch chờ thanh toán, vui lòng chờ hoặc hủy giao dịch đó trước";
         public const string InvalidAmount             = "Số tiền thanh toán không hợp lệ";
         public const string CannotCreateQrForClosed   = "Không thể tạo QR cho đơn đã đóng/huỷ";
         public const string FullyPaidNoQrNeeded       = "Booking đã thanh toán đủ, không cần tạo QR";
@@ -223,6 +225,7 @@ public static class ValidationMessage
     public static class Report
     {
         public const string InvalidGroupBy = "GroupBy chỉ nhận Day, Week hoặc Month";
+        public const string InvalidDateRange = "Ngày bắt đầu không được sau ngày kết thúc";
     }
 
     public static class Voucher
@@ -234,6 +237,7 @@ public static class ValidationMessage
         public const string NotStarted                  = "Voucher chưa bắt đầu hạn sử dụng";
         public const string Expired                     = "Voucher đã hết hạn sử dụng";
         public const string AlreadyRedeemedOnce         = "Bạn đã nhận mã voucher này rồi, mỗi tài khoản chỉ được nhận 1 lần";
+        public const string RedemptionConflict          = "Voucher vừa được xử lý bởi thao tác khác, vui lòng tải lại và thử lại";
         public const string NotConfiguredForCurrentTier = "Voucher này không được cấu hình đổi cho hạng thành viên hiện tại của bạn";
         public const string TierVoucherAlreadyAssigned  = "Voucher này đã được gán cho hạng thành viên này rồi";
         public const string RequiredPointsMustBePositive = "Số điểm yêu cầu đổi voucher phải lớn hơn 0";

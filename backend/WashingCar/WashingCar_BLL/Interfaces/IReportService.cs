@@ -16,4 +16,11 @@ public interface IReportService
 
     /// <summary>Số lượng + tổng giá trị booking Online/WalkIn theo ngày/tuần/tháng — chi nhánh của Manager.</summary>
     Task<List<BookingStatsByPeriodDto>> GetManagerBookingStatsAsync(Guid managerId, BookingStatsQuery query, CancellationToken ct = default);
+
+    Task<PaymentReconciliationDto> GetAdminPaymentReconciliationAsync(
+        PaymentReconciliationQuery query, CancellationToken ct = default);
+    Task<PaymentReconciliationDto> GetManagerPaymentReconciliationAsync(
+        Guid managerId, PaymentReconciliationQuery query, CancellationToken ct = default);
+    Task<StaffOperationalStatsDto> GetStaffOperationalStatsAsync(
+        Guid staffId, CancellationToken ct = default);
 }

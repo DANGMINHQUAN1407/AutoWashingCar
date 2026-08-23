@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_DAL.Entities;
 using WashingCar_Domain.DTOs.Loyalty;
 
@@ -12,5 +13,7 @@ public interface ILoyaltyRepository
     Task<bool> HasEarnedForBookingAsync(Guid bookingId, CancellationToken ct = default);
     Task<int> GetRedeemedPointsForBookingAsync(Guid bookingId, CancellationToken ct = default);
     Task<bool> HasBookingAtBranchAsync(Guid userId, Guid branchId, CancellationToken ct = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default);
+    Task AcquireUserLockAsync(Guid userId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

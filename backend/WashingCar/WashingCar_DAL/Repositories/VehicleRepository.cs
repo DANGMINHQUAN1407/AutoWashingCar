@@ -1,4 +1,7 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using WashingCar_Common.Constant;
+using WashingCar_Common.Exceptions;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
@@ -16,16 +19,22 @@ namespace WashingCar_DAL.Repositories
 
         public async Task<Vehicle> CreateAsync(Vehicle vehicle)
         {
-            await _context.Vehicles.AddAsync(vehicle);
-            await _context.SaveChangesAsync();
-            return vehicle;
+            try
+            {
+                await _context.Vehicles.AddAsync(vehicle);
+                await _context.SaveChangesAsync();
+                return vehicle;
+            }
+            catch (DbUpdateException ex) when (IsLicensePlateUniqueViolation(ex))
+            {
+                throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
+            }
         }
 
-        public async Task<bool> ExistsLicensePlateAsync(string licensePlate, Guid userId, Guid? excludeId = null)
+        public async Task<bool> ExistsLicensePlateAsync(string licensePlate, Guid? excludeId = null)
         {
             return await _context.Vehicles.AnyAsync(
                 v => v.LicensePlate == licensePlate.ToUpperInvariant()
-                && v.UserId == userId
                 && !v.IsDeleted
                 && (excludeId == null || v.VehicleId != excludeId.Value)
             );
@@ -37,6 +46,7 @@ namespace WashingCar_DAL.Repositories
                 .Include(vehicle => vehicle.VehicleImages)
                 .Include(vehicle => vehicle.EngineCatalog)
                 .Include(vehicle => vehicle.BodyStyleCatalog)
+                .Include(vehicle => vehicle.BrandCatalog)
                 .FirstOrDefaultAsync(
                     vehicle => vehicle.VehicleId == vehicleId
                         && vehicle.UserId == userId
@@ -50,6 +60,7 @@ namespace WashingCar_DAL.Repositories
                 .Include(vehicle => vehicle.VehicleImages)
                 .Include(vehicle => vehicle.EngineCatalog)
                 .Include(vehicle => vehicle.BodyStyleCatalog)
+                .Include(vehicle => vehicle.BrandCatalog)
                 .Where(vehicle => vehicle.UserId == userId && !vehicle.IsDeleted)
                 .OrderBy(vehicle => vehicle.CreatedAtUtc)
                 .ToListAsync();
@@ -57,8 +68,24 @@ namespace WashingCar_DAL.Repositories
 
         public async Task UpdateAsync(Vehicle vehicle)
         {
-            _context.Vehicles.Update(vehicle);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Vehicles.Update(vehicle);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsLicensePlateUniqueViolation(ex))
+            {
+                throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
+            }
+        }
+
+        private static bool IsLicensePlateUniqueViolation(DbUpdateException exception)
+        {
+            if (exception.GetBaseException() is not SqlException sqlException)
+                return false;
+
+            return sqlException.Number is 2601 or 2627
+                && sqlException.Message.Contains("UX_Vehicle_LicensePlate", StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<List<VehicleImage>> GetImagesAsync(Guid vehicleId, Guid userId)

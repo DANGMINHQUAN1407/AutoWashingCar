@@ -41,7 +41,36 @@ public class ReportController(IReportService reportService) : BaseApiController
         return Success(stats);
     }
 
-    /// <summary>Số lượng + tổng giá trị booking Online/WalkIn theo ngày/tuần/tháng — toàn hệ thống.</summary>
+    /// <summary>Đối soát payment/refund toàn hệ thống hoặc theo branch được Admin chọn.</summary>
+    [HttpGet("payment-reconciliation")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<IActionResult> GetAdminPaymentReconciliation(
+        [FromQuery] PaymentReconciliationQuery query, CancellationToken ct)
+    {
+        var result = await reportService.GetAdminPaymentReconciliationAsync(query, ct);
+        return Success(result);
+    }
+
+    /// <summary>Đối soát payment/refund theo branch của Manager.</summary>
+    [HttpGet("branch-payment-reconciliation")]
+    [Authorize(Roles = UserRole.Manager)]
+    public async Task<IActionResult> GetManagerPaymentReconciliation(
+        [FromQuery] PaymentReconciliationQuery query, CancellationToken ct)
+    {
+        var result = await reportService.GetManagerPaymentReconciliationAsync(CurrentUserId, query, ct);
+        return Success(result);
+    }
+
+    /// <summary>Chỉ số vận hành của Staff trong ngày theo các booking được gán.</summary>
+    [HttpGet("staff-operations")]
+    [Authorize(Roles = UserRole.Staff)]
+    public async Task<IActionResult> GetStaffOperationalStats(CancellationToken ct)
+    {
+        var result = await reportService.GetStaffOperationalStatsAsync(CurrentUserId, ct);
+        return Success(result);
+    }
+
+    /// <summary>Số lượng và giá trị booking Online/WalkIn theo ngày/tuần/tháng — toàn hệ thống.</summary>
     /// <remarks>
     /// Gọi: ReportService.GetAdminBookingStatsAsync → helper BuildStatsAsync → IBookingRepository.GetForStatsAsync
     /// (group theo Day/Week/Month trong bộ nhớ, không GroupBy trên SQL).

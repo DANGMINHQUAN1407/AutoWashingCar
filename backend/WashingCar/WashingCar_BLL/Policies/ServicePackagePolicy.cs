@@ -33,5 +33,16 @@ public static class ServicePackagePolicy
 
         if (packageTypes.Count(type => type == ServicePackageType.Standard) > 1)
             throw AppException.BadRequest(ValidationMessage.Booking.StandardServiceSelectionConflict);
+
+        if (packageTypes.Count(type => type is ServicePackageType.Standard or ServicePackageType.Premium) == 0)
+            throw AppException.BadRequest(ValidationMessage.Booking.AddOnRequiresMainService);
     }
+
+    /// <summary>
+    /// Validate package type của các dòng đã tồn tại cùng một dòng sắp thêm.
+    /// Dùng khi booking đã tạo và Staff thêm dịch vụ phát sinh.
+    /// </summary>
+    public static void ValidateBookingLines(
+        IEnumerable<(Guid ServiceCatalogItemId, ServicePackageType PackageType)> lines)
+        => Validate(lines.ToArray());
 }

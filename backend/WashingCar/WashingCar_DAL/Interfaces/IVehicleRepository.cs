@@ -5,7 +5,8 @@ namespace WashingCar_DAL.Interfaces
     {
         Task<List<Vehicle>> GetByUserIdAsync(Guid userId);
         Task<Vehicle?> GetByIdAsync(Guid vehicleId, Guid userId);
-        Task<bool> ExistsLicensePlateAsync(string licensePlate, Guid userId, Guid? excludeId = null);
+        /// <summary>Kiểm tra biển số đã tồn tại trên bất kỳ vehicle active nào.</summary>
+        Task<bool> ExistsLicensePlateAsync(string licensePlate, Guid? excludeId = null);
         Task<Vehicle> CreateAsync(Vehicle vehicle);
         Task UpdateAsync(Vehicle vehicle);
         Task<List<VehicleImage>> GetImagesAsync(Guid vehicleId, Guid userId);
