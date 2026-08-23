@@ -3,6 +3,7 @@ import * as api from '../../services/api'
 import type { BranchService } from '../../types/branch'
 import type { Slot } from '../../types/slot'
 import type { Booking } from '../../types/booking'
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
 import './Staff.css'
 
 const CUSTOM_BRAND_VALUE = '__custom__'
@@ -60,6 +61,7 @@ export default function StaffCustomers() {
   const [selectedVehicleId, setSelectedVehicleId] = useState('')
   const [addNew, setAddNew] = useState(false)
   const [newPlate, setNewPlate] = useState('')
+  const [isNewPlateComposing, setIsNewPlateComposing] = useState(false)
   const [newType, setNewType] = useState(2)
   const [newBrand, setNewBrand] = useState('')
   const [newBrandCatalogId, setNewBrandCatalogId] = useState('')
@@ -234,6 +236,10 @@ export default function StaffCustomers() {
     if (selected.size === 0) { setError('Please select at least one service.'); return }
     if (!addNew && !selectedVehicleId) { setError('Please select or add a vehicle.'); return }
     if (addNew && !newPlate.trim()) { setError('Enter the vehicle license plate.'); return }
+    if (addNew) {
+      const plateError = getLicensePlateError(newPlate, newType)
+      if (plateError) { setError(plateError); return }
+    }
 
     setSubmitting(true)
     setError('')
@@ -243,7 +249,7 @@ export default function StaffCustomers() {
         SlotInventoryId: slotId,
         Services: Array.from(selected).map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         ExistingVehicleId: !addNew && selectedVehicleId ? selectedVehicleId : undefined,
-        NewVehicle: addNew ? { LicensePlate: newPlate.trim(), VehicleType: newType, Brand: newBrand || undefined, BrandCatalogId: newBrandCatalogId && newBrandCatalogId !== CUSTOM_BRAND_VALUE ? newBrandCatalogId : undefined } : undefined,
+        NewVehicle: addNew ? { LicensePlate: formatLicensePlateInput(newPlate, newType), VehicleType: newType, Brand: newBrand || undefined, BrandCatalogId: newBrandCatalogId && newBrandCatalogId !== CUSTOM_BRAND_VALUE ? newBrandCatalogId : undefined } : undefined,
         VoucherCode: voucherCode.trim() || undefined,
       })
       setSuccess(`Walk-in booking ${booking.bookingCode} created — vehicle added to queue!`)
@@ -424,12 +430,12 @@ export default function StaffCustomers() {
                   </div>
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label className="form-label" style={{ color: 'var(--color-heading)' }}>Biển số xe <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                    <input className="form-input" placeholder="VD: 30F-123.45" value={newPlate} onChange={e => setNewPlate(e.target.value)} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
+                    <input className="form-input" placeholder={licensePlatePlaceholder(newType)} value={newPlate} onCompositionStart={() => setIsNewPlateComposing(true)} onCompositionEnd={e => { const value = e.currentTarget.value; setIsNewPlateComposing(false); setNewPlate(formatLicensePlateInput(value, newType)) }} onChange={e => { const value = e.currentTarget.value; setNewPlate(isNewPlateComposing ? value : formatLicensePlateInput(value, newType)) }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
                   </div>
                   <div className="form-row-2">
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ color: 'var(--color-heading)' }}>Loại xe</label>
-                      <select className="form-input" value={newType} onChange={e => { setNewType(Number(e.target.value)); setNewBrandCatalogId(''); setNewBrand('') }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
+                      <select className="form-input" value={newType} onChange={e => { const nextType = Number(e.target.value); setNewType(nextType); setNewPlate(prev => formatLicensePlateInput(prev, nextType)); setNewBrandCatalogId(''); setNewBrand('') }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
                         <option value={1}>Xe máy</option>
                         <option value={2}>Ô tô</option>
                         <option value={3}>Xe tải</option>

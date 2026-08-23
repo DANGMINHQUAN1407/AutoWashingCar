@@ -1445,7 +1445,7 @@ public class BookingService(
         if (request.NewVehicle is null)
             throw AppException.BadRequest(ValidationMessage.Booking.MustChooseOrCreateVehicle);
 
-        var plate = request.NewVehicle.LicensePlate.ToUpperInvariant();
+        var plate = LicensePlatePolicy.Normalize(request.NewVehicle.LicensePlate, request.NewVehicle.VehicleType);
         if (await vehicleRepo.ExistsLicensePlateAsync(plate))
             throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 

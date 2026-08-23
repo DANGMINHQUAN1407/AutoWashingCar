@@ -4,6 +4,7 @@ import { extractErrorMessage } from '../../utils/errorUtils'
 import AnimatedButton from '../../components/AnimatedButton'
 import ConfirmModal from '../../components/ConfirmModal'
 import Pagination from '../../components/Pagination'
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
 import '../Dashboard.css'
 
 const CUSTOM_BRAND_VALUE = '__custom__'
@@ -32,6 +33,7 @@ export default function CustomerVehicles() {
     engineCatalogId: '',
     bodyStyleCatalogId: '',
   })
+  const [isPlateComposing, setIsPlateComposing] = useState(false)
 
   // Images state
   const [activeImageVehicleId, setActiveImageVehicleId] = useState<string | null>(null)
@@ -259,8 +261,14 @@ export default function CustomerVehicles() {
     setVehicleSuccess(null)
 
     try {
+      const plateError = getLicensePlateError(vehicleForm.licensePlate, vehicleForm.vehicleType)
+      if (plateError) {
+        setVehicleError(plateError)
+        return
+      }
+
       const payload = {
-        LicensePlate: vehicleForm.licensePlate.trim().toUpperCase(),
+        LicensePlate: formatLicensePlateInput(vehicleForm.licensePlate, vehicleForm.vehicleType),
         VehicleType: vehicleForm.vehicleType,
         Brand: vehicleForm.brand.trim() || undefined,
         BrandCatalogId: vehicleForm.brandCatalogId && vehicleForm.brandCatalogId !== CUSTOM_BRAND_VALUE ? vehicleForm.brandCatalogId : undefined,
@@ -413,8 +421,23 @@ export default function CustomerVehicles() {
                 id="vehicle-license"
                 className="form-input"
                 value={vehicleForm.licensePlate}
-                onChange={e => setVehicleForm(prev => ({ ...prev, licensePlate: e.target.value }))}
-                placeholder="VD: 30F-123.45"
+                onCompositionStart={() => setIsPlateComposing(true)}
+                onCompositionEnd={e => {
+                  const value = e.currentTarget.value
+                  setIsPlateComposing(false)
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    licensePlate: formatLicensePlateInput(value, prev.vehicleType),
+                  }))
+                }}
+                onChange={e => {
+                  const value = e.currentTarget.value
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    licensePlate: isPlateComposing ? value : formatLicensePlateInput(value, prev.vehicleType),
+                  }))
+                }}
+                placeholder={licensePlatePlaceholder(vehicleForm.vehicleType)}
                 required
                 minLength={6}
                 maxLength={20}
@@ -431,6 +454,7 @@ export default function CustomerVehicles() {
                   setVehicleForm(prev => ({
                     ...prev,
                     vehicleType: val,
+                    licensePlate: formatLicensePlateInput(prev.licensePlate, val),
                     brandCatalogId: '',
                     brand: '',
                     bodyStyleCatalogId: '',
