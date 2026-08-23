@@ -1,9 +1,13 @@
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using WashingCar_DAL.Data;
 
 #nullable disable
 
 namespace WashingCar_DAL.Migrations
 {
+    [DbContext(typeof(WashingCarDbContext))]
+    [Migration("20260823033000_AddVehicleTypeToVehicleBrandCatalog")]
     public partial class AddVehicleTypeToVehicleBrandCatalog : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

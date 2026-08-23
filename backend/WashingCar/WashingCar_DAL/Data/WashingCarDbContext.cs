@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -68,9 +68,16 @@ public partial class WashingCarDbContext : DbContext
 
     private string GetConnectionString()
     {
+        // Ưu tiên appsettings.{Environment}.json để mỗi máy dev trỏ được về
+        // SQL Server riêng mà không phải sửa file appsettings.json dùng chung.
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                          ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                          ?? "Production";
+
         IConfiguration config = new ConfigurationBuilder()
              .SetBasePath(AppContext.BaseDirectory)
                     .AddJsonFile("appsettings.json", true, true)
+                    .AddJsonFile($"appsettings.{environment}.json", true, true)
                     .Build();
         var strConn = config["ConnectionStrings:DefaultConnection"];
 
@@ -79,6 +86,11 @@ public partial class WashingCarDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        // Chỉ tự cấu hình khi DbContext được tạo ngoài DI (ví dụ dotnet ef ở design time);
+        // nếu không sẽ ghi đè connection string mà Program.cs đã đăng ký.
+        if (optionsBuilder.IsConfigured)
+            return;
+
         optionsBuilder.UseSqlServer(GetConnectionString());
     }
 
