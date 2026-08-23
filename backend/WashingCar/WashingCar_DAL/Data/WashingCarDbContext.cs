@@ -619,7 +619,7 @@ public partial class WashingCarDbContext : DbContext
             entity.ToTable("UserVoucher");
 
             entity.HasIndex(e => new { e.UserId, e.VoucherStatus }, "IX_UserVoucher_UserId_Status");
-
+            entity.HasIndex(e => new { e.UserId, e.VoucherId }, "UQ_UserVoucher_User_Voucher").IsUnique();
             entity.HasIndex(e => e.VoucherId, "IX_UserVoucher_VoucherId");
 
             entity.Property(e => e.UserVoucherId).HasDefaultValueSql("(newsequentialid())");

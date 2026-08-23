@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_Common.Enum;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
@@ -64,6 +65,21 @@ public class LoyaltyRepository(WashingCarDbContext db) : ILoyaltyRepository
 
     public async Task<bool> HasBookingAtBranchAsync(Guid userId, Guid branchId, CancellationToken ct)
         => await _db.Bookings.AnyAsync(b => b.UserId == userId && b.BranchId == branchId, ct);
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
+        => await _db.Database.BeginTransactionAsync(ct);
+
+    public async Task AcquireUserLockAsync(Guid userId, CancellationToken ct = default)
+    {
+        var resource = $"AutoWashingCar:Loyalty:User:{userId:N}";
+        await _db.Database.ExecuteSqlInterpolatedAsync($"""
+            EXEC sp_getapplock
+                @Resource = {resource},
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = -1;
+            """, ct);
+    }
 
     public async Task SaveChangesAsync(CancellationToken ct)
         => await _db.SaveChangesAsync(ct);

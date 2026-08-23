@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -214,14 +215,23 @@ public class LoyaltyVoucherService(
 
     /// <summary>Customer đổi điểm lấy voucher — trừ CurrentPoints (không đụng LifetimePoints), tăng UsedCount của voucher.</summary>
     /// <remarks>
-    /// Gọi: ILoyaltyRepository.GetByUserIdAsync (tự tạo nếu chưa có) → IVoucherRepository.GetByIdAsync
+    /// Toàn bộ kiểm tra và ghi dữ liệu chạy trong transaction. App-lock theo cặp user-voucher
+    /// chống redeem lặp, còn app-lock theo voucher serialize UsedCount giữa các khách hàng.
+    /// Gọi: ILoyaltyRepository.GetByUserIdAsync → IVoucherRepository.GetByIdAsync
     /// + HasUserRedeemedVoucherAsync + GetTierVouchersByTierIdAsync + GetTierSpecificVoucherIdsAsync (nếu cần)
     /// → ILoyaltyRepository.AddLedgerEntryAsync (nếu tốn điểm) → IVoucherRepository.AddUserVoucherAsync
-    /// + SaveChangesAsync + ILoyaltyRepository.SaveChangesAsync → GetUserVoucherByIdAsync (trả về).
+    /// + SaveChangesAsync → GetUserVoucherByIdAsync (trả về).
     /// </remarks>
     public async Task<UserVoucherDto> RedeemVoucherAsync(Guid userId, Guid voucherId, CancellationToken ct = default)
     {
-        var loyaltyAccount = await _loyaltyRepo.GetByUserIdAsync(userId, ct);
+        await using var transaction = await _voucherRepo.BeginTransactionAsync(ct);
+        await _loyaltyRepo.AcquireUserLockAsync(userId, ct);
+        await _voucherRepo.AcquireUserVoucherLockAsync(userId, voucherId, ct);
+        await _voucherRepo.AcquireVoucherStockLockAsync(voucherId, ct);
+
+        try
+        {
+            var loyaltyAccount = await _loyaltyRepo.GetByUserIdAsync(userId, ct);
         if (loyaltyAccount == null)
         {
             var tiers = await _tierRepo.GetAllActiveOrderedAsync(ct);
@@ -323,41 +333,75 @@ public class LoyaltyVoucherService(
         await _voucherRepo.SaveChangesAsync(ct);
         await _loyaltyRepo.SaveChangesAsync(ct);
 
-        var createdUv = await _voucherRepo.GetUserVoucherByIdAsync(userVoucher.UserVoucherId, ct);
-        return createdUv!.ToDto();
+            await transaction.CommitAsync(ct);
+
+            var createdUv = await _voucherRepo.GetUserVoucherByIdAsync(userVoucher.UserVoucherId, ct);
+            return createdUv!.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(ct);
+            throw AppException.Conflict(ValidationMessage.Voucher.RedemptionConflict);
+        }
     }
 
     /// <summary>Voucher của tôi — tự động claim thêm voucher hệ thống (Admin tạo) chưa từng nhận, rồi trả danh sách phân trang.</summary>
     /// <remarks>
-    /// Gọi: IVoucherRepository.GetActiveSystemVouchersAsync → HasUserRedeemedVoucherAsync (loop) → AddUserVoucherAsync
-    /// (auto-claim) → SaveChangesAsync → GetUserVouchersPagedAsync.
+    /// Hành vi auto-claim được giữ để tương thích FE hiện tại. Phần ghi auto-claim chạy trong transaction,
+    /// khóa theo user-voucher rồi voucher stock, reload voucher tracked và recheck quota trước khi tăng UsedCount.
+    /// Sau đó mới gọi GetUserVouchersPagedAsync để trả danh sách.
     /// </remarks>
     public async Task<PagedResult<UserVoucherDto>> GetMyVouchersPagedAsync(Guid userId, UserVoucherQuery query, CancellationToken ct = default)
     {
-        // 1. Tự động liên kết các voucher hệ thống (Admin tạo, không giới hạn chi nhánh và hạng thành viên) cho người dùng
+        // 1. Tự động liên kết các voucher hệ thống (Admin tạo, không giới hạn chi nhánh và hạng thành viên) cho người dùng.
+        // Đây là hành vi tương thích với FE hiện tại, nhưng được serialize để GET đồng thời không tạo bản ghi trùng/oversell.
         var now = DateTime.UtcNow;
         var activeSystemVouchers = await _voucherRepo.GetActiveSystemVouchersAsync(now, ct);
+        await using var transaction = await _voucherRepo.BeginTransactionAsync(ct);
 
-        foreach (var v in activeSystemVouchers)
+        try
         {
-            var exists = await _voucherRepo.HasUserRedeemedVoucherAsync(userId, v.VoucherId, ct);
-            if (!exists)
+            await _loyaltyRepo.AcquireUserLockAsync(userId, ct);
+
+            foreach (var candidate in activeSystemVouchers)
             {
+                await _voucherRepo.AcquireUserVoucherLockAsync(userId, candidate.VoucherId, ct);
+                await _voucherRepo.AcquireVoucherStockLockAsync(candidate.VoucherId, ct);
+
+                var voucher = await _voucherRepo.GetByIdAsync(candidate.VoucherId, ct);
+                if (voucher is null
+                    || !voucher.IsActive
+                    || voucher.ApprovalStatus != VoucherApprovalStatus.Approved
+                    || voucher.StartUtc > now
+                    || voucher.EndUtc <= now
+                    || voucher.UsedCount >= voucher.Quantity
+                    || await _voucherRepo.HasUserRedeemedVoucherAsync(userId, voucher.VoucherId, ct))
+                {
+                    continue;
+                }
+
                 var uv = new UserVoucher
                 {
                     UserVoucherId = Guid.NewGuid(),
                     UserId = userId,
-                    VoucherId = v.VoucherId,
-                    VoucherStatus = 1, // Chưa sử dụng (Active / Unused)
+                    VoucherId = voucher.VoucherId,
+                    VoucherStatus = UserVoucherStatus.Redeemed,
                     RedeemedPoints = 0,
                     RedeemedAtUtc = now,
-                    ExpiredAtUtc = v.EndUtc
+                    ExpiredAtUtc = voucher.EndUtc
                 };
                 await _voucherRepo.AddUserVoucherAsync(uv, ct);
-                v.UsedCount++;
+                voucher.UsedCount++;
             }
+
+            await _voucherRepo.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
-        await _voucherRepo.SaveChangesAsync(ct);
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(ct);
+            throw AppException.Conflict(ValidationMessage.Voucher.RedemptionConflict);
+        }
 
         // 2. Lấy danh sách phân trang bình thường
         var (items, total) = await _voucherRepo.GetUserVouchersPagedAsync(userId, query, ct);

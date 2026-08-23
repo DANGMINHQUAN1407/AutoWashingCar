@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using WashingCar_DAL.Entities;
 using WashingCar_Domain.DTOs.Voucher;
 
@@ -29,4 +30,8 @@ public interface IVoucherRepository
     Task<(List<UserVoucher> Items, int TotalCount)> GetUserVouchersPagedAsync(Guid userId, UserVoucherQuery query, CancellationToken ct = default);
     Task AddUserVoucherAsync(UserVoucher userVoucher, CancellationToken ct = default);
     Task<List<Voucher>> GetActiveSystemVouchersAsync(DateTime now, CancellationToken ct = default);
+
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default);
+    Task AcquireVoucherStockLockAsync(Guid voucherId, CancellationToken ct = default);
+    Task AcquireUserVoucherLockAsync(Guid userId, Guid voucherId, CancellationToken ct = default);
 }

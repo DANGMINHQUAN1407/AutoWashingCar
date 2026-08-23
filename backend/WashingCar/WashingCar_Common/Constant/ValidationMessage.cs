@@ -236,6 +236,7 @@ public static class ValidationMessage
         public const string NotStarted                  = "Voucher chưa bắt đầu hạn sử dụng";
         public const string Expired                     = "Voucher đã hết hạn sử dụng";
         public const string AlreadyRedeemedOnce         = "Bạn đã nhận mã voucher này rồi, mỗi tài khoản chỉ được nhận 1 lần";
+        public const string RedemptionConflict          = "Voucher vừa được xử lý bởi thao tác khác, vui lòng tải lại và thử lại";
         public const string NotConfiguredForCurrentTier = "Voucher này không được cấu hình đổi cho hạng thành viên hiện tại của bạn";
         public const string TierVoucherAlreadyAssigned  = "Voucher này đã được gán cho hạng thành viên này rồi";
         public const string RequiredPointsMustBePositive = "Số điểm yêu cầu đổi voucher phải lớn hơn 0";

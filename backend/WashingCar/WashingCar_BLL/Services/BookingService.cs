@@ -1593,12 +1593,18 @@ public class BookingService(
             voucher = await voucherRepo.GetByCodeAsync(code, ct);
             if (voucher == null)
                 throw AppException.NotFound(ValidationMessage.Booking.VoucherCodeNotFound(code));
-
-            userVoucher = await voucherRepo.GetUserVoucherAsync(userId, voucher.VoucherId, ct);
         }
 
         if (voucher == null)
             throw AppException.BadRequest(ValidationMessage.Booking.VoucherInfoNotFound);
+
+        // Booking, explicit redeem và auto-claim dùng chung thứ tự lock: user-voucher rồi voucher stock.
+        // Resolve được gọi trong transaction của Create/CreateWalkIn.
+        await voucherRepo.AcquireUserVoucherLockAsync(userId, voucher.VoucherId, ct);
+        await voucherRepo.AcquireVoucherStockLockAsync(voucher.VoucherId, ct);
+
+        if (!userVoucherId.HasValue)
+            userVoucher = await voucherRepo.GetUserVoucherAsync(userId, voucher.VoucherId, ct);
 
         // Track if this is a newly created UserVoucher on-the-fly (meaning it wasn't already in the DB)
         var isNewClaim = userVoucher == null;

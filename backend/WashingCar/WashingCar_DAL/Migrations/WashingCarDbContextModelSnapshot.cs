@@ -988,6 +988,9 @@ namespace WashingCar_DAL.Migrations
 
                     b.HasIndex(new[] { "UserId", "VoucherStatus" }, "IX_UserVoucher_UserId_Status");
 
+                    b.HasIndex(new[] { "UserId", "VoucherId" }, "UQ_UserVoucher_User_Voucher")
+                        .IsUnique();
+
                     b.HasIndex(new[] { "VoucherId" }, "IX_UserVoucher_VoucherId");
 
                     b.ToTable("UserVoucher", (string)null);
