@@ -338,10 +338,6 @@ public partial class WashingCarDbContext : DbContext
 
             entity.HasIndex(e => e.BookingId, "IX_Payment_BookingId");
 
-            entity.HasIndex(e => e.BookingId, "UX_Payment_Booking_Pending")
-                .IsUnique()
-                .HasFilter("([PaymentStatus]=(1))");
-
             entity.HasIndex(e => e.OriginalPaymentId, "IX_Payment_OriginalPaymentId").HasFilter("([OriginalPaymentId] IS NOT NULL)");
 
             entity.HasIndex(e => new { e.PaymentStatus, e.CreatedAtUtc }, "IX_Payment_Status_CreatedAt").IsDescending(false, true);
@@ -623,7 +619,7 @@ public partial class WashingCarDbContext : DbContext
             entity.ToTable("UserVoucher");
 
             entity.HasIndex(e => new { e.UserId, e.VoucherStatus }, "IX_UserVoucher_UserId_Status");
-            entity.HasIndex(e => new { e.UserId, e.VoucherId }, "UQ_UserVoucher_User_Voucher").IsUnique();
+
             entity.HasIndex(e => e.VoucherId, "IX_UserVoucher_VoucherId");
 
             entity.Property(e => e.UserVoucherId).HasDefaultValueSql("(newsequentialid())");
@@ -670,6 +666,24 @@ public partial class WashingCarDbContext : DbContext
                 .HasDefaultValue((byte)VehicleType.Car);
             entity.HasIndex(e => e.VehicleType, "IX_VehicleBodyStyleCatalog_VehicleType");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<VehicleBrandCatalog>(entity =>
+        {
+            entity.ToTable("VehicleBrandCatalog");
+            entity.HasIndex(e => e.Code, "UQ_VehicleBrandCatalog_Code").IsUnique();
+            entity.Property(e => e.VehicleBrandCatalogId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.VehicleType)
+                .IsRequired()
+                .HasDefaultValue((byte)VehicleType.Car);
+            entity.HasIndex(e => e.VehicleType, "IX_VehicleBrandCatalog_VehicleType");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsLuxury).HasDefaultValue(false);
             entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
             entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
@@ -725,26 +739,6 @@ public partial class WashingCarDbContext : DbContext
                 .HasForeignKey(d => d.BrandCatalogId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("FK_Vehicle_BrandCatalog");
-        });
-
-        modelBuilder.Entity<VehicleBrandCatalog>(entity =>
-        {
-            entity.ToTable("VehicleBrandCatalog");
-
-            entity.HasIndex(e => e.Code, "UQ_VehicleBrandCatalog_Code").IsUnique();
-            entity.HasIndex(e => e.Name, "UQ_VehicleBrandCatalog_Name").IsUnique();
-
-            entity.Property(e => e.VehicleBrandCatalogId).HasDefaultValueSql("(newsequentialid())");
-            entity.Property(e => e.Code).HasMaxLength(50).IsUnicode(false);
-            entity.Property(e => e.Name).HasMaxLength(100);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.CreatedAtUtc)
-                .HasPrecision(3)
-                .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
         });
 
         modelBuilder.Entity<VehicleImage>(entity =>

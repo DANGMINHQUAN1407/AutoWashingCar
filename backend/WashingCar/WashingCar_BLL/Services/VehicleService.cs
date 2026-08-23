@@ -49,7 +49,7 @@ namespace WashingCar_BLL.Services
             return vehicle.ToDto();
         }
 
-        /// <summary>Đăng ký xe mới cho khách. Biển số phải duy nhất trên toàn bộ xe chưa xoá.</summary>
+        /// <summary>Đăng ký xe mới cho khách. Biển số được chuẩn hoá viết hoa và phải duy nhất trong các xe chưa xoá.</summary>
         /// <remarks>Gọi: IVehicleRepository.ExistsLicensePlateAsync → CreateAsync.</remarks>
         public async Task<VehicleDto> CreateAsync(Guid userId, CreateVehicleRequest request)
         {
@@ -57,16 +57,16 @@ namespace WashingCar_BLL.Services
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
-            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand);
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
             var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
+            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand, request.VehicleType);
             var vehicle = new Vehicle
             {
                 UserId = userId,
                 LicensePlate = plate,
                 VehicleType = (byte)request.VehicleType,
-                BrandCatalogId = brand.CatalogId,
                 Brand = brand.Name,
+                BrandCatalogId = brand.CatalogId,
                 Model = NormalizeOptionalText(request.Model),
                 ManufactureYear = request.ManufactureYear,
                 EngineCatalogId = engine.CatalogId,
@@ -83,7 +83,7 @@ namespace WashingCar_BLL.Services
             return created.ToDto();
         }
 
-        /// <summary>Cập nhật xe của chính khách (biển số/loại/hãng). Kiểm tra quyền sở hữu và biển số không trùng xe active nào khác.</summary>
+        /// <summary>Cập nhật xe của chính khách (biển số/loại/hãng). Kiểm tra quyền sở hữu và biển số không trùng xe khác.</summary>
         /// <remarks>Gọi: IVehicleRepository.GetByIdAsync + ExistsLicensePlateAsync (excludeId) → UpdateAsync.</remarks>
         public async Task<VehicleDto> UpdateAsync(Guid userId, Guid vehicleId, UpdateVehicleRequest request)
         {
@@ -97,35 +97,22 @@ namespace WashingCar_BLL.Services
 
             vehicle.LicensePlate = plate;
             vehicle.VehicleType = (byte)request.VehicleType;
-            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand);
-            vehicle.BrandCatalogId = brand.CatalogId;
-            vehicle.Brand = brand.Name;
             vehicle.Model = NormalizeOptionalText(request.Model);
             vehicle.ManufactureYear = request.ManufactureYear;
             var engine = await ResolveEngineAsync(request.EngineCatalogId, request.EngineType);
             var bodyStyle = await ResolveBodyStyleAsync(request.BodyStyleCatalogId, request.BodyStyle, request.VehicleType);
+            var brand = await ResolveBrandAsync(request.BrandCatalogId, request.Brand, request.VehicleType);
             vehicle.EngineCatalogId = engine.CatalogId;
             vehicle.EngineType = engine.LegacyValue;
             vehicle.BodyStyleCatalogId = bodyStyle.CatalogId;
             vehicle.BodyStyle = bodyStyle.LegacyValue;
+            vehicle.BrandCatalogId = brand.CatalogId;
+            vehicle.Brand = brand.Name;
 
             await _vehicleRepo.UpdateAsync(vehicle);
             _logger.LogInformation("User {UserId} updated vehicle {VehicleId}", userId, vehicleId);
             return vehicle.ToDto();
 
-        }
-
-        private async Task<(Guid? CatalogId, string? Name)> ResolveBrandAsync(Guid? catalogId, string? legacyName)
-        {
-            if (!catalogId.HasValue)
-                return (null, NormalizeOptionalText(legacyName));
-
-            var catalog = await _brandCatalogRepo.GetByIdAsync(catalogId.Value)
-                ?? throw AppException.NotFound("Không tìm thấy hãng xe.");
-            if (!catalog.IsActive)
-                throw AppException.BadRequest("Hãng xe đã bị vô hiệu hóa.");
-
-            return (catalog.VehicleBrandCatalogId, catalog.Name);
         }
 
         private async Task<(Guid? CatalogId, byte? LegacyValue)> ResolveEngineAsync(Guid? catalogId, EngineType? legacyValue)
@@ -152,6 +139,20 @@ namespace WashingCar_BLL.Services
             if (catalog.VehicleType != (byte)vehicleType)
                 throw AppException.BadRequest("Kiểu dáng xe không phù hợp với loại phương tiện đã chọn.");
             return (catalog.VehicleBodyStyleCatalogId, catalog.LegacyEnumValue ?? (legacyValue.HasValue ? (byte)legacyValue.Value : null));
+        }
+
+        private async Task<(Guid? CatalogId, string? Name)> ResolveBrandAsync(Guid? catalogId, string? fallbackName, VehicleType vehicleType)
+        {
+            if (!catalogId.HasValue)
+                return (null, NormalizeOptionalText(fallbackName));
+
+            var catalog = await _brandCatalogRepo.GetByIdAsync(catalogId.Value)
+                ?? throw AppException.NotFound("KhÃ´ng tÃ¬m tháº¥y hÃ£ng xe.");
+            if (!catalog.IsActive)
+                throw AppException.BadRequest("HÃ£ng xe Ä‘Ã£ bá»‹ vÃ´ hiá»‡u hÃ³a.");
+            if (catalog.VehicleType != (byte)vehicleType)
+                throw AppException.BadRequest("HÃ£ng xe khÃ´ng phÃ¹ há»£p vá»›i loáº¡i phÆ°Æ¡ng tiá»‡n Ä‘Ã£ chá»n.");
+            return (catalog.VehicleBrandCatalogId, catalog.Name);
         }
 
         public async Task<List<VehicleImageDto>> GetImagesAsync(Guid userId, Guid vehicleId)

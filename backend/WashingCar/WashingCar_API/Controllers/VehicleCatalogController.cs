@@ -89,7 +89,6 @@ public class VehicleCatalogController(IVehicleCatalogService service) : BaseApiC
         await _service.SetBodyStyleActiveAsync(id, false);
         return Success("Đã vô hiệu hóa kiểu dáng xe.");
     }
-
     [AllowAnonymous]
     [HttpGet("brands")]
     public async Task<IActionResult> GetBrands([FromQuery] VehicleCatalogQuery query)

@@ -18,50 +18,56 @@ namespace WashingCar_DAL.Migrations
         // chạy `dotnet ef database update` trên DB đã có sẵn. Chỉ giữ lại phần AssignedStaffId/StaffId.
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<Guid>(
-                name: "StaffId",
-                table: "Review",
-                type: "uniqueidentifier",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE name = N'StaffId' AND object_id = OBJECT_ID(N'[Review]'))
+                BEGIN
+                    ALTER TABLE [Review] ADD [StaffId] uniqueidentifier NULL;
+                END
+            ");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "AssignedAtUtc",
-                table: "Booking",
-                type: "datetime2(3)",
-                precision: 3,
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE name = N'AssignedAtUtc' AND object_id = OBJECT_ID(N'[Booking]'))
+                BEGIN
+                    ALTER TABLE [Booking] ADD [AssignedAtUtc] datetime2(3) NULL;
+                END
+            ");
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "AssignedStaffId",
-                table: "Booking",
-                type: "uniqueidentifier",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE name = N'AssignedStaffId' AND object_id = OBJECT_ID(N'[Booking]'))
+                BEGIN
+                    ALTER TABLE [Booking] ADD [AssignedStaffId] uniqueidentifier NULL;
+                END
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Review_StaffId",
-                table: "Review",
-                column: "StaffId",
-                filter: "([StaffId] IS NOT NULL)");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'IX_Review_StaffId' AND object_id = OBJECT_ID(N'[Review]'))
+                BEGIN
+                    CREATE INDEX [IX_Review_StaffId] ON [Review] ([StaffId]) WHERE [StaffId] IS NOT NULL;
+                END
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Booking_AssignedStaffId",
-                table: "Booking",
-                column: "AssignedStaffId",
-                filter: "([AssignedStaffId] IS NOT NULL)");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = N'IX_Booking_AssignedStaffId' AND object_id = OBJECT_ID(N'[Booking]'))
+                BEGIN
+                    CREATE INDEX [IX_Booking_AssignedStaffId] ON [Booking] ([AssignedStaffId]) WHERE [AssignedStaffId] IS NOT NULL;
+                END
+            ");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Booking_AssignedStaff",
-                table: "Booking",
-                column: "AssignedStaffId",
-                principalTable: "User",
-                principalColumn: "UserId");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = N'FK_Booking_AssignedStaff' AND parent_object_id = OBJECT_ID(N'[Booking]'))
+                BEGIN
+                    ALTER TABLE [Booking] ADD CONSTRAINT [FK_Booking_AssignedStaff]
+                    FOREIGN KEY ([AssignedStaffId]) REFERENCES [User] ([UserId]);
+                END
+            ");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Review_Staff",
-                table: "Review",
-                column: "StaffId",
-                principalTable: "User",
-                principalColumn: "UserId");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = N'FK_Review_Staff' AND parent_object_id = OBJECT_ID(N'[Review]'))
+                BEGIN
+                    ALTER TABLE [Review] ADD CONSTRAINT [FK_Review_Staff]
+                    FOREIGN KEY ([StaffId]) REFERENCES [User] ([UserId]);
+                END
+            ");
         }
 
         /// <inheritdoc />

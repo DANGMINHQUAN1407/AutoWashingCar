@@ -42,6 +42,8 @@ export type Vehicle = {
   BrandCatalogId?: string | null
   brandCatalogName?: string | null
   BrandCatalogName?: string | null
+  isLuxuryBrand?: boolean | null
+  IsLuxuryBrand?: boolean | null
   model?: string | null
   Model?: string | null
   manufactureYear?: number | null
@@ -84,6 +86,7 @@ export type VehicleCatalogItem = {
   code: string
   name: string
   isActive: boolean
+  isLuxury?: boolean
   legacyEnumValue?: number | null
   vehicleType?: number | null
 }
@@ -91,11 +94,14 @@ export type VehicleCatalogItem = {
 export type CreateVehicleCatalogRequest = {
   Code: string
   Name: string
+  IsLuxury?: boolean
+  VehicleType?: number
 }
 
 export type UpdateVehicleCatalogRequest = {
   Name: string
   IsActive: boolean
+  IsLuxury?: boolean
 }
 
 const metaEnv = import.meta.env as Record<string, string | boolean | undefined>
@@ -1138,7 +1144,7 @@ export async function createWalkInBooking(data: {
   SlotInventoryId: string
   Services: Array<{ ServiceCatalogItemId: string; Quantity: number }>
   ExistingVehicleId?: string
-  NewVehicle?: { LicensePlate: string; VehicleType: number; Brand?: string }
+  NewVehicle?: { LicensePlate: string; VehicleType: number; Brand?: string; BrandCatalogId?: string }
   UserVoucherId?: string
   VoucherCode?: string
 }): Promise<Booking> {
@@ -1852,12 +1858,13 @@ export async function deactivateBodyStyle(id: string): Promise<any> {
   return fetchWithAuth(`/api/vehicle-catalogs/body-styles/${id}/deactivate`, { method: 'POST' })
 }
 
-export async function getBrands(params?: { page?: number, pageSize?: number, search?: string, isActive?: boolean }): Promise<{ items: VehicleCatalogItem[], totalCount: number }> {
+export async function getVehicleBrands(params?: { page?: number, pageSize?: number, search?: string, isActive?: boolean, vehicleType?: number }): Promise<{ items: VehicleCatalogItem[], totalCount: number }> {
   const search = new URLSearchParams()
   if (params?.page) search.set('Page', String(params.page))
   if (params?.pageSize) search.set('PageSize', String(params.pageSize))
   if (params?.search) search.set('Search', params.search)
   if (params?.isActive !== undefined) search.set('IsActive', String(params.isActive))
+  if (params?.vehicleType !== undefined) search.set('VehicleType', String(params.vehicleType))
   const qs = search.toString()
   const res = await fetchWithAuth(`/api/vehicle-catalogs/brands${qs ? `?${qs}` : ''}`)
   const data = unwrapData<{ items?: any[], Items?: any[], totalCount?: number, TotalCount?: number }>(res)
@@ -1866,7 +1873,7 @@ export async function getBrands(params?: { page?: number, pageSize?: number, sea
   return { items, totalCount }
 }
 
-export async function createBrand(data: CreateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+export async function createVehicleBrand(data: CreateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
   const payload = await fetchWithAuth('/api/vehicle-catalogs/brands', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1875,7 +1882,7 @@ export async function createBrand(data: CreateVehicleCatalogRequest): Promise<Ve
   return payload?.data ?? payload?.Data ?? payload
 }
 
-export async function updateBrand(id: string, data: UpdateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
+export async function updateVehicleBrand(id: string, data: UpdateVehicleCatalogRequest): Promise<VehicleCatalogItem> {
   const payload = await fetchWithAuth(`/api/vehicle-catalogs/brands/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -1884,11 +1891,11 @@ export async function updateBrand(id: string, data: UpdateVehicleCatalogRequest)
   return payload?.data ?? payload?.Data ?? payload
 }
 
-export async function activateBrand(id: string): Promise<any> {
+export async function activateVehicleBrand(id: string): Promise<any> {
   return fetchWithAuth(`/api/vehicle-catalogs/brands/${id}/activate`, { method: 'POST' })
 }
 
-export async function deactivateBrand(id: string): Promise<any> {
+export async function deactivateVehicleBrand(id: string): Promise<any> {
   return fetchWithAuth(`/api/vehicle-catalogs/brands/${id}/deactivate`, { method: 'POST' })
 }
 
@@ -1916,7 +1923,7 @@ export default {
   getReviews, getReviewsForModeration, getMyReviews, createReview, deleteReview, toggleHideReview, getSystemStats,
   getEngineTypes, createEngineType, updateEngineType, activateEngineType, deactivateEngineType,
   getBodyStyles, createBodyStyle, updateBodyStyle, activateBodyStyle, deactivateBodyStyle,
-  getBrands, createBrand, updateBrand, activateBrand, deactivateBrand,
+  getVehicleBrands, createVehicleBrand, updateVehicleBrand, activateVehicleBrand, deactivateVehicleBrand,
 }
 
 
