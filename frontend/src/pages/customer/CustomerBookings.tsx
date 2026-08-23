@@ -9,6 +9,7 @@ import AnimatedButton from '../../components/AnimatedButton';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import StatusBadge, { type BadgeType } from '../../components/StatusBadge';
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate';
 import '../Dashboard.css';
 
 const CUSTOM_BRAND_VALUE = '__custom__';
@@ -99,6 +100,7 @@ export default function CustomerBookings() {
   // Inline Vehicle form
   const [showQuickVehicle, setShowQuickVehicle] = useState(false);
   const [quickPlate, setQuickPlate] = useState('');
+  const [isQuickPlateComposing, setIsQuickPlateComposing] = useState(false);
   const [quickBrand, setQuickBrand] = useState('');
   const [quickBrandCatalogId, setQuickBrandCatalogId] = useState('');
   const [quickModel, setQuickModel] = useState('');
@@ -540,8 +542,14 @@ export default function CustomerBookings() {
     setQuickVehicleLoading(true);
     setErrorMsg(null);
     try {
+      const plateError = getLicensePlateError(quickPlate, quickType);
+      if (plateError) {
+        setErrorMsg(plateError);
+        return;
+      }
+
       const data = await api.createVehicle({
-        LicensePlate: quickPlate.trim().toUpperCase(),
+        LicensePlate: formatLicensePlateInput(quickPlate, quickType),
         VehicleType: quickType,
         Brand: quickBrand.trim() || undefined,
         BrandCatalogId: quickBrandCatalogId && quickBrandCatalogId !== CUSTOM_BRAND_VALUE ? quickBrandCatalogId : undefined,
@@ -1187,8 +1195,17 @@ export default function CustomerBookings() {
                           className="form-input"
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
                           value={quickPlate}
-                          onChange={e => setQuickPlate(e.target.value)}
-                          placeholder="30F-123.45"
+                          onCompositionStart={() => setIsQuickPlateComposing(true)}
+                          onCompositionEnd={e => {
+                            const value = e.currentTarget.value;
+                            setIsQuickPlateComposing(false);
+                            setQuickPlate(formatLicensePlateInput(value, quickType));
+                          }}
+                          onChange={e => {
+                            const value = e.currentTarget.value;
+                            setQuickPlate(isQuickPlateComposing ? value : formatLicensePlateInput(value, quickType));
+                          }}
+                          placeholder={licensePlatePlaceholder(quickType)}
                           required
                         />
                       </div>
@@ -1201,7 +1218,9 @@ export default function CustomerBookings() {
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
                           value={quickType}
                           onChange={e => {
-                            setQuickType(Number(e.target.value) as VehicleType);
+                            const nextType = Number(e.target.value) as VehicleType;
+                            setQuickType(nextType);
+                            setQuickPlate(prev => formatLicensePlateInput(prev, nextType));
                             setQuickBrandCatalogId('');
                             setQuickBrand('');
                             setQuickBodyStyle('');

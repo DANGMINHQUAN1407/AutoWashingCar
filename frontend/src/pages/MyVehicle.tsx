@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api, { type Vehicle, type VehicleType } from '../services/api'
 import { extractErrorMessage } from '../utils/errorUtils'
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../utils/licensePlate'
 import ConfirmModal from '../components/ConfirmModal'
 import './MyVehicle.css'
 
@@ -38,6 +39,7 @@ export default function MyVehicle() {
     vehicleType: 2 as VehicleType,
     brand: '',
   })
+  const [isPlateComposing, setIsPlateComposing] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) navigate('/auth')
@@ -93,8 +95,14 @@ export default function MyVehicle() {
     setFormError(null)
 
     try {
+      const plateError = getLicensePlateError(form.licensePlate, form.vehicleType)
+      if (plateError) {
+        setFormError(plateError)
+        return
+      }
+
       const payload = {
-        LicensePlate: form.licensePlate.trim().toUpperCase(),
+        LicensePlate: formatLicensePlateInput(form.licensePlate, form.vehicleType),
         VehicleType: form.vehicleType,
         Brand: form.brand.trim() || undefined,
       }
@@ -322,8 +330,23 @@ export default function MyVehicle() {
                   id="mv-plate"
                   className="form-input"
                   value={form.licensePlate}
-                  onChange={e => setForm(p => ({ ...p, licensePlate: e.target.value }))}
-                  placeholder="e.g. 30F-123.45"
+                  onCompositionStart={() => setIsPlateComposing(true)}
+                  onCompositionEnd={e => {
+                    const value = e.currentTarget.value
+                    setIsPlateComposing(false)
+                    setForm(p => ({
+                      ...p,
+                      licensePlate: formatLicensePlateInput(value, p.vehicleType),
+                    }))
+                  }}
+                  onChange={e => {
+                    const value = e.currentTarget.value
+                    setForm(p => ({
+                      ...p,
+                      licensePlate: isPlateComposing ? value : formatLicensePlateInput(value, p.vehicleType),
+                    }))
+                  }}
+                  placeholder={licensePlatePlaceholder(form.vehicleType)}
                   required
                   minLength={4}
                   maxLength={20}
@@ -336,7 +359,14 @@ export default function MyVehicle() {
                   id="mv-type"
                   className="form-input mv-select"
                   value={form.vehicleType}
-                  onChange={e => setForm(p => ({ ...p, vehicleType: Number(e.target.value) as VehicleType }))}
+                  onChange={e => {
+                    const nextType = Number(e.target.value) as VehicleType
+                    setForm(p => ({
+                      ...p,
+                      vehicleType: nextType,
+                      licensePlate: formatLicensePlateInput(p.licensePlate, nextType),
+                    }))
+                  }}
                 >
                   <option value={1}>🛵 Motorbike</option>
                   <option value={2}>🚗 Car</option>
