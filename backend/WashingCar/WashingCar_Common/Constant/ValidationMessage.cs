@@ -101,6 +101,7 @@ public static class ValidationMessage
         public const string DuplicateServiceSelection             = "Không được chọn trùng cùng một dịch vụ trong booking";
         public const string PremiumServiceExcludesOthers          = "Gói Premium không thể kết hợp với dịch vụ khác";
         public const string StandardServiceSelectionConflict      = "Chỉ được chọn một gói Standard trong mỗi booking";
+        public const string AddOnRequiresMainService              = "Dịch vụ bổ sung phải đi kèm một gói dịch vụ chính";
         public const string InvalidServicePackageType              = "Loại gói dịch vụ không hợp lệ";
         public const string OnlyEditWhenEditableStatus            = "Chỉ thêm/sửa dịch vụ khi booking ở trạng thái Confirmed/CheckedIn/InProgress";
         public const string CustomerVehicleNotFound               = "Không tìm thấy xe của khách";

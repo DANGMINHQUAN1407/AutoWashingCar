@@ -594,15 +594,23 @@ public class BookingService(
     public async Task<BookingDto> AddServiceLineAsync(
         Guid bookingId, AddServiceLineRequest request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
 
+        if (booking.BookingLines.Any(line => line.ServiceCatalogItemId == request.ServiceCatalogItemId))
+            throw AppException.BadRequest(ValidationMessage.Booking.DuplicateServiceSelection);
+
         var line = await BuildLineAsync(booking.BranchId, request.ServiceCatalogItemId, request.Quantity, ct);
         booking.BookingLines.Add(line);
+        await ValidateBookingLinePackagePolicyAsync(booking.BookingLines);
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         logger.LogInformation("Thêm dịch vụ {Svc} vào booking {Id}; tổng mới {Total}",
             request.ServiceCatalogItemId, bookingId, booking.BookingFinalAmount);
         return booking.ToDto();
@@ -613,6 +621,9 @@ public class BookingService(
     public async Task<BookingDto> UpdateLineAsync(
         Guid bookingId, Guid lineId, UpdateBookingLineRequest request, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
@@ -626,6 +637,7 @@ public class BookingService(
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return booking.ToDto();
     }
 
@@ -633,6 +645,9 @@ public class BookingService(
     /// <remarks>Gọi: IBookingRepository.GetTrackedByIdAsync → SaveChangesAsync (orphan deletion nhờ cascade FK).</remarks>
     public async Task<BookingDto> RemoveLineAsync(Guid bookingId, Guid lineId, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
         EnsureEditable(booking);
@@ -646,9 +661,11 @@ public class BookingService(
 
         // FK BookingId required + cascade ⇒ remove khỏi collection tracked sẽ xoá row (orphan deletion)
         booking.BookingLines.Remove(line);
+        await ValidateBookingLinePackagePolicyAsync(booking.BookingLines);
         Recalculate(booking);
 
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         logger.LogInformation("Xoá dịch vụ {LineId} khỏi booking {Id}; tổng mới {Total}",
             lineId, bookingId, booking.BookingFinalAmount);
         return booking.ToDto();
@@ -1259,6 +1276,23 @@ public class BookingService(
                 Quantity = item.Value,
             })
             .ToList();
+    }
+
+    private async Task ValidateBookingLinePackagePolicyAsync(
+        IEnumerable<BookingLine> lines)
+    {
+        var selections = new List<(Guid ServiceCatalogItemId, ServicePackageType PackageType)>();
+        foreach (var line in lines)
+        {
+            var service = await serviceCatalogRepo.GetByIdAsync(line.ServiceCatalogItemId)
+                ?? throw AppException.NotFound(ValidationMessage.Booking.ServiceNotFound(line.ServiceCatalogItemId));
+
+            selections.Add((
+                service.ServiceCatalogItemId,
+                (ServicePackageType)service.ServicePackageType));
+        }
+
+        ServicePackagePolicy.ValidateBookingLines(selections);
     }
 
     private static void AddSelectionStates(
