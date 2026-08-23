@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using WashingCar_BLL.Interfaces;
 using WashingCar_BLL.Mappers;
+using WashingCar_BLL.Policies;
 using WashingCar_Common.Constant;
 using WashingCar_Common.Enum;
 using WashingCar_Common.Exceptions;
@@ -53,7 +54,7 @@ namespace WashingCar_BLL.Services
         /// <remarks>Gọi: IVehicleRepository.ExistsLicensePlateAsync → CreateAsync.</remarks>
         public async Task<VehicleDto> CreateAsync(Guid userId, CreateVehicleRequest request)
         {
-            var plate = request.LicensePlate.ToUpperInvariant();
+            var plate = LicensePlatePolicy.Normalize(request.LicensePlate, request.VehicleType);
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
@@ -90,7 +91,7 @@ namespace WashingCar_BLL.Services
             var vehicle = await _vehicleRepo.GetByIdAsync(vehicleId, userId)
             ?? throw AppException.NotFound(ValidationMessage.Vehicle.NotFound);
 
-            var plate = request.LicensePlate.ToUpperInvariant();
+            var plate = LicensePlatePolicy.Normalize(request.LicensePlate, request.VehicleType);
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate, excludeId: vehicleId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
