@@ -35,12 +35,6 @@ export default function CustomerVehicles() {
   })
   const [isPlateComposing, setIsPlateComposing] = useState(false)
 
-  // Images state
-  const [activeImageVehicleId, setActiveImageVehicleId] = useState<string | null>(null)
-  const [vehicleImages, setVehicleImages] = useState<any[]>([])
-  const [imagesLoading, setImagesLoading] = useState(false)
-  const [imageUploadLoading, setImageUploadLoading] = useState(false)
-
   const engineTypeLabel = (engine?: number) => {
     if (engine === 1) return 'Xăng (Petrol)'
     if (engine === 2) return 'Dầu (Diesel)'
@@ -61,76 +55,6 @@ export default function CustomerVehicles() {
     return 'N/A'
   }
 
-  const toggleImagesSection = async (vehicleId: string) => {
-    if (activeImageVehicleId === vehicleId) {
-      setActiveImageVehicleId(null)
-      setVehicleImages([])
-      return
-    }
-    setActiveImageVehicleId(vehicleId)
-    setImagesLoading(true)
-    try {
-      const imgs = await api.getVehicleImages(vehicleId)
-      setVehicleImages(imgs)
-    } catch (err) {
-      console.error(err)
-      setVehicleError('Không thể tải danh sách ảnh xe.')
-    } finally {
-      setImagesLoading(false)
-    }
-  }
-
-  const handleImageUpload = async (vehicleId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    const file = files[0]
-    setImageUploadLoading(true)
-    setVehicleError(null)
-    setVehicleSuccess(null)
-    try {
-      await api.uploadVehicleImage(vehicleId, file)
-      const imgs = await api.getVehicleImages(vehicleId)
-      setVehicleImages(imgs)
-      setVehicleSuccess('Tải ảnh xe lên thành công!')
-      const updatedVehicles = await api.getMyVehicles()
-      setVehicles(updatedVehicles)
-    } catch (err: any) {
-      setVehicleError(extractErrorMessage(err, 'Lỗi khi tải ảnh xe lên.'))
-    } finally {
-      setImageUploadLoading(false)
-      e.target.value = ''
-    }
-  }
-
-  const handleSetPrimaryImage = async (vehicleId: string, imageId: string) => {
-    setVehicleError(null)
-    setVehicleSuccess(null)
-    try {
-      await api.setPrimaryVehicleImage(vehicleId, imageId)
-      const imgs = await api.getVehicleImages(vehicleId)
-      setVehicleImages(imgs)
-      setVehicleSuccess('Đặt làm ảnh chính thành công!')
-      const updatedVehicles = await api.getMyVehicles()
-      setVehicles(updatedVehicles)
-    } catch (err: any) {
-      setVehicleError(extractErrorMessage(err, 'Lỗi khi đặt ảnh chính.'))
-    }
-  }
-
-  const handleDeleteImage = async (vehicleId: string, imageId: string) => {
-    setVehicleError(null)
-    setVehicleSuccess(null)
-    try {
-      await api.deleteVehicleImage(vehicleId, imageId)
-      const imgs = await api.getVehicleImages(vehicleId)
-      setVehicleImages(imgs)
-      setVehicleSuccess('Xóa ảnh xe thành công!')
-      const updatedVehicles = await api.getMyVehicles()
-      setVehicles(updatedVehicles)
-    } catch (err: any) {
-      setVehicleError(extractErrorMessage(err, 'Lỗi khi xóa ảnh.'))
-    }
-  }
 
   // Search, filter, and pagination states
   const [searchQuery, setSearchQuery] = useState('')
@@ -342,9 +266,6 @@ export default function CustomerVehicles() {
     }
   }
 
-  const activeVehicle = activeImageVehicleId
-    ? vehicles.find(v => (v.VehicleId || v.vehicleId) === activeImageVehicleId)
-    : null;
 
   return (
     <div className="portal-page">
@@ -601,15 +522,7 @@ export default function CustomerVehicles() {
             <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
               <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
-                    <img
-                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || undefined}
-                      alt={plate}
-                      style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }}
-                    />
-                  ) : (
-                    <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🚗</div>
-                  )}
+                  <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🚗</div>
                   <div>
                     <div className="vehicle-card-title" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{plate}</div>
                     <div className="vehicle-card-meta" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
@@ -625,14 +538,6 @@ export default function CustomerVehicles() {
                 </div>
                 <div className="vehicle-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span className={`badge ${getVehicleTypeClass(vehicleType)}`}>{vehicleTypeLabel(vehicleType)}</span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => toggleImagesSection(vehicle.VehicleId || vehicle.vehicleId || '')}
-                    style={{ fontSize: '0.85rem' }}
-                  >
-                    🖼️ Ảnh xe
-                  </button>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm vehicle-edit-btn"
@@ -656,90 +561,6 @@ export default function CustomerVehicles() {
           )
         })}
       </div>
-
-      {activeImageVehicleId && activeVehicle && (
-        <div className="confirm-modal-overlay" style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <div className="confirm-modal-card" style={{ maxWidth: '540px', width: '95%', textAlign: 'left', alignItems: 'stretch', gap: '16px', borderRadius: 'var(--radius-md)', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '12px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, textTransform: 'uppercase', color: 'var(--color-heading)' }}>
-                Quản lý ảnh xe: {activeVehicle.LicensePlate || activeVehicle.licensePlate}
-              </h3>
-              <button
-                type="button"
-                onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
-                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.6rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-              >
-                &times;
-              </button>
-            </div>
-
-            {imagesLoading ? (
-              <p style={{ textAlign: 'center', padding: '30px 0', color: 'var(--color-text-dim)', margin: 0 }}>Đang tải danh sách ảnh...</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', minHeight: '100px', justifyContent: 'center', maxHeight: '320px', overflowY: 'auto', padding: '8px' }}>
-                  {vehicleImages.length === 0 ? (
-                    <p style={{ fontSize: '0.9rem', color: 'var(--color-text-dim)', fontStyle: 'italic', padding: '30px 0', margin: 0, textAlign: 'center', width: '100%' }}>
-                      Chưa có ảnh nào được tải lên cho xe này.
-                    </p>
-                  ) : (
-                    vehicleImages.map(img => (
-                      <div key={img.imageId} style={{ display: 'flex', flexDirection: 'column', width: '130px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                        <div style={{ position: 'relative', width: '128px', height: '90px' }}>
-                          <img src={img.imageUrl} alt="Xe" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          {img.isPrimary && (
-                            <span style={{ position: 'absolute', top: 4, left: 4, background: 'var(--color-primary)', color: '#000', fontSize: '0.65rem', padding: '1px 6px', borderRadius: '2px', fontWeight: 'bold' }}>CHÍNH</span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', borderTop: '1px solid var(--color-border-dim)' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleSetPrimaryImage(activeImageVehicleId, img.imageId)}
-                            disabled={img.isPrimary}
-                            style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none', borderRight: '1px solid var(--color-border-dim)', color: img.isPrimary ? 'var(--color-primary)' : 'var(--color-text-muted)', cursor: img.isPrimary ? 'default' : 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}
-                            title={img.isPrimary ? "Đang là ảnh chính" : "Đặt làm ảnh chính"}
-                          >
-                            ★
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteImage(activeImageVehicleId, img.imageId)}
-                            style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 'bold' }}
-                            title="Xóa ảnh"
-                          >
-                            🗑️ Xóa
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-dim)', paddingTop: '16px' }}>
-                  <label className="btn btn-ghost" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', margin: 0, padding: '8px 16px', fontSize: '0.9rem' }}>
-                    📤 Tải ảnh mới lên
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleImageUpload(activeImageVehicleId, e)}
-                      disabled={imageUploadLoading}
-                    />
-                  </label>
-                  {imageUploadLoading && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-dim)' }}>Đang tải lên...</span>}
-                  <AnimatedButton
-                    type="button"
-                    variant="ghost"
-                    onClick={() => { setActiveImageVehicleId(null); setVehicleImages([]); }}
-                  >
-                    Đóng
-                  </AnimatedButton>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <Pagination
         currentPage={currentPage}
