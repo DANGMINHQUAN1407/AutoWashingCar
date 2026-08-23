@@ -22,7 +22,10 @@ public static class DataSeeder
         // --- BƯỚC 1: SEED MASTER DATA CATALOG XE ---
         await SeedVehicleCatalogsAsync(db);
 
-        // --- BƯỚC 2: TẠO TÀI KHOẢN SUPER ADMIN ---
+        // --- BƯỚC 2: SEED GÓI DỊCH VỤ VÀ ADD-ON ---
+        await SeedDefaultServicesAndAddOnsAsync(db);
+
+        // --- BƯỚC 3: TẠO TÀI KHOẢN SUPER ADMIN ---
         await SeedAdminAsync(db, configuration);
     }
 
@@ -120,6 +123,74 @@ public static class DataSeeder
                AND c.VehicleType = v.VehicleType
             WHERE v.BodyStyleCatalogId IS NULL AND v.BodyStyle IS NOT NULL;
             """);
+    }
+
+    private static async Task SeedDefaultServicesAndAddOnsAsync(WashingCarDbContext db)
+    {
+        var now = DateTime.UtcNow;
+
+        // 1. Cập nhật gói COMBO TOÀN DIỆN thành Premium (nếu có)
+        var combo = await db.ServiceCatalogItems.FirstOrDefaultAsync(s => s.ServiceName.Contains("COMBO TOÀN DIỆN") || s.ServiceName.Contains("ULTIMATE COMBO"));
+        if (combo != null && combo.ServicePackageType != (byte)ServicePackageType.Premium)
+        {
+            combo.ServicePackageType = (byte)ServicePackageType.Premium;
+        }
+
+        // 2. Tạo các dịch vụ Add-on mẫu (ServicePackageType = 2)
+        var addOns = new[]
+        {
+            (Name: "Tẩy nhựa đường & Bụi sơn", Price: 50000m, Duration: (short)15, Desc: "Xử lý sạch các vết nhựa đường bám dính trên bề mặt sơn xe."),
+            (Name: "Khử mùi & Diệt khuẩn Nano Bạc", Price: 40000m, Duration: (short)10, Desc: "Xịt sương Nano khử sạch mùi ẩm mốc, thuốc lá trong khoang lái."),
+            (Name: "Tẩy ố kính lái & Gương", Price: 60000m, Duration: (short)15, Desc: "Tẩy sạch cặn canxi, ố mốc kính giúp tầm nhìn trong suốt khi đi mưa."),
+            (Name: "Dưỡng bóng lốp & Nhựa nhám", Price: 30000m, Duration: (short)10, Desc: "Phủ dung dịch bảo dưỡng giúp lốp và phần nhựa nhám đen bóng như mới."),
+        };
+
+        var addOnEntities = new List<ServiceCatalogItem>();
+        foreach (var a in addOns)
+        {
+            var existing = await db.ServiceCatalogItems.FirstOrDefaultAsync(s => s.ServiceName == a.Name);
+            if (existing is null)
+            {
+                existing = new ServiceCatalogItem
+                {
+                    ServiceCatalogItemId = Guid.NewGuid(),
+                    ServiceName = a.Name,
+                    Description = a.Desc,
+                    BasePrice = a.Price,
+                    DurationMinutes = a.Duration,
+                    ServicePackageType = (byte)ServicePackageType.AddOn,
+                    ServiceNodeType = (byte)ServiceNodeType.Leaf,
+                    IsActive = true,
+                    CreatedAtUtc = now,
+                };
+                await db.ServiceCatalogItems.AddAsync(existing);
+            }
+            addOnEntities.Add(existing);
+        }
+
+        await db.SaveChangesAsync();
+
+        // 3. Gán các dịch vụ Add-on vào tất cả các chi nhánh hiện có
+        var branches = await db.Branches.Where(b => b.IsActive).ToListAsync();
+        foreach (var branch in branches)
+        {
+            foreach (var addon in addOnEntities)
+            {
+                var hasBranchService = await db.BranchServices.AnyAsync(bs => bs.BranchId == branch.BranchId && bs.ServiceCatalogItemId == addon.ServiceCatalogItemId);
+                if (!hasBranchService)
+                {
+                    await db.BranchServices.AddAsync(new BranchService
+                    {
+                        BranchId = branch.BranchId,
+                        ServiceCatalogItemId = addon.ServiceCatalogItemId,
+                        IsActive = true,
+                        AddedAtUtc = now,
+                    });
+                }
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedAdminAsync(WashingCarDbContext db, IConfiguration configuration)
