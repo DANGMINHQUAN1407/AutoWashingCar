@@ -151,6 +151,7 @@ public static class ValidationMessage
         public const string ForbiddenPay             = "Bạn không có quyền thanh toán booking này";
         public const string OnlyPayWhenPending        = "Chỉ thanh toán online khi booking đang chờ thanh toán (Pending)";
         public const string AlreadyHasPayment         = "Booking đã có thanh toán trước đó";
+        public const string PendingPaymentExists      = "Booking đang có giao dịch chờ thanh toán, vui lòng chờ hoặc hủy giao dịch đó trước";
         public const string InvalidAmount             = "Số tiền thanh toán không hợp lệ";
         public const string CannotCreateQrForClosed   = "Không thể tạo QR cho đơn đã đóng/huỷ";
         public const string FullyPaidNoQrNeeded       = "Booking đã thanh toán đủ, không cần tạo QR";

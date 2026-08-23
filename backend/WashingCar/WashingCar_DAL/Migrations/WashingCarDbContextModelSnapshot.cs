@@ -505,6 +505,10 @@ namespace WashingCar_DAL.Migrations
 
                     b.HasIndex(new[] { "BookingId" }, "IX_Payment_BookingId");
 
+                    b.HasIndex(new[] { "BookingId" }, "UX_Payment_Booking_Pending")
+                        .IsUnique()
+                        .HasFilter("([PaymentStatus]=(1))");
+
                     b.HasIndex(new[] { "OriginalPaymentId" }, "IX_Payment_OriginalPaymentId")
                         .HasFilter("([OriginalPaymentId] IS NOT NULL)");
 

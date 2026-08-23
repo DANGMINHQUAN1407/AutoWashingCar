@@ -338,6 +338,10 @@ public partial class WashingCarDbContext : DbContext
 
             entity.HasIndex(e => e.BookingId, "IX_Payment_BookingId");
 
+            entity.HasIndex(e => e.BookingId, "UX_Payment_Booking_Pending")
+                .IsUnique()
+                .HasFilter("([PaymentStatus]=(1))");
+
             entity.HasIndex(e => e.OriginalPaymentId, "IX_Payment_OriginalPaymentId").HasFilter("([OriginalPaymentId] IS NOT NULL)");
 
             entity.HasIndex(e => new { e.PaymentStatus, e.CreatedAtUtc }, "IX_Payment_Status_CreatedAt").IsDescending(false, true);
