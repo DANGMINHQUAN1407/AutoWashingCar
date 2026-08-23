@@ -224,6 +224,7 @@ public static class ValidationMessage
     public static class Report
     {
         public const string InvalidGroupBy = "GroupBy chỉ nhận Day, Week hoặc Month";
+        public const string InvalidDateRange = "Ngày bắt đầu không được sau ngày kết thúc";
     }
 
     public static class Voucher
