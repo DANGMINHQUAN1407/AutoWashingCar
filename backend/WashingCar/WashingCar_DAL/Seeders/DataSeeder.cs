@@ -365,11 +365,13 @@ public static class DataSeeder
             // 🥉 1. HẠNG ĐỒNG (Bronze)
             if (name.Contains("bronze") || name.Contains("đồng") || name.Contains("dong") || name.Contains("member"))
             {
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [Benefits] = {0} WHERE [TierId] = {1}", "Tích điểm tiêu chuẩn, đặt lịch trước tối đa 3 ngày.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "3", "Đặt lịch trước tối đa 3 ngày");
             }
             // 🥈 2. HẠNG BẠC (Silver)
             else if (name.Contains("silver") || name.Contains("bạc") || name.Contains("bac"))
             {
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%, quà tặng khăn lau cao cấp.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "5", "Giảm giá 5% trực tiếp trên hóa đơn đặt lịch");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "7", "Đặt lịch trước tối đa 7 ngày");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Tặng 01 khăn lau xe chuyên dụng Microfiber", "Quà tặng tri ân thành viên Bạc");
@@ -378,6 +380,7 @@ public static class DataSeeder
             // 🥇 3. HẠNG VÀNG (Gold)
             else if (name.Contains("gold") || name.Contains("vàng") || name.Contains("vang"))
             {
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%, miễn phí khử mùi Nano, ưu tiên khoang VIP.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "10", "Giảm giá 10% trực tiếp trên mọi dịch vụ");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "14", "Đặt lịch trước tối đa 14 ngày");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Miễn phí 01 lần Xịt sương Nano khử khuẩn khoang lái", "Tặng dịch vụ xịt khử mùi Nano");
@@ -387,6 +390,7 @@ public static class DataSeeder
             // 💎 4. HẠNG KIM CƯƠNG (Diamond / Platinum)
             else if (name.Contains("diamond") || name.Contains("kim") || name.Contains("platinum"))
             {
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%, miễn phí tẩy ố kính & dưỡng lốp, chăm sóc chuyên biệt VIP.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "15", "Giảm giá 15% trực tiếp trên toàn bộ hóa đơn");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "30", "Đặt lịch trước không giới hạn (tối đa 30 ngày)");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Miễn phí Tẩy ố kính lái & Phủ dưỡng bóng lốp cao cấp", "Dịch vụ chăm sóc chuyên sâu miễn phí");

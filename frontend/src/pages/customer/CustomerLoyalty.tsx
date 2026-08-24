@@ -9,6 +9,7 @@ export default function CustomerLoyalty() {
   const { user } = useAuth()
   const [loyalty, setLoyalty] = useState<any>(null)
   const [tiers, setTiers] = useState<any[]>([])
+  const [tierBenefits, setTierBenefits] = useState<any[]>([])
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -28,6 +29,16 @@ export default function CustomerLoyalty() {
         setTiers(tiersData)
         setHistory(historyData.items || [])
         setTotalCount(historyData.totalCount || 0)
+
+        const currentTierId = loyaltyData?.tier?.tierId || loyaltyData?.Tier?.TierId
+        if (currentTierId) {
+          try {
+            const currentBenefits = await api.getTierBenefits(currentTierId)
+            setTierBenefits(Array.isArray(currentBenefits) ? currentBenefits.filter(b => b.isActive || b.IsActive) : [])
+          } catch (e) {
+            console.error('Failed to load tier benefits', e)
+          }
+        }
       } catch (err) {
         console.error('Error fetching loyalty data:', err)
       } finally {
@@ -66,6 +77,30 @@ export default function CustomerLoyalty() {
     return 'tier-bronze'
   }
 
+  const getBenefitIcon = (type: number) => {
+    switch (type) {
+      case 1: return '🏷️'
+      case 2: return '📅'
+      case 3: return '🎁'
+      case 4: return '🚀'
+      case 5: return '⭐'
+      default: return '✨'
+    }
+  }
+
+  const formatBenefitTitle = (b: any) => {
+    const type = b.benefitType || b.BenefitType
+    const val = b.benefitValue || b.BenefitValue
+    const desc = b.description || b.Description
+    const name = b.benefitTypeName || b.BenefitTypeName
+
+    if (type === 1) return `Giảm giá ${val}% trên tổng hóa đơn đặt lịch`
+    if (type === 2) return `Đặt lịch trước tối đa ${val} ngày`
+    if (type === 3) return desc ? `${desc} (${val})` : val
+    if (type === 4) return desc ? `${desc} (${val})` : val
+    if (type === 5) return `Tích lũy thêm +${val}% điểm thưởng mỗi đơn`
+    return desc || `${name}: ${val}`
+  }
 
   if (loading && !loyalty) {
     return (
@@ -142,14 +177,26 @@ export default function CustomerLoyalty() {
                 <strong>Earn Rate:</strong> {Math.round(earnRate * 100)}% points back on every booking amount (1,000 VND spent = {earnRate * 10} points).
               </div>
             </div>
-            {benefits && (
+            
+            {/* Dynamic list of active tier benefits */}
+            {tierBenefits.length > 0 ? (
+              tierBenefits.map((b, idx) => (
+                <div key={b.tierBenefitId || idx} className="benefit-info-row animate-fade-in">
+                  <div className="benefit-icon">{getBenefitIcon(b.benefitType || b.BenefitType)}</div>
+                  <div className="benefit-text">
+                    <strong>{b.benefitTypeName || b.BenefitTypeName || 'Đặc quyền'}:</strong> {formatBenefitTitle(b)}
+                  </div>
+                </div>
+              ))
+            ) : benefits ? (
               <div className="benefit-info-row">
                 <div className="benefit-icon">🎁</div>
                 <div className="benefit-text">
                   <strong>Privileges:</strong> {benefits}
                 </div>
               </div>
-            )}
+            ) : null}
+
             <div className="benefit-info-row">
               <div className="benefit-icon">📊</div>
               <div className="benefit-text">
