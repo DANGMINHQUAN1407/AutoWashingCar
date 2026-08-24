@@ -8,7 +8,7 @@ import './AdminBranches.css' // Reuse premium styles from branches
 import './AdminUsers.css' // For modal and filters
 import '../Dashboard.css'
 
-const APPROVAL_LABELS: Record<number, string> = { 1: 'Chờ duyệt', 2: 'Đã duyệt', 3: 'Từ chối' }
+const APPROVAL_LABELS: Record<number, string> = { 1: 'Pending', 2: 'Approved', 3: 'Rejected' }
 
 export default function AdminVouchers() {
   const [form, setForm] = useState({
@@ -50,11 +50,12 @@ export default function AdminVouchers() {
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  // Custom Toasts
-  const [toasts, setToasts] = useState<Array<{ id: string; type: 'success' | 'error'; message: string }>>([])
+  // Feedback toast state
+  const [toasts, setToasts] = useState<Array<{ id: number, message: string, type: 'success' | 'error' }>>([])
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    const id = Math.random().toString(36).substring(2, 9)
-    setToasts(prev => [...prev, { id, type, message }])
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, 4000)
@@ -82,30 +83,18 @@ export default function AdminVouchers() {
       }
 
       setVouchers(items)
-      // Since we did client side filter we might miscalculate total if backend does pagination, 
-      // but assuming the backend handles basic pagination and we refine here. 
-      // Ideally backend supports search.
       setTotalCount(res.totalCount)
       setTotalPages(Math.max(1, Math.ceil(res.totalCount / pageSize)))
     } catch (e: any) {
-      setListError(e?.message || 'Không tải được danh sách voucher.')
+      setListError(e?.message || 'Failed to load vouchers.')
+    } finally {
+      setListLoading(false)
     }
-    setListLoading(false)
   }, [page, pageSize, search, statusFilter])
 
-  useEffect(() => { 
-    const delayDebounce = setTimeout(() => {
-      loadVouchers() 
-    }, 350)
-    return () => clearTimeout(delayDebounce)
+  useEffect(() => {
+    loadVouchers()
   }, [loadVouchers])
-
-  const handleResetFilters = () => {
-    setSearch('')
-    setStatusFilter('')
-    setPage(1)
-    showToast('Đã xóa bộ lọc', 'success')
-  }
 
   const handleToggleActive = async (v: VoucherItem) => {
     if (v.isActive) {
@@ -114,10 +103,10 @@ export default function AdminVouchers() {
     }
     try {
       await api.setActiveVoucher(v.voucherId, true)
-      showToast(`Đã kích hoạt voucher ${v.voucherCode}`, 'success')
+      showToast(`Voucher ${v.voucherCode} activated`, 'success')
       loadVouchers()
     } catch (e: any) {
-      showToast(e?.message || 'Lỗi khi thay đổi trạng thái', 'error')
+      showToast(e?.message || 'Failed to activate voucher', 'error')
     }
   }
 
@@ -126,11 +115,11 @@ export default function AdminVouchers() {
     setToggleLoading(true)
     try {
       await api.setActiveVoucher(voucherToToggle.voucherId, false)
-      showToast(`Đã tạm dừng voucher ${voucherToToggle.voucherCode}`, 'success')
+      showToast(`Voucher ${voucherToToggle.voucherCode} deactivated`, 'success')
       setVoucherToToggle(null)
       loadVouchers()
     } catch (e: any) {
-      showToast(e?.message || 'Lỗi khi thay đổi trạng thái', 'error')
+      showToast(e?.message || 'Failed to deactivate voucher', 'error')
     } finally {
       setToggleLoading(false)
     }
@@ -145,11 +134,11 @@ export default function AdminVouchers() {
     setDeleteLoading(true)
     try {
       await api.deleteVoucher(voucherToDelete.voucherId)
-      showToast(`Đã xóa voucher ${voucherToDelete.voucherCode} thành công`, 'success')
-      setVouchers(prev => prev.filter(item => item.voucherId !== voucherToDelete.voucherId))
+      showToast(`Voucher ${voucherToDelete.voucherCode} deleted successfully`, 'success')
       setVoucherToDelete(null)
+      loadVouchers()
     } catch (err: any) {
-      showToast(extractErrorMessage(err, 'Không thể xóa voucher này vì đã có khách hàng sử dụng. Bạn có thể tạm dừng hoạt động của nó.'), 'error')
+      showToast(extractErrorMessage(err, 'Cannot delete this voucher as it has been used. You can deactivate it instead.'), 'error')
     } finally {
       setDeleteLoading(false)
     }
@@ -157,15 +146,15 @@ export default function AdminVouchers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.VoucherCode.trim()) { setFormError('Vui lòng nhập mã voucher'); return }
-    if (!form.DiscountValue || Number(form.DiscountValue) <= 0) { setFormError('Giá trị giảm phải lớn hơn 0'); return }
-    if (form.DiscountType === 1 && Number(form.DiscountValue) > 100) { setFormError('Phần trăm giảm không thể vượt quá 100%'); return }
-    if (!form.Quantity || Number(form.Quantity) < 1) { setFormError('Số lượng phải ít nhất là 1'); return }
-    if (!form.StartUtc || !form.EndUtc) { setFormError('Vui lòng chọn ngày bắt đầu và kết thúc'); return }
-    if (new Date(form.EndUtc) <= new Date(form.StartUtc)) { setFormError('Ngày kết thúc phải sau ngày bắt đầu'); return }
+    if (!form.VoucherCode.trim()) { setFormError('Please enter voucher code'); return }
+    if (!form.DiscountValue || Number(form.DiscountValue) <= 0) { setFormError('Discount value must be greater than 0'); return }
+    if (form.DiscountType === 1 && Number(form.DiscountValue) > 100) { setFormError('Percentage discount cannot exceed 100%'); return }
+    if (!form.Quantity || Number(form.Quantity) < 1) { setFormError('Quantity must be at least 1'); return }
+    if (!form.StartUtc || !form.EndUtc) { setFormError('Please select start and end dates'); return }
+    if (new Date(form.EndUtc) <= new Date(form.StartUtc)) { setFormError('End date must be after start date'); return }
     if (form.VoucherType === 3) {
-      if (!form.tierId) { setFormError('Vui lòng chọn hạng thành viên áp dụng'); return }
-      if (!form.requiredPoints || Number(form.requiredPoints) <= 0) { setFormError('Điểm yêu cầu quy đổi phải lớn hơn 0'); return }
+      if (!form.tierId) { setFormError('Please select applicable membership tier'); return }
+      if (!form.requiredPoints || Number(form.requiredPoints) <= 0) { setFormError('Required points must be greater than 0'); return }
     }
 
     setSubmitting(true)
@@ -191,19 +180,19 @@ export default function AdminVouchers() {
         })
       }
       
-      showToast(form.VoucherType === 1 ? 'Tạo voucher System thành công!' : 'Tạo voucher Tier thành công!', 'success')
+      showToast(form.VoucherType === 1 ? 'System voucher created successfully!' : 'Tier voucher created successfully!', 'success')
       setForm({ VoucherCode: '', VoucherType: 1, DiscountType: 1, DiscountValue: '', MinOrderAmount: '', MaxDiscountAmount: '', Quantity: '', StartUtc: '', EndUtc: '', tierId: '', requiredPoints: '' })
       setModalOpen(false)
       loadVouchers()
     } catch (e: any) {
-      setFormError(e?.message || 'Tạo voucher thất bại.')
+      setFormError(e?.message || 'Failed to create voucher.')
     }
     setSubmitting(false)
   }
 
   const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('vi-VN') : '—'
   const fmtDiscount = (v: VoucherItem) =>
-    v.discountType === 1 ? `${v.discountValue}%` : `${v.discountValue.toLocaleString('vi-VN')}đ`
+    v.discountType === 1 ? `${v.discountValue}%` : `${v.discountValue.toLocaleString('vi-VN')} VND`
 
   return (
     <div className="portal-page branches-page">
@@ -229,8 +218,8 @@ export default function AdminVouchers() {
       {/* Page Header */}
       <div className="dash-header">
         <div>
-          <h2>System Vouchers</h2>
-          <p>Tạo và quản lý voucher áp dụng cho toàn bộ hệ thống (không phụ thuộc chi nhánh).</p>
+          <h2>Quản lý mã khuyến mãi</h2>
+          <p>Tạo và quản lý các mã giảm giá áp dụng trên toàn hệ thống.</p>
         </div>
         <button 
           type="button" 
@@ -243,60 +232,50 @@ export default function AdminVouchers() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          Add Voucher
+          Thêm mã khuyến mãi
         </button>
       </div>
 
       {/* Glassmorphism Filters */}
-      <div className="glass-filters">
-        <div className="filter-input-wrap">
-          <label className="form-label">Search Voucher</label>
-          <input
-            className="form-input form-input-icon"
-            placeholder="Search by code..."
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-          />
-          <span className="filter-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </span>
-        </div>
+      <div className="card filter-panel animate-fade-in" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'center' }}>
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Tìm theo mã voucher..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+            <button type="button" className="btn btn-primary search-submit-btn">Tìm kiếm</button>
+          </div>
 
-        <div className="filter-input-wrap">
-          <label className="form-label">Status</label>
-          <select
-            className="form-input form-select-custom"
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <select
+              className="form-input"
+              style={{ width: '160px' }}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setPage(1)
+              }}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Tạm dừng</option>
+            </select>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="btn-reset"
-          onClick={handleResetFilters}
-          title="Reset filters"
-          disabled={!search && !statusFilter}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M23 4v6h-6M1 20v-6h6"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          Clear
-        </button>
       </div>
 
       {/* Grid View */}
       {listError && (
-        <div className="empty-state-premium">
-          <div className="empty-state-icon-premium">⚠️</div>
-          <h3>Lỗi tải dữ liệu</h3>
+        <div className="empty-state-premium animate-fade-in" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+          <div className="empty-state-icon-premium" style={{ color: 'var(--color-danger)' }}>⚠️</div>
+          <h3>Lỗi tải danh sách voucher</h3>
           <p>{listError}</p>
           <button type="button" className="btn btn-secondary btn-sm mt-4" onClick={loadVouchers}>Thử lại</button>
         </div>
@@ -311,8 +290,8 @@ export default function AdminVouchers() {
       ) : vouchers.length === 0 && !listError ? (
         <div className="empty-state-premium animate-fade-in">
           <div className="empty-state-icon-premium">🎟️</div>
-          <h3>Không tìm thấy voucher</h3>
-          <p>Không có voucher nào khớp với bộ lọc hoặc hệ thống chưa có voucher.</p>
+          <h3>Không tìm thấy mã khuyến mãi nào</h3>
+          <p>Chưa có mã khuyến mãi nào phù hợp với bộ lọc hoặc chưa có mã nào được tạo.</p>
         </div>
       ) : (
         <div className="branches-grid">
@@ -326,7 +305,7 @@ export default function AdminVouchers() {
                 <div className="branch-title-area">
                   <h3>{v.voucherCode}</h3>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {!v.branchId && <span className="badge badge-primary branch-code-badge" style={{background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)'}}>Toàn HT</span>}
+                    {!v.branchId && <span className="badge badge-primary branch-code-badge" style={{background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)'}}>Toàn hệ thống</span>}
                     <span className={`badge branch-code-badge ${v.approvalStatus === 1 ? 'badge-warning' : v.approvalStatus === 2 ? 'badge-success' : 'badge-danger'}`}>
                       {APPROVAL_LABELS[v.approvalStatus] ?? '—'}
                     </span>
@@ -380,7 +359,7 @@ export default function AdminVouchers() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
-                  <span>Giảm <strong>{fmtDiscount(v)}</strong></span>
+                  <span>Giảm giá: <strong>{fmtDiscount(v)}</strong></span>
                 </div>
                 
                 {v.minOrderAmount ? (
@@ -388,7 +367,7 @@ export default function AdminVouchers() {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                     </svg>
-                    <span>Đơn tối thiểu: {v.minOrderAmount.toLocaleString('vi-VN')}đ</span>
+                    <span>Đơn tối thiểu: {v.minOrderAmount.toLocaleString('vi-VN')} đ</span>
                   </div>
                 ) : null}
 
@@ -415,7 +394,7 @@ export default function AdminVouchers() {
       {!listLoading && !listError && vouchers.length > 0 && (
         <div className="pagination-container-premium animate-fade-in" style={{ marginTop: '20px' }}>
           <div className="pagination-stats" style={{ fontSize: '0.85rem' }}>
-            Trang <strong>{page}</strong> / <strong>{totalPages}</strong> (Tổng: {totalCount})
+            Trang <strong>{page}</strong> / <strong>{totalPages}</strong> (Tổng số: {totalCount})
           </div>
           <div className="pagination-buttons">
             <button

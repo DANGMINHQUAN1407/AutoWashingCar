@@ -208,13 +208,23 @@ export default function AdminUsers() {
       : 'U'
   }
 
+  const getRoleDisplayName = (r: string) => {
+    switch (r) {
+      case 'Admin': return 'Quản trị viên'
+      case 'Manager': return 'Quản lý chi nhánh'
+      case 'Staff': return 'Nhân viên'
+      case 'Customer': return 'Khách hàng'
+      default: return r
+    }
+  }
+
   return (
     <div className="portal-page users-page">
       {/* Page Header */}
       <div className="dash-header">
         <div>
-          <h2>User Management</h2>
-          <p>Create and manage branch staff, manager, and customer accounts.</p>
+          <h2>Quản lý người dùng</h2>
+          <p>Tạo và quản lý tài khoản nhân viên, quản lý chi nhánh và khách hàng.</p>
         </div>
         <button 
           type="button" 
@@ -224,7 +234,7 @@ export default function AdminUsers() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          Create Staff
+          Tạo nhân viên
         </button>
       </div>
 
@@ -232,11 +242,11 @@ export default function AdminUsers() {
       <div className="glass-filters">
         {/* Search filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="search-input">Search by Name</label>
+          <label className="form-label" htmlFor="search-input">Tìm theo tên</label>
           <input
             id="search-input"
             className="form-input form-input-icon"
-            placeholder="Search by name..."
+            placeholder="Tìm theo tên..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
@@ -249,11 +259,11 @@ export default function AdminUsers() {
 
         {/* Phone filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="phone-input">Phone Number</label>
+          <label className="form-label" htmlFor="phone-input">Số điện thoại</label>
           <input
             id="phone-input"
             className="form-input form-input-icon"
-            placeholder="Filter by phone..."
+            placeholder="Lọc theo số điện thoại..."
             value={phoneNumber}
             onChange={e => { setPhoneNumber(e.target.value); setPage(1); }}
           />
@@ -266,33 +276,33 @@ export default function AdminUsers() {
 
         {/* Role filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="role-select">Role</label>
+          <label className="form-label" htmlFor="role-select">Vai trò</label>
           <select
             id="role-select"
             className="form-input form-select-custom"
             value={role}
             onChange={e => { setRole(e.target.value); setPage(1); }}
           >
-            <option value="">All Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="Manager">Manager</option>
-            <option value="Staff">Staff</option>
-            <option value="Customer">Customer</option>
+            <option value="">Tất cả vai trò</option>
+            <option value="Admin">Quản trị viên</option>
+            <option value="Manager">Quản lý chi nhánh</option>
+            <option value="Staff">Nhân viên</option>
+            <option value="Customer">Khách hàng</option>
           </select>
         </div>
 
         {/* Status filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="status-select">Status</label>
+          <label className="form-label" htmlFor="status-select">Trạng thái</label>
           <select
             id="status-select"
             className="form-input form-select-custom"
             value={isActiveFilter}
             onChange={e => { setIsActiveFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Đã khóa</option>
           </select>
         </div>
 
@@ -301,14 +311,14 @@ export default function AdminUsers() {
           type="button"
           className="btn-reset"
           onClick={handleResetFilters}
-          title="Reset filters"
+          title="Đặt lại bộ lọc"
           disabled={!search && !phoneNumber && !role && isActiveFilter === 'all'}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M23 4v6h-6M1 20v-6h6"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          Clear
+          Đặt lại
         </button>
       </div>
 
@@ -334,18 +344,18 @@ export default function AdminUsers() {
           // Error state
           <div className="empty-state-premium">
             <div className="empty-state-icon-premium">⚠️</div>
-            <h3>Something went wrong</h3>
+            <h3>Đã có lỗi xảy ra</h3>
             <p>{error}</p>
             <button type="button" className="btn btn-secondary btn-sm mt-4" onClick={fetchUsers}>
-              Try Again
+              Thử lại
             </button>
           </div>
         ) : users.length === 0 ? (
           // Empty State
           <div className="empty-state-premium animate-fade-in">
             <div className="empty-state-icon-premium">👥</div>
-            <h3>No users found</h3>
-            <p>We couldn't find any users matching your filter criteria. Try adjusting your search query.</p>
+            <h3>Không tìm thấy người dùng</h3>
+            <p>Không có người dùng nào khớp với tiêu chí tìm kiếm. Hãy thử điều chỉnh từ khóa tìm kiếm.</p>
           </div>
         ) : (
           // Users List
@@ -374,7 +384,7 @@ export default function AdminUsers() {
                         u.role === 'Manager' ? 'badge-warning' : 
                         u.role === 'Staff' ? 'badge-primary' : 'badge-success'
                       }`}>
-                        {u.role}
+                        {getRoleDisplayName(u.role)}
                       </span>
                       
                       {u.email && (
@@ -402,7 +412,7 @@ export default function AdminUsers() {
                 {/* Actions Block */}
                 <div className="user-actions-section">
                   {/* Active Toggle Switch */}
-                  <label className="switch-premium" title={u.isActive ? 'Deactivate user' : 'Activate user'}>
+                  <label className="switch-premium" title={u.isActive ? 'Khóa tài khoản' : 'Kích hoạt tài khoản'}>
                     <input
                       type="checkbox"
                       checked={u.isActive}
@@ -416,7 +426,7 @@ export default function AdminUsers() {
                   <button
                     type="button"
                     className="action-btn-circle"
-                    title="Edit user details"
+                    title="Chỉnh sửa thông tin"
                     style={{ color: 'var(--color-primary)' }}
                     onClick={() => openEditModal(u)}
                   >
@@ -430,7 +440,7 @@ export default function AdminUsers() {
                   <button
                     type="button"
                     className="action-btn-circle"
-                    title="Delete user"
+                    title="Xóa người dùng"
                     disabled={isSelf || u.role === 'Admin'}
                     onClick={() => setUserToDelete(u)}
                   >
@@ -450,7 +460,7 @@ export default function AdminUsers() {
       {!loading && !error && users.length > 0 && (
         <div className="pagination-container-premium animate-fade-in">
           <div className="pagination-stats">
-            Showing <strong>{((page - 1) * pageSize) + 1}</strong> to <strong>{Math.min(page * pageSize, totalCount)}</strong> of <strong>{totalCount}</strong> users
+            Hiển thị <strong>{((page - 1) * pageSize) + 1}</strong> đến <strong>{Math.min(page * pageSize, totalCount)}</strong> trong tổng số <strong>{totalCount}</strong> người dùng
           </div>
           <div className="pagination-buttons">
             <button
@@ -464,7 +474,7 @@ export default function AdminUsers() {
               </svg>
             </button>
             <span className="page-indicator-text">
-              Page {page} of {totalPages}
+              Trang {page} / {totalPages}
             </span>
             <button
               type="button"
@@ -486,9 +496,9 @@ export default function AdminUsers() {
           <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', textAlign: 'left', alignItems: 'stretch' }}>
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>{modalMode === 'edit' ? 'Edit User Details' : 'Create Staff Account'}</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>{modalMode === 'edit' ? 'Chỉnh sửa người dùng' : 'Tạo tài khoản nhân viên'}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                  {modalMode === 'edit' ? 'Update fullname, phone, and role.' : 'Register a new branch staff or manager account.'}
+                  {modalMode === 'edit' ? 'Cập nhật họ tên, số điện thoại và vai trò.' : 'Đăng ký tài khoản nhân viên hoặc quản lý chi nhánh mới.'}
                 </p>
               </div>
               <button 
@@ -510,24 +520,24 @@ export default function AdminUsers() {
               )}
 
               <div className="form-group">
-                <label className="form-label" htmlFor="staff-name">Full Name *</label>
+                <label className="form-label" htmlFor="staff-name">Họ và tên *</label>
                 <input
                   id="staff-name"
                   className="form-input"
                   required
-                  placeholder="e.g. Nguyen Van A"
+                  placeholder="Ví dụ: Nguyễn Văn A"
                   value={modalForm.fullName}
                   onChange={e => setModalForm(prev => ({ ...prev, fullName: e.target.value }))}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="staff-email">Email Address</label>
+                <label className="form-label" htmlFor="staff-email">Địa chỉ Email</label>
                 <input
                   id="staff-email"
                   type="email"
                   className="form-input"
-                  placeholder="e.g. staff@autowashpro.com"
+                  placeholder="Ví dụ: staff@autowashpro.com"
                   value={modalForm.email}
                   disabled={modalMode === 'edit'} // Email is usually unique identity, modify with care
                   onChange={e => setModalForm(prev => ({ ...prev, email: e.target.value }))}
@@ -535,18 +545,18 @@ export default function AdminUsers() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="staff-phone">Phone Number</label>
+                <label className="form-label" htmlFor="staff-phone">Số điện thoại</label>
                 <input
                   id="staff-phone"
                   className="form-input"
-                  placeholder="e.g. 0912345678"
+                  placeholder="Ví dụ: 0912345678"
                   value={modalForm.phoneNumber}
                   onChange={e => setModalForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="staff-role">Role *</label>
+                <label className="form-label" htmlFor="staff-role">Vai trò *</label>
                 {modalMode === 'edit' && (selectedUser?.role === 'Customer' || selectedUser?.role === 'Admin') ? (
                   <select
                     id="staff-role"
@@ -555,7 +565,7 @@ export default function AdminUsers() {
                     disabled
                     style={{ opacity: 0.7, cursor: 'not-allowed' }}
                   >
-                    <option value={modalForm.role}>{modalForm.role}</option>
+                    <option value={modalForm.role}>{getRoleDisplayName(modalForm.role)}</option>
                   </select>
                 ) : (
                   <select
@@ -564,8 +574,8 @@ export default function AdminUsers() {
                     value={modalForm.role}
                     onChange={e => setModalForm(prev => ({ ...prev, role: e.target.value }))}
                   >
-                    <option value="Staff">Staff</option>
-                    <option value="Manager">Manager</option>
+                    <option value="Staff">Nhân viên</option>
+                    <option value="Manager">Quản lý chi nhánh</option>
                   </select>
                 )}
               </div>
@@ -577,7 +587,7 @@ export default function AdminUsers() {
                   onClick={() => setModalMode(null)} 
                   disabled={modalFormLoading}
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button 
                   type="submit" 
@@ -585,8 +595,8 @@ export default function AdminUsers() {
                   disabled={modalFormLoading}
                 >
                   {modalFormLoading 
-                    ? (modalMode === 'edit' ? 'Updating...' : 'Creating...') 
-                    : (modalMode === 'edit' ? 'Save Changes' : 'Create Staff')}
+                    ? (modalMode === 'edit' ? 'Đang cập nhật...' : 'Đang tạo...') 
+                    : (modalMode === 'edit' ? 'Lưu thay đổi' : 'Tạo nhân viên')}
                 </button>
               </div>
             </form>
@@ -596,15 +606,15 @@ export default function AdminUsers() {
 
       <ConfirmModal
         isOpen={!!userToDelete}
-        title="Delete Account"
+        title="Xóa tài khoản"
         variant="danger"
         isLoading={deleteLoading}
         onCancel={() => setUserToDelete(null)}
         onConfirm={handleDeleteConfirm}
-        confirmText="Delete"
+        confirmText="Xóa"
         message={
           <p>
-            Are you sure you want to delete the user{' '}
+            Bạn có chắc chắn muốn xóa người dùng{' '}
             <strong className="highlight-plate">
               {userToDelete?.fullName}
             </strong>?
