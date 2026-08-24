@@ -9,16 +9,16 @@ import './Staff.css'
 const CUSTOM_BRAND_VALUE = '__custom__'
 
 const BOOKING_STATUS_LABEL: Record<number, { label: string; color: string }> = {
-  1: { label: 'Pending', color: 'var(--color-text-muted)' },
-  2: { label: 'Confirmed', color: '#3b82f6' },
-  3: { label: 'Checked In', color: '#6366f1' },
-  4: { label: 'In Progress', color: '#f59e0b' },
-  5: { label: 'Completed', color: 'var(--color-success)' },
-  6: { label: 'Closed', color: 'var(--color-text-dim)' },
-  7: { label: 'Cancelled', color: 'var(--color-danger)' },
+  1: { label: 'Chờ xử lý', color: 'var(--color-text-muted)' },
+  2: { label: 'Đã xác nhận', color: '#3b82f6' },
+  3: { label: 'Đã Check-in', color: '#6366f1' },
+  4: { label: 'Đang rửa', color: '#f59e0b' },
+  5: { label: 'Hoàn thành', color: 'var(--color-success)' },
+  6: { label: 'Đã đóng', color: 'var(--color-text-dim)' },
+  7: { label: 'Đã hủy', color: 'var(--color-danger)' },
 }
 
-const VEHICLE_TYPES: Record<number, string> = { 1: 'Motorbike', 2: 'Car', 3: 'Truck' }
+const VEHICLE_TYPES: Record<number, string> = { 1: 'Xe máy', 2: 'Ô tô', 3: 'Xe tải' }
 
 // Helper to get local date string in YYYY-MM-DD format
 function getLocalDateString(date = new Date()) {
@@ -280,7 +280,7 @@ export default function StaffCustomers() {
       <div className="ops-header" style={{ position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: 'var(--color-primary)', opacity: 0.1, filter: 'blur(50px)', borderRadius: '50%' }}></div>
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h2 style={{ background: 'var(--grad-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Walk-In Booking</h2>
+          <h2 style={{ background: 'var(--grad-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Tiếp Nhận Khách Trực Tiếp</h2>
           <p>Tìm kiếm khách hàng và đăng ký dịch vụ trực tiếp tại cửa hàng.</p>
         </div>
       </div>

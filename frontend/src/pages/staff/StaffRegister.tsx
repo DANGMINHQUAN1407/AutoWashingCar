@@ -21,7 +21,7 @@ export default function StaffRegister() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!fullName.trim()) { setError('Full name is required.'); return }
+    if (!fullName.trim()) { setError('Vui lòng nhập họ và tên khách hàng.'); return }
     setSubmitting(true)
     setError('')
     try {
@@ -35,7 +35,7 @@ export default function StaffRegister() {
       setPhone('')
       setEmail('')
     } catch (e: any) {
-      setError(e?.message || 'Registration failed. Please try again.')
+      setError(e?.message || 'Đăng ký khách hàng thất bại. Vui lòng thử lại.')
     }
     setSubmitting(false)
   }
@@ -50,8 +50,8 @@ export default function StaffRegister() {
       <div className="portal-page">
         <div className="ops-header">
           <div>
-            <h2>Register Customer</h2>
-            <p>Create a new customer account at the counter.</p>
+            <h2>Đăng ký khách hàng</h2>
+            <p>Tạo tài khoản khách hàng mới tại quầy tiếp đón.</p>
           </div>
         </div>
 
@@ -66,14 +66,14 @@ export default function StaffRegister() {
             {result.phoneNumber && <div className="register-result-sub">{result.phoneNumber}</div>}
             {result.email && <div className="register-result-sub">{result.email}</div>}
             <span className="tier-badge tier-badge--guest" style={{ marginTop: 4 }}>
-              {result.isGuest ? 'Guest Account' : 'Member Account'}
+              {result.isGuest ? 'Khách vãng lai' : 'Khách hàng thành viên'}
             </span>
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               <Link to="/staff/customers" className="btn btn-primary btn-sm">
-                Check In Now →
+                Tiếp nhận rửa xe ngay →
               </Link>
               <button className="btn btn-secondary btn-sm" onClick={handleReset}>
-                Register Another
+                Đăng ký khách khác
               </button>
             </div>
           </div>
@@ -86,8 +86,8 @@ export default function StaffRegister() {
     <div className="portal-page">
       <div className="ops-header">
         <div>
-          <h2>Register Customer</h2>
-          <p>Create a new customer account at the counter.</p>
+          <h2>Đăng ký khách hàng</h2>
+          <p>Tạo tài khoản khách hàng mới tại quầy tiếp đón.</p>
         </div>
       </div>
 
@@ -100,14 +100,14 @@ export default function StaffRegister() {
         )}
 
         <form className="checkin-panel" onSubmit={handleSubmit}>
-          <div className="checkin-panel-title">Customer Information</div>
+          <div className="checkin-panel-title">Thông tin khách hàng</div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="reg-name">Full Name *</label>
+            <label className="form-label" htmlFor="reg-name">Họ và tên *</label>
             <input
               id="reg-name"
               className="form-input"
-              placeholder="Nguyen Van A"
+              placeholder="Ví dụ: Nguyễn Văn A"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               required
@@ -115,11 +115,11 @@ export default function StaffRegister() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="reg-phone">Phone Number</label>
+            <label className="form-label" htmlFor="reg-phone">Số điện thoại</label>
             <input
               id="reg-phone"
               className="form-input"
-              placeholder="0901 234 567"
+              placeholder="Ví dụ: 0901 234 567"
               value={phone}
               onChange={e => setPhone(e.target.value)}
             />
@@ -139,7 +139,7 @@ export default function StaffRegister() {
 
           <div style={{ paddingTop: 4 }}>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Registering…' : 'Create Customer Account'}
+              {submitting ? 'Đang đăng ký…' : 'Tạo tài khoản khách hàng'}
             </button>
           </div>
         </form>

@@ -948,22 +948,22 @@ function BookingCard({ booking: b, onCheckin, onStart, onComplete, onClose, onCa
       <div className="ops-actions" style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px dashed var(--color-border-dim)', display: 'grid', gridTemplateColumns: b.bookingStatus === BS.InProgress || b.bookingStatus === BS.Confirmed ? '1fr 1fr' : '1fr', gap: 8 }}>
         {b.bookingStatus === BS.Confirmed && (
           <>
-            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onCheckin(b)} style={{ width: '100%' }}>Check In</button>
-            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', width: '100%', border: '1px solid var(--color-border-dim)' }} disabled={busy} onClick={() => onCancel(b)}>Cancel</button>
+            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onCheckin(b)} style={{ width: '100%' }}>Check-in</button>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', width: '100%', border: '1px solid var(--color-border-dim)' }} disabled={busy} onClick={() => onCancel(b)}>Hủy đơn</button>
           </>
         )}
         {b.bookingStatus === BS.CheckedIn && (
-          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onStart(b)} style={{ width: '100%' }}>Start Wash</button>
+          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onStart(b)} style={{ width: '100%' }}>Bắt đầu rửa</button>
         )}
         {b.bookingStatus === BS.InProgress && (
           <>
             <button className="btn btn-primary btn-sm" style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)', width: '100%' }}
-              disabled={busy} onClick={() => onComplete(b)}>Complete</button>
-            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onServices(b)} style={{ width: '100%' }}>Services</button>
+              disabled={busy} onClick={() => onComplete(b)}>Hoàn thành & Thu tiền</button>
+            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onServices(b)} style={{ width: '100%' }}>Thêm dịch vụ</button>
           </>
         )}
         {b.bookingStatus === BS.Completed && (
-          <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onClose(b)} style={{ width: '100%' }}>Close</button>
+          <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onClose(b)} style={{ width: '100%' }}>Đóng đơn</button>
         )}
       </div>
     </div>
@@ -993,7 +993,7 @@ function OpsColumn({ title, dot, items, cardProps }: ColumnProps) {
               <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
               <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
             </svg>
-            No bookings here
+            Không có lịch hẹn nào
           </div>
         )
         : items.map(b => <BookingCard key={b.bookingId} booking={b} {...cardProps} />)
@@ -1026,7 +1026,7 @@ export default function StaffDashboard() {
       const res = await api.getBookingQueue({ fromDate: d, toDate: d, pageSize: 100 })
       setQueue(res.items)
     } catch (e: any) {
-      setError(e?.message || 'Could not load queue. Make sure the backend is running.')
+      setError(e?.message || 'Không thể tải hàng đợi. Vui lòng thử lại.')
     }
     setLoading(false)
   }, [selectedDate])
@@ -1055,12 +1055,12 @@ export default function StaffDashboard() {
   const withBusy = async (fn: () => Promise<void>) => {
     setBusy(true)
     setError('')
-    try { await fn() } catch { setError('Action failed. Please try again.') }
+    try { await fn() } catch { setError('Thao tác thất bại. Vui lòng thử lại.') }
     setBusy(false)
   }
 
   const handleCheckin = (b: Booking) => {
-    if (!b.bookingCode) { setError('Booking code missing — use "Enter Code" instead.'); return }
+    if (!b.bookingCode) { setError('Thiếu mã đặt lịch — hãy dùng nút "Nhập mã Check-in".'); return }
     withBusy(async () => {
       await api.checkInBookingByCode({ BookingCode: b.bookingCode })
       await loadQueue()
@@ -1092,8 +1092,8 @@ export default function StaffDashboard() {
     <div className="portal-page">
       <div className="ops-header">
         <div>
-          <h2>Operations Board</h2>
-          <p>Manage active services and vehicle queues.</p>
+          <h2>Bảng điều phối vận hành</h2>
+          <p>Theo dõi dịch vụ đang thực hiện và hàng đợi xe tại chi nhánh.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1114,21 +1114,21 @@ export default function StaffDashboard() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
-            Refresh
+            Làm mới
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowCheckinModal(true)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
               <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="4" height="4" />
             </svg>
-            Enter Code
+            Nhập mã Check-in
           </button>
           <Link to="/staff/customers" className="btn btn-premium-glow btn-sm">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
               <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
             </svg>
-            Walk-in
+            Khách vãng lai
           </Link>
         </div>
       </div>
@@ -1141,12 +1141,12 @@ export default function StaffDashboard() {
       )}
 
       {loading
-        ? <div className="ops-loading">Loading queue…</div>
+        ? <div className="ops-loading">Đang tải hàng đợi…</div>
         : (
           <div className="ops-board">
-            <OpsColumn title="Waiting" dot="blue" items={waiting} cardProps={cardProps} />
-            <OpsColumn title="Washing" dot="yellow" items={washing} cardProps={cardProps} />
-            <OpsColumn title="Completed" dot="grey" items={completed} cardProps={cardProps} />
+            <OpsColumn title="Chờ thực hiện" dot="blue" items={waiting} cardProps={cardProps} />
+            <OpsColumn title="Đang rửa xe" dot="yellow" items={washing} cardProps={cardProps} />
+            <OpsColumn title="Đã hoàn thành" dot="grey" items={completed} cardProps={cardProps} />
           </div>
         )
       }
