@@ -106,6 +106,9 @@ public static class ValidationMessage
         public const string OnlyEditWhenEditableStatus            = "Chỉ thêm/sửa dịch vụ khi booking ở trạng thái Confirmed/CheckedIn/InProgress";
         public const string CustomerVehicleNotFound               = "Không tìm thấy xe của khách";
         public const string MustChooseOrCreateVehicle              = "Cần chọn xe có sẵn hoặc khai báo xe mới cho khách";
+        public const string WalkInVehicleChoiceExclusive            = "Walk-in phải chọn đúng một: xe có sẵn hoặc xe mới";
+        public const string WalkInActorMustBeStaff                  = "Tài khoản thực hiện walk-in phải là Staff, Manager hoặc Admin";
+        public const string WalkInStaffNotAtBranch                  = "Nhân viên chỉ được tạo walk-in tại chi nhánh mình phụ trách";
         public const string LicensePlateExistsForCustomer         = "Biển số xe đã tồn tại cho khách này";
         public const string MinRedeemPoints                       = "Số điểm quy đổi tối thiểu là 1.000";
         public const string CodeGenerationFailed                  = "Không sinh được mã booking, vui lòng thử lại";

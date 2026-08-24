@@ -304,7 +304,13 @@ public class BookingService(
     public async Task<BookingDto> CreateWalkInAsync(
         Guid staffId, CreateWalkInBookingRequest request, CancellationToken ct = default)
     {
-        // 1. Khách (staff đặt hộ) phải tồn tại & là Customer
+        // 1. Actor phải là user đang hoạt động và có role vận hành hợp lệ.
+        var actor = await userRepo.GetByIdAsync(staffId)
+            ?? throw AppException.NotFound(ValidationMessage.Booking.StaffNotFound);
+        if (actor.Role is not (UserRole.Staff or UserRole.Manager or UserRole.Admin))
+            throw AppException.Forbidden(ValidationMessage.Booking.WalkInActorMustBeStaff);
+
+        // 2. Khách (staff đặt hộ) phải tồn tại & là Customer.
         var customer = await userRepo.GetByIdAsync(request.CustomerId)
             ?? throw AppException.NotFound(ValidationMessage.Booking.CustomerNotFound);
         if (customer.Role != UserRole.Customer)
@@ -313,9 +319,13 @@ public class BookingService(
         await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
         await bookingRepo.AcquireUserLockAsync(customer.UserId, ct);
 
-        // 2. Slot (tracked để giữ chỗ) — branch lấy từ slot
+        // 3. Slot (tracked để giữ chỗ) — branch lấy từ slot.
         var slot = await bookingRepo.GetSlotForReserveAsync(request.SlotInventoryId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
+
+        // Admin là actor toàn hệ thống; Staff/Manager chỉ được thao tác tại branch của mình.
+        if (actor.Role != UserRole.Admin && actor.BranchId != slot.BranchId)
+            throw AppException.Forbidden(ValidationMessage.Booking.WalkInStaffNotAtBranch);
 
         if (slot.Capacity - (slot.OnlineReservedCount + slot.WalkInReservedCount) <= 0)
             throw AppException.Conflict(ValidationMessage.Booking.SlotFull);
@@ -323,8 +333,8 @@ public class BookingService(
         if (slot.SlotDate.ToDateTime(slot.SlotStartTime) <= DateTime.UtcNow.AddHours(VietnamUtcOffsetHours))
             throw AppException.BadRequest(ValidationMessage.Booking.SlotTimePast);
 
-        // 3. Resolve xe trước để áp dụng đúng pricing theo loại xe/động cơ.
-        var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
+        // 4. Resolve xe trước để áp dụng đúng pricing theo loại xe/động cơ.
+        var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request, ct);
         await bookingRepo.AcquireVehicleLockAsync(vehicle.VehicleId, ct);
         await EnsureVehicleSlotNotOverlappingAsync(vehicle.VehicleId, slot, ct);
 
@@ -1500,10 +1510,18 @@ public class BookingService(
 
     /// <summary>Resolve xe cho walk-in: ưu tiên xe có sẵn của khách, nếu không thì tạo xe ad-hoc.</summary>
     /// <remarks>Gọi: IVehicleRepository.GetByIdAsync / ExistsLicensePlateAsync / CreateAsync.</remarks>
-    private async Task<Vehicle> ResolveWalkInVehicleAsync(Guid customerId, CreateWalkInBookingRequest request)
+    private async Task<Vehicle> ResolveWalkInVehicleAsync(
+        Guid customerId,
+        CreateWalkInBookingRequest request,
+        CancellationToken ct)
     {
-        if (request.ExistingVehicleId is { } vehicleId)
-            return await vehicleRepo.GetByIdAsync(vehicleId, customerId)
+        var hasExistingVehicle = request.ExistingVehicleId.HasValue;
+        var hasNewVehicle = request.NewVehicle is not null;
+        if (hasExistingVehicle == hasNewVehicle)
+            throw AppException.BadRequest(ValidationMessage.Booking.WalkInVehicleChoiceExclusive);
+
+        if (hasExistingVehicle)
+            return await vehicleRepo.GetByIdAsync(request.ExistingVehicleId!.Value, customerId)
                 ?? throw AppException.NotFound(ValidationMessage.Booking.CustomerVehicleNotFound);
 
         if (request.NewVehicle is null)
