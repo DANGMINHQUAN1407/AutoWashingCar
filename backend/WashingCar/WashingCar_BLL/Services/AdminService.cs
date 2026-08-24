@@ -78,7 +78,16 @@ namespace WashingCar_BLL.Services
                 user.PasswordHash = _hasher.HashPassword(user, tempPassword);
                 await _userRepo.CreateAsync(user);
                 if (!string.IsNullOrWhiteSpace(user.Email))
-                    await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName, tempPassword);
+                {
+                    try
+                    {
+                        await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName, tempPassword);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Không thể gửi email đến {Email}", user.Email);
+                    }
+                }
 
                 return user.ToDto();
             }
@@ -102,8 +111,8 @@ namespace WashingCar_BLL.Services
             var user = await _userRepo.GetByIdIncludeInactiveAsync(userId)
                 ?? throw AppException.NotFound(ValidationMessage.Common.UserNotFound);
 
-            // 2. Validate Role — admin chỉ được set Staff/Manager
-            if (request.Role != UserRole.Staff && request.Role != UserRole.Manager)
+            // 2. Validate Role — admin được set Customer/Staff/Manager, không cho nâng thành Admin qua API
+            if (request.Role != UserRole.Customer && request.Role != UserRole.Staff && request.Role != UserRole.Manager)
                 throw AppException.BadRequest(ValidationMessage.Common.InvalidRole);
 
             // 3. Nếu Email thay đổi → check trùng với user khác

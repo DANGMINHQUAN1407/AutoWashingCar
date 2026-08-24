@@ -152,7 +152,7 @@ export default function AdminUsers() {
       fullName: user.fullName,
       email: user.email || '',
       phoneNumber: user.phoneNumber || '',
-      role: user.role === 'Admin' || user.role === 'Customer' ? 'Staff' : user.role, // Only allow Staff/Manager roles
+      role: user.role === 'Admin' ? 'Staff' : user.role,
     })
     setModalFormError(null)
     setModalMode('edit')
@@ -186,7 +186,7 @@ export default function AdminUsers() {
 
       if (modalMode === 'create') {
         await api.createStaff(payload)
-        showToast('Tạo tài khoản nhân viên thành công. Mật khẩu tạm thời đã gửi qua email.', 'success')
+        showToast('Tạo tài khoản nhân viên thành công. Nếu có email hợp lệ, hệ thống sẽ gửi mật khẩu tạm thời.', 'success')
       } else if (modalMode === 'edit' && selectedUser) {
         await api.updateUser(selectedUser.userId, payload)
         showToast('Cập nhật thông tin người dùng thành công.', 'success')
@@ -553,6 +553,7 @@ export default function AdminUsers() {
                   value={modalForm.role}
                   onChange={e => setModalForm(prev => ({ ...prev, role: e.target.value }))}
                 >
+                  {modalMode === 'edit' && <option value="Customer">Customer</option>}
                   <option value="Staff">Staff</option>
                   <option value="Manager">Manager</option>
                 </select>

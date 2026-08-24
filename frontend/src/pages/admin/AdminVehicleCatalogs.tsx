@@ -232,7 +232,7 @@ export default function AdminVehicleCatalogs() {
           className={`btn ${activeTab === 'brand' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => handleTabChange('brand')}
         >
-          HÃ£ng Xe
+          Hãng Xe
         </button>
       </div>
 
