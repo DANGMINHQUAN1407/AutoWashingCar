@@ -32,6 +32,8 @@ public class BookingService(
     IPaymentRepository        paymentRepo,
     IVehicleBodyStyleCatalogRepository bodyStyleCatalogRepo,
     IVehicleBrandCatalogRepository brandCatalogRepo,
+    IVehicleEngineCatalogRepository engineCatalogRepo,
+    IServicePricingService       pricingService,
     ILogger<BookingService>   logger) : IBookingService
 {
     // Slot lưu theo giờ địa phương; VN = UTC+7 (không DST). Xem WashingCar_Common.Helpers.VietnamTimeHelper.
@@ -97,18 +99,17 @@ public class BookingService(
         var slot = await bookingRepo.GetSlotForReserveAsync(request.SlotInventoryId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Slot.NotFound);
 
-        Vehicle? vehicle = null;
-        if (request.VehicleId.HasValue)
-        {
-            vehicle = await vehicleRepo.GetByIdAsync(request.VehicleId.Value, userId)
-                ?? throw AppException.NotFound(ValidationMessage.Booking.MyVehicleNotFound);
-        }
+        var vehicle = await vehicleRepo.GetByIdAsync(request.VehicleId, userId)
+            ?? throw AppException.NotFound(ValidationMessage.Booking.MyVehicleNotFound);
 
-        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
+        var lines = await BuildLinesAsync(
+            slot.BranchId,
+            request.Services,
+            vehicle.VehicleType,
+            vehicle.EngineCatalogId,
+            ct);
         var serviceSubtotal = lines.Sum(line => line.LineTotal);
-        var vehicleSurcharge = vehicle is null
-            ? (Condition: VehicleCondition.Standard, Rate: 0m, Amount: 0m)
-            : CalculateVehicleSurcharge(vehicle, serviceSubtotal);
+        var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
         var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
         var discount = 0m;
 
@@ -129,9 +130,7 @@ public class BookingService(
         {
             Lines                   = [.. lines.Select(line => line.ToDto())],
             ServiceSubtotal          = serviceSubtotal,
-            VehicleCondition         = vehicle is null
-                ? null
-                : VehicleConditionPolicy.GetCondition(vehicle.ManufactureYear).ToString(),
+            VehicleCondition         = VehicleConditionPolicy.GetCondition(vehicle.ManufactureYear).ToString(),
             VehicleSurchargeRate     = vehicleSurcharge.Rate,
             VehicleSurchargeAmount   = vehicleSurcharge.Amount,
             Subtotal                 = subtotal,
@@ -176,8 +175,13 @@ public class BookingService(
         // 3. Booking limit của Customer và không cho cùng xe trùng thời gian.
         await ValidateOnlineBookingLimitsAsync(userId, vehicle.VehicleId, slot, ct);
 
-        // 4. Dựng booking lines (snapshot giá) và phụ thu theo tình trạng xe.
-        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
+        // 4. Dựng booking lines theo loại xe/động cơ và snapshot giá.
+        var lines = await BuildLinesAsync(
+            slot.BranchId,
+            request.Services,
+            vehicle.VehicleType,
+            vehicle.EngineCatalogId,
+            ct);
         var serviceSubtotal = lines.Sum(line => line.LineTotal);
         var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
         var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
@@ -319,14 +323,18 @@ public class BookingService(
         if (slot.SlotDate.ToDateTime(slot.SlotStartTime) <= DateTime.UtcNow.AddHours(VietnamUtcOffsetHours))
             throw AppException.BadRequest(ValidationMessage.Booking.SlotTimePast);
 
-        // 3. Dựng booking lines trước để validate dịch vụ, sau đó resolve xe và phụ thu.
-        var lines = await BuildLinesAsync(slot.BranchId, request.Services, ct);
-        var serviceSubtotal = lines.Sum(line => line.LineTotal);
-
-        // 4. Xe của khách: chọn xe có sẵn hoặc tạo mới ad-hoc sau khi đã validate dịch vụ.
+        // 3. Resolve xe trước để áp dụng đúng pricing theo loại xe/động cơ.
         var vehicle = await ResolveWalkInVehicleAsync(customer.UserId, request);
         await bookingRepo.AcquireVehicleLockAsync(vehicle.VehicleId, ct);
         await EnsureVehicleSlotNotOverlappingAsync(vehicle.VehicleId, slot, ct);
+
+        var lines = await BuildLinesAsync(
+            slot.BranchId,
+            request.Services,
+            vehicle.VehicleType,
+            vehicle.EngineCatalogId,
+            ct);
+        var serviceSubtotal = lines.Sum(line => line.LineTotal);
 
         var vehicleSurcharge = CalculateVehicleSurcharge(vehicle, serviceSubtotal);
         var subtotal = serviceSubtotal + vehicleSurcharge.Amount;
@@ -604,7 +612,16 @@ public class BookingService(
         if (booking.BookingLines.Any(line => line.ServiceCatalogItemId == request.ServiceCatalogItemId))
             throw AppException.BadRequest(ValidationMessage.Booking.DuplicateServiceSelection);
 
-        var line = await BuildLineAsync(booking.BranchId, request.ServiceCatalogItemId, request.Quantity, ct);
+        var vehicle = booking.Vehicle
+            ?? throw AppException.BadRequest(ValidationMessage.ServicePricing.BookingVehicleRequired);
+
+        var line = await BuildLineAsync(
+            booking.BranchId,
+            request.ServiceCatalogItemId,
+            request.Quantity,
+            vehicle.VehicleType,
+            vehicle.EngineCatalogId,
+            ct);
         booking.BookingLines.Add(line);
         await ValidateBookingLinePackagePolicyAsync(booking.BookingLines);
         Recalculate(booking);
@@ -1210,7 +1227,11 @@ public class BookingService(
     /// expand thành các Leaf active; Group không bao giờ trở thành BookingLine.
     /// </summary>
     private async Task<List<BookingLine>> BuildLinesAsync(
-        Guid branchId, List<BookingServiceSelection> selections, CancellationToken ct)
+        Guid branchId,
+        List<BookingServiceSelection> selections,
+        byte vehicleType,
+        Guid? engineCatalogId,
+        CancellationToken ct)
     {
         if (selections is null || selections.Count == 0)
             throw AppException.BadRequest(ValidationMessage.Booking.MustSelectAtLeastOneService);
@@ -1229,9 +1250,23 @@ public class BookingService(
                 PackageType: (ServicePackageType)item.Service.ServicePackageType))
             .ToArray());
 
-        return loaded
-            .Select(item => CreateBookingLine(item.Service, item.Selection.Quantity))
-            .ToList();
+        var lines = new List<BookingLine>(loaded.Count);
+        foreach (var item in loaded)
+        {
+            var pricing = await pricingService.ResolveAsync(
+                item.Service.ServiceCatalogItemId,
+                vehicleType,
+                engineCatalogId,
+                ct);
+
+            if (pricing is null)
+                throw AppException.BadRequest(
+                    ValidationMessage.ServicePricing.NotAvailable(item.Service.ServiceName));
+
+            lines.Add(CreateBookingLine(item.Service, item.Selection.Quantity, pricing));
+        }
+
+        return lines;
     }
 
     /// <summary>
@@ -1372,10 +1407,25 @@ public class BookingService(
     /// <summary>Dựng 1 BookingLine: validate dịch vụ active + thuộc chi nhánh, snapshot giá.</summary>
     /// <remarks>Gọi: IServiceCatalogRepository.GetByIdAsync → IBranchRepository.GetBranchServiceAsync.</remarks>
     private async Task<BookingLine> BuildLineAsync(
-        Guid branchId, Guid serviceCatalogItemId, short quantity, CancellationToken ct)
+        Guid branchId,
+        Guid serviceCatalogItemId,
+        short quantity,
+        byte vehicleType,
+        Guid? engineCatalogId,
+        CancellationToken ct)
     {
         var service = await LoadServiceForBookingAsync(branchId, serviceCatalogItemId, ct);
-        return CreateBookingLine(service, quantity);
+        var pricing = await pricingService.ResolveAsync(
+            serviceCatalogItemId,
+            vehicleType,
+            engineCatalogId,
+            ct);
+
+        if (pricing is null)
+            throw AppException.BadRequest(
+                ValidationMessage.ServicePricing.NotAvailable(service.ServiceName));
+
+        return CreateBookingLine(service, quantity, pricing);
     }
 
     private async Task<ServiceCatalogItem> LoadServiceForBookingAsync(
@@ -1399,17 +1449,20 @@ public class BookingService(
         return service;
     }
 
-    private static BookingLine CreateBookingLine(ServiceCatalogItem service, short quantity)
+    private static BookingLine CreateBookingLine(
+        ServiceCatalogItem service,
+        short quantity,
+        WashingCar_Domain.DTOs.ServicePricing.ServicePricingResolution pricing)
     {
         var qty = quantity < 1 ? (short)1 : quantity;
         return new BookingLine
         {
             ServiceCatalogItemId = service.ServiceCatalogItemId,
             ServiceName          = service.ServiceName,
-            UnitPrice            = service.BasePrice,
-            DurationMinutes      = service.DurationMinutes,
+            UnitPrice            = pricing.UnitPrice,
+            DurationMinutes      = pricing.DurationMinutes,
             Quantity             = qty,
-            LineTotal            = service.BasePrice * qty,
+            LineTotal            = pricing.UnitPrice * qty,
         };
     }
 
@@ -1464,6 +1517,14 @@ public class BookingService(
             ? await bodyStyleCatalogRepo.GetByIdAsync(bodyStyleId)
                 ?? throw AppException.NotFound("Không tìm thấy kiểu dáng xe.")
             : null;
+
+        var engineCatalog = request.NewVehicle.EngineCatalogId is { } engineId
+            ? await engineCatalogRepo.GetByIdAsync(engineId)
+                ?? throw AppException.NotFound(ValidationMessage.ServicePricing.EngineNotFound)
+            : null;
+
+        if (engineCatalog is not null && !engineCatalog.IsActive)
+            throw AppException.BadRequest(ValidationMessage.ServicePricing.EngineInactive);
 
         var brandCatalog = request.NewVehicle.BrandCatalogId is { } brandId
             ? await brandCatalogRepo.GetByIdAsync(brandId)

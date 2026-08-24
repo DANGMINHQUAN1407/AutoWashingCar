@@ -24,6 +24,7 @@ public class BranchService(
     IBranchRepository branchRepo,
     IUserRepository userRepo,
     IServiceCatalogRepository serviceCatalogRepo,
+    IServiceVehiclePricingRepository pricingRepo,
     ILogger<BranchService> logger) : IBranchService
 {
     private async Task<Branch> GetBranchForManagerScopeAsync(
@@ -295,6 +296,12 @@ public class BranchService(
                 ?? throw AppException.NotFound(ValidationMessage.ServiceCatalog.NotFound);
             if (catalogItem.ServiceNodeType == (byte)ServiceNodeType.Group)
                 throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupCannotBeAssignedToBranch);
+            if (!catalogItem.IsActive)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.ServiceInactive);
+
+            var pricingRules = await pricingRepo.GetForServiceAsync(serviceId, includeInactive: false, ct: ct);
+            if (pricingRules.Count == 0)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.NoActiveRule);
 
             var existing = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct);
             if (existing is not null)
@@ -333,6 +340,18 @@ public class BranchService(
 
         var bs = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Branch.ServiceNotAssigned);
+
+        if (isActive)
+        {
+            var catalogItem = await serviceCatalogRepo.GetByIdAsync(serviceId)
+                ?? throw AppException.NotFound(ValidationMessage.ServiceCatalog.NotFound);
+            if (!catalogItem.IsActive)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.ServiceInactive);
+
+            var pricingRules = await pricingRepo.GetForServiceAsync(serviceId, includeInactive: false, ct: ct);
+            if (pricingRules.Count == 0)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.NoActiveRule);
+        }
 
         bs.IsActive = isActive;
         await branchRepo.SaveChangesAsync(ct);

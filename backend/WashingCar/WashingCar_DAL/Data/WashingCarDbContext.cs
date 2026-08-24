@@ -40,6 +40,8 @@ public partial class WashingCarDbContext : DbContext
 
     public virtual DbSet<ServiceCatalogItem> ServiceCatalogItems { get; set; }
 
+    public virtual DbSet<ServiceVehiclePricing> ServiceVehiclePricings { get; set; }
+
     public virtual DbSet<SlotInventory> SlotInventories { get; set; }
 
     public virtual DbSet<TenderAllocation> TenderAllocations { get; set; }
@@ -478,6 +480,59 @@ public partial class WashingCarDbContext : DbContext
                     "CK_ServiceCatalogItem_GroupBillingFields",
                     "([ServiceNodeType] = 1 AND [BasePrice] = 0 AND [DurationMinutes] = 0) OR [ServiceNodeType] = 2");
             });
+        });
+
+        modelBuilder.Entity<ServiceVehiclePricing>(entity =>
+        {
+            entity.ToTable("ServiceVehiclePricing", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_UnitPrice",
+                    "[UnitPrice] > 0");
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_DurationMinutes",
+                    "[DurationMinutes] > 0");
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_VehicleType",
+                    "[VehicleType] IN (1, 2, 3)");
+            });
+
+            entity.Property(e => e.ServiceVehiclePricingId)
+                .HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.VehicleType)
+                .HasColumnType("tinyint");
+            entity.Property(e => e.UnitPrice)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DurationMinutes)
+                .HasColumnType("smallint");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(3);
+
+            entity.HasIndex(e => new { e.ServiceCatalogItemId, e.VehicleType, e.EngineCatalogId })
+                .HasDatabaseName("UX_ServiceVehiclePricing_ExactScope")
+                .IsUnique()
+                .HasFilter("[EngineCatalogId] IS NOT NULL");
+            entity.HasIndex(e => new { e.ServiceCatalogItemId, e.VehicleType })
+                .HasDatabaseName("UX_ServiceVehiclePricing_DefaultScope")
+                .IsUnique()
+                .HasFilter("[EngineCatalogId] IS NULL");
+
+            entity.HasOne(e => e.ServiceCatalogItem)
+                .WithMany(e => e.ServiceVehiclePricings)
+                .HasForeignKey(e => e.ServiceCatalogItemId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ServiceVehiclePricing_Service");
+
+            entity.HasOne(e => e.EngineCatalog)
+                .WithMany(e => e.ServiceVehiclePricings)
+                .HasForeignKey(e => e.EngineCatalogId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ServiceVehiclePricing_EngineCatalog");
         });
 
         modelBuilder.Entity<SlotInventory>(entity =>

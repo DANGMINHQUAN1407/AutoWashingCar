@@ -186,6 +186,25 @@ public static class ValidationMessage
         public const string ActiveChildrenPreventGroupDeactivation = "Không thể vô hiệu hóa nhóm khi còn dịch vụ con đang hoạt động";
     }
 
+    public static class ServicePricing
+    {
+        public const string NotFound = "Không tìm thấy cấu hình giá dịch vụ";
+        public const string ServiceNotFound = "Không tìm thấy dịch vụ để cấu hình giá";
+        public const string ServiceMustBeLeaf = "Chỉ dịch vụ leaf mới được cấu hình giá";
+        public const string ServiceInactive = "Không thể cấu hình giá cho dịch vụ đang ngừng hoạt động";
+        public const string InvalidVehicleType = "Loại xe không được hỗ trợ";
+        public const string DuplicateScope = "Dịch vụ đã có cấu hình giá cho loại xe và động cơ này";
+        public const string EngineNotFound = "Không tìm thấy loại động cơ";
+        public const string EngineInactive = "Loại động cơ đang ngừng sử dụng";
+        public const string EngineVehicleTypeMismatch = "Loại động cơ không phù hợp với loại xe";
+        public const string CannotDeactivateLastRule = "Không thể vô hiệu hóa cấu hình giá cuối cùng của dịch vụ đang hoạt động";
+        public const string BookingVehicleRequired = "Booking phải có xe để xác định bảng giá";
+        public const string NoActiveRule = "Dịch vụ chưa có cấu hình giá active cho bất kỳ loại xe nào";
+
+        public static string NotAvailable(string serviceName) =>
+            $"Dịch vụ '{serviceName}' chưa được cấu hình cho loại xe/động cơ này";
+    }
+
     public static class Loyalty
     {
         public const string AccountNotFound          = "Người dùng chưa có tài khoản loyalty";

@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IVehicleBodyStyleCatalogRepository, VehicleBodyStyleCatalogRepository>();
         services.AddScoped<IVehicleBrandCatalogRepository, VehicleBrandCatalogRepository>();
         services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
+        services.AddScoped<IServiceVehiclePricingRepository, ServiceVehiclePricingRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IVoucherRepository, VoucherRepository>();
         services.AddScoped<ISlotRepository, SlotRepository>();

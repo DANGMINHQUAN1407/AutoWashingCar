@@ -56,7 +56,7 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
         var totalVehicles = await db.Vehicles.AsNoTracking().CountAsync(ct);
 
         var vouchersUsed = await db.Bookings.AsNoTracking()
-            .CountAsync(b => b.VoucherId != null, ct);
+            .CountAsync(b => b.UserVoucherId != null, ct);
 
         var pointsRedeemed = await db.LoyaltyLedgerEntries.AsNoTracking()
             .Where(l => l.Points < 0)
