@@ -68,11 +68,9 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var s = query.Search.Trim().ToLower();
-            q = q.Where(u =>
-                (u.Email != null && u.Email.ToLower().Contains(s)) ||
-                u.FullName.ToLower().Contains(s) ||
-                (u.PhoneNumber != null && u.PhoneNumber.ToLower().Contains(s)));
+            var search = query.Search.Trim();
+            q = q.Where(u => EF.Functions.Like(EF.Functions.Collate(u.FullName, "SQL_Latin1_General_CP1_CI_AI"), $"%{search}%")
+                          || EF.Functions.Like(u.FullName, $"%{search}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(query.PhoneNumber))
