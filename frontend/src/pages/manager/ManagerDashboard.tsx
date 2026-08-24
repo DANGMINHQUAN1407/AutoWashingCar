@@ -9,8 +9,8 @@ import './ManagerDashboard.css'
 const WEEK_LABELS = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4', 'Tuần 5', 'Tuần 6', 'Tuần 7', 'Tuần 8', 'Tuần 9', 'Tuần 10']
 
 function getSingleLineChartData(revenueWeeks: number[] = [], weeklyAmounts: number[] = []) {
-  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [25, 48, 22, 42, 58, 30, 88, 46, 52, 40]
-  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(p => p * 35000)
+  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(() => 0)
   const n = pcts.length
   
   const width = 800

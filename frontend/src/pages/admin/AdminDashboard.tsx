@@ -7,8 +7,8 @@ import '../manager/ManagerDashboard.css'
 import './AdminDashboard.css'
 
 function getWaveTrendChartData(revenueWeeks: number[] = [], weeklyAmounts: number[] = []) {
-  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [52, 28, 68, 35, 78, 48, 92, 55, 72, 58]
-  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(p => p * 35000)
+  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(() => 0)
   const n = pcts.length
   
   const width = 680
@@ -25,14 +25,14 @@ function getWaveTrendChartData(revenueWeeks: number[] = [], weeklyAmounts: numbe
   let maxPct = -1
   const points = pcts.map((pct, i) => {
     const x = padLeft + (i / (n - 1)) * innerW
-    const clamped = Math.max(12, Math.min(88, pct))
-    const y = padTop + (1 - clamped / 100) * innerH
+    const clamped = Math.max(0, Math.min(100, pct))
+    const y = padTop + (1 - (clamped > 0 ? Math.max(12, Math.min(88, clamped)) : 0) / 100) * innerH
     if (clamped > maxPct) {
       maxPct = clamped
       peakIdx = i
     }
     const amt = amts[i] ?? 0
-    const label = amt >= 1000000 ? `${(amt / 1000000).toFixed(1)}M` : amt > 0 ? `${(amt / 1000).toFixed(0)}k` : '8.6M'
+    const label = amt >= 1000000 ? `${(amt / 1000000).toFixed(1)}M` : amt > 0 ? `${(amt / 1000).toFixed(0)}k` : '0 đ'
     return { x, y, pct: clamped, amt, label, weekLabel: `Tuần ${i + 1}`, isPeak: false }
   })
 
