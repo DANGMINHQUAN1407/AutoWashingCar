@@ -34,14 +34,14 @@ export function getHomePathForRole(role: UserRole | null): string {
 export function getRoleLabel(role: UserRole): string {
   switch (role) {
     case UserRole.Admin:
-      return 'Administrator'
+      return 'Quản trị viên'
     case UserRole.Manager:
-      return 'Branch Manager'
+      return 'Quản lý chi nhánh'
     case UserRole.Staff:
-      return 'Staff'
+      return 'Nhân viên vận hành'
     case UserRole.Customer:
-      return 'Customer'
+      return 'Khách hàng'
     default:
-      return 'User'
+      return 'Người dùng'
   }
 }

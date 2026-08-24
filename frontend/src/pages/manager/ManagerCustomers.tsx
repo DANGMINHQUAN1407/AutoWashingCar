@@ -184,8 +184,8 @@ export default function ManagerCustomers() {
     <div className="portal-page manager-customers-container">
       <div className="dash-header">
         <div>
-          <h2>Customers & Loyalty Management</h2>
-          <p>Lookup branch customers, view their active tier, and manage loyalty points adjustments.</p>
+          <h2>Quản lý khách hàng & Điểm thưởng</h2>
+          <p>Tra cứu thông tin khách hàng, xem hạng thành viên và điều chỉnh điểm tích lũy.</p>
         </div>
       </div>
 
@@ -193,12 +193,12 @@ export default function ManagerCustomers() {
       <div className="card search-card">
         <form onSubmit={handleSearch} className="customer-search-form">
           <div className="form-group flex-grow">
-            <label className="form-label" htmlFor="manager-phone-search">Search Customer by Phone Number</label>
+            <label className="form-label" htmlFor="manager-phone-search">Tìm kiếm khách hàng bằng Số điện thoại</label>
             <div className="search-input-wrapper">
               <input
                 id="manager-phone-search"
                 className="form-input"
-                placeholder="Enter customer phone (e.g., 0912345678)..."
+                placeholder="Nhập số điện thoại khách hàng (Ví dụ: 0912345678)..."
                 value={phoneSearch}
                 onChange={(e) => setPhoneSearch(e.target.value)}
               />
@@ -207,7 +207,7 @@ export default function ManagerCustomers() {
                 className="btn btn-primary search-submit-btn"
                 disabled={searchLoading || !phoneSearch.trim()}
               >
-                {searchLoading ? 'Searching...' : 'Search'}
+                {searchLoading ? 'Đang tìm...' : 'Tìm kiếm'}
               </button>
             </div>
           </div>
@@ -227,35 +227,35 @@ export default function ManagerCustomers() {
           <div className="workspace-left">
             {/* Customer profile details */}
             <div className="card customer-details-card">
-              <h3 className="workspace-card-title">👤 Customer Profile</h3>
+              <h3 className="workspace-card-title">👤 Thông tin khách hàng</h3>
               <div className="profile-details-grid">
                 <div className="detail-item">
-                  <span className="detail-lbl">Full Name</span>
+                  <span className="detail-lbl">Họ và tên</span>
                   <strong className="detail-val">{customer.fullName ?? customer.FullName}</strong>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-lbl">Phone Number</span>
-                  <span className="detail-val">{customer.phoneNumber ?? customer.PhoneNumber ?? 'N/A'}</span>
+                  <span className="detail-lbl">Số điện thoại</span>
+                  <span className="detail-val">{customer.phoneNumber ?? customer.PhoneNumber ?? 'Chưa cập nhật'}</span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-lbl">Email Address</span>
-                  <span className="detail-val">{customer.email ?? customer.Email ?? 'N/A'}</span>
+                  <span className="detail-lbl">Địa chỉ Email</span>
+                  <span className="detail-val">{customer.email ?? customer.Email ?? 'Chưa cập nhật'}</span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-lbl">Guest Account</span>
+                  <span className="detail-lbl">Loại tài khoản</span>
                   <span className={`badge ${customer.isGuest ? 'badge-secondary' : 'badge-primary'}`}>
-                    {customer.isGuest ? 'Guest (Walk-in)' : 'Registered'}
+                    {customer.isGuest ? 'Khách vãng lai' : 'Khách hàng thành viên'}
                   </span>
                 </div>
               </div>
 
               {customer.vehicles && customer.vehicles.length > 0 && (
                 <div className="customer-vehicles-section">
-                  <h4 className="detail-lbl">Registered Vehicles</h4>
+                  <h4 className="detail-lbl">Danh sách xe đã đăng ký</h4>
                   <div className="vehicle-pills">
                     {customer.vehicles.map((v: any, idx: number) => (
                       <span key={idx} className="vehicle-pill">
-                        🚗 {v.licensePlate ?? v.LicensePlate} ({v.brand ?? v.Brand ?? 'Unknown Brand'})
+                        🚗 {v.licensePlate ?? v.LicensePlate} ({v.brand ?? v.Brand ?? 'Xe khác'})
                       </span>
                     ))}
                   </div>
@@ -265,26 +265,26 @@ export default function ManagerCustomers() {
 
             {/* Loyalty points summary */}
             <div className="card loyalty-summary-card">
-              <h3 className="workspace-card-title">⭐ Loyalty Information</h3>
+              <h3 className="workspace-card-title">⭐ Thông tin hạng & Điểm thưởng</h3>
               {loyaltyLoading ? (
-                <div className="card-loading">Loading loyalty profile...</div>
+                <div className="card-loading">Đang tải thông tin điểm...</div>
               ) : (
                 <div className="loyalty-stats-grid">
                   <div className="loyalty-stat-box">
-                    <span className="stat-lbl">Active Tier</span>
+                    <span className="stat-lbl">Hạng hiện tại</span>
                     <strong className="stat-val-tier">{tierName}</strong>
                   </div>
                   <div className="loyalty-stat-box">
-                    <span className="stat-lbl">Current Balance</span>
-                    <strong className="stat-val-points">{currentPoints.toLocaleString()} pts</strong>
+                    <span className="stat-lbl">Điểm khả dụng</span>
+                    <strong className="stat-val-points">{currentPoints.toLocaleString()} điểm</strong>
                   </div>
                   <div className="loyalty-stat-box">
-                    <span className="stat-lbl">Lifetime Points</span>
-                    <span className="stat-val-sub">{lifetimePoints.toLocaleString()} pts</span>
+                    <span className="stat-lbl">Tổng điểm trọn đời</span>
+                    <span className="stat-val-sub">{lifetimePoints.toLocaleString()} điểm</span>
                   </div>
                   <div className="loyalty-stat-box">
-                    <span className="stat-lbl">Earn Multiplier</span>
-                    <span className="stat-val-sub">{Math.round(earnRate * 100)}% ({earnRate}x)</span>
+                    <span className="stat-lbl">Hệ số tích điểm</span>
+                    <span className="stat-val-sub">{Math.round(earnRate * 100)}% (x{earnRate})</span>
                   </div>
                 </div>
               )}
@@ -292,7 +292,7 @@ export default function ManagerCustomers() {
 
             {/* Adjustment Form Card */}
             <div className="card adjustment-card">
-              <h3 className="workspace-card-title">⚙️ Adjust Loyalty Points</h3>
+              <h3 className="workspace-card-title">⚙️ Điều chỉnh điểm tích lũy</h3>
               <form onSubmit={handleAdjustPoints} className="adjustment-form">
                 <div className="adjustment-type-toggle">
                   <button
@@ -300,23 +300,23 @@ export default function ManagerCustomers() {
                     className={`toggle-option ${adjustType === 'add' ? 'active-add' : ''}`}
                     onClick={() => setAdjustType('add')}
                   >
-                    ➕ Reward Points
+                    ➕ Thưởng điểm
                   </button>
                   <button
                     type="button"
                     className={`toggle-option ${adjustType === 'deduct' ? 'active-deduct' : ''}`}
                     onClick={() => setAdjustType('deduct')}
                   >
-                    ➖ Deduct Points
+                    ➖ Khấu trừ điểm
                   </button>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="adjust-points-amount">Points Amount</label>
+                  <label className="form-label" htmlFor="adjust-points-amount">Số lượng điểm</label>
                   <input
                     id="adjust-points-amount"
                     className="form-input"
-                    placeholder="Enter points value (e.g., 200)..."
+                    placeholder="Nhập số điểm cần điều chỉnh (Ví dụ: 200)..."
                     type="number"
                     min="1"
                     value={adjustPointsValue}
@@ -332,11 +332,11 @@ export default function ManagerCustomers() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="adjust-description">Reason / Description</label>
+                  <label className="form-label" htmlFor="adjust-description">Lý do điều chỉnh</label>
                   <textarea
                     id="adjust-description"
                     className="form-input text-area-input"
-                    placeholder="Provide a reason (e.g., Points reward for booking delay, promotion adjustment)..."
+                    placeholder="Nhập lý do (Ví dụ: Thưởng điểm vì hỗ trợ khách, điều chỉnh khuyến mãi)..."
                     rows={3}
                     value={adjustDescription}
                     onChange={(e) => setAdjustDescription(e.target.value)}
@@ -349,7 +349,7 @@ export default function ManagerCustomers() {
                   className={`btn ${adjustType === 'add' ? 'btn-primary' : 'btn-danger'} w-full`}
                   disabled={isAdjusting || !adjustPointsValue}
                 >
-                  {isAdjusting ? 'Processing adjustment...' : adjustType === 'add' ? 'Confirm Reward' : 'Confirm Deduction'}
+                  {isAdjusting ? 'Đang xử lý...' : adjustType === 'add' ? 'Xác nhận thưởng điểm' : 'Xác nhận trừ điểm'}
                 </button>
               </form>
             </div>
@@ -358,30 +358,30 @@ export default function ManagerCustomers() {
           {/* Right panel: Points Ledger History */}
           <div className="workspace-right">
             <div className="card ledger-history-card">
-              <h3 className="workspace-card-title">📜 Points Transaction Ledger</h3>
+              <h3 className="workspace-card-title">📜 Nhật ký lịch sử điểm thưởng</h3>
               
               {loyaltyLoading ? (
-                <div className="card-loading">Loading transaction history...</div>
+                <div className="card-loading">Đang tải lịch sử điểm...</div>
               ) : history.length === 0 ? (
                 <div className="empty-ledger">
-                  <p>No transaction history recorded for this customer.</p>
+                  <p>Chưa có lịch sử giao dịch tích điểm nào cho khách hàng này.</p>
                 </div>
               ) : (
                 <>
                   <div className="ledger-list">
                     {history.map((item) => {
-                      const isCredit = item.entryTypeName === 'Earn' || item.entryTypeName === 'Adjust' && item.points > 0
+                      const isCredit = item.entryTypeName === 'Earn' || (item.entryTypeName === 'Adjust' && item.points > 0)
                       const isDebit = item.points < 0 || item.entryTypeName === 'Redeem'
                       const displayPoints = item.points > 0 ? `+${item.points}` : item.points
                       
                       return (
                         <div key={item.loyaltyLedgerEntryId} className="ledger-item">
                           <div className="ledger-meta">
-                            <span className="ledger-desc">{item.description || 'Points change'}</span>
+                            <span className="ledger-desc">{item.description || 'Thay đổi điểm'}</span>
                             <span className="ledger-date">
-                              {new Date(item.createdAtUtc || item.CreatedAtUtc).toLocaleString(undefined, {
+                              {new Date(item.createdAtUtc || item.CreatedAtUtc).toLocaleString('vi-VN', {
                                 year: 'numeric',
-                                month: 'short',
+                                month: 'numeric',
                                 day: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -390,9 +390,9 @@ export default function ManagerCustomers() {
                           </div>
                           <div className="ledger-nums">
                             <span className={`ledger-points ${isCredit ? 'points-credit' : isDebit ? 'points-debit' : ''}`}>
-                              {displayPoints} pts
+                              {displayPoints} điểm
                             </span>
-                            <span className="ledger-balance">Balance: {item.balanceAfter} pts</span>
+                            <span className="ledger-balance">Số dư: {item.balanceAfter} điểm</span>
                           </div>
                         </div>
                       )
@@ -407,15 +407,15 @@ export default function ManagerCustomers() {
                         disabled={historyPage === 1}
                         className="btn btn-ghost btn-sm"
                       >
-                        ← Prev
+                        ← Trang trước
                       </button>
-                      <span className="ledger-page-indicator">Page {historyPage} / {Math.ceil(historyTotal / historyPageSize)}</span>
+                      <span className="ledger-page-indicator">Trang {historyPage} / {Math.ceil(historyTotal / historyPageSize)}</span>
                       <button 
                         onClick={() => setHistoryPage(p => p * historyPageSize < historyTotal ? p + 1 : p)} 
                         disabled={historyPage * historyPageSize >= historyTotal}
                         className="btn btn-ghost btn-sm"
                       >
-                        Next →
+                        Trang sau →
                       </button>
                     </div>
                   )}
@@ -425,17 +425,17 @@ export default function ManagerCustomers() {
 
             {/* Active Tiers Reference list */}
             <div className="card tiers-reference-card">
-              <h3 className="workspace-card-title">🏆 Active Membership Tiers Reference</h3>
+              <h3 className="workspace-card-title">🏆 Danh sách các Hạng thành viên</h3>
               <div className="reference-tiers-list">
                 {tiers.map((t) => (
                   <div key={t.tierId || t.tierName} className="reference-tier-item">
                     <div className="ref-tier-header">
                       <h4>{t.tierName}</h4>
-                      <span className="ref-tier-points">Threshold: {t.minPoints.toLocaleString()} pts</span>
+                      <span className="ref-tier-points">Điểm tối thiểu: {t.minPoints.toLocaleString()} điểm</span>
                     </div>
                     <div className="ref-tier-body">
-                      <span>Multiplier: {Math.round((t.earnRate || 0) * 100)}% ({t.earnRate}x)</span>
-                      {t.benefits && <p className="ref-tier-benefits">Benefits: {t.benefits}</p>}
+                      <span>Hệ số tích điểm: {Math.round((t.earnRate || 0) * 100)}% (x{t.earnRate})</span>
+                      {t.benefits && <p className="ref-tier-benefits">Quyền lợi: {t.benefits}</p>}
                     </div>
                   </div>
                 ))}

@@ -34,10 +34,10 @@ function MapController({ center, zoom }: { center: [number, number]; zoom: numbe
 /* ── Data ── */
 
 const steps = [
-  { stepNum: 1, title: 'Phun nước áp lực' },
-  { stepNum: 2, title: 'Phủ bọt tuyết' },
-  { stepNum: 3, title: 'Chải mút xốp mềm' },
-  { stepNum: 4, title: 'Phủ Wax bóng' },
+  { stepNum: 1, title: 'Rửa xịt áp lực cao' },
+  { stepNum: 2, title: 'Phun bọt tuyết hoạt tính' },
+  { stepNum: 3, title: 'Chổi quét mềm vi sợi' },
+  { stepNum: 4, title: 'Phủ sáp bóng bảo vệ' },
   { stepNum: 5, title: 'Sấy khô tự động' }
 ]
 
@@ -175,7 +175,7 @@ export default function Home() {
       .map(bs => ({
         id: bs.branchServiceId,
         name: bs.serviceName,
-        description: apiServices.find(s => s.serviceCatalogItemId === bs.serviceId)?.description ?? 'No detailed description available.',
+        description: apiServices.find(s => s.serviceCatalogItemId === bs.serviceId)?.description ?? 'Dịch vụ rửa xe tự động chuyên nghiệp.',
         basePrice: bs.basePrice,
         durationMinutes: bs.durationMinutes,
         isActive: bs.isActive,
@@ -215,16 +215,16 @@ export default function Home() {
           <div className="hero-content animate-fade-up">
             <div className="section-label">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ marginRight: '6px' }}><circle cx="5" cy="5" r="5" /></svg>
-              NOW AVAILABLE IN YOUR CITY
+              CÔNG NGHỆ HIỆN ĐẠI TẠI THÀNH PHỐ CỦA BẠN
             </div>
 
             <h1 className="hero-title">
-              Rửa xe tự động<br />
-              <span className="gradient-text">Công nghệ 4.0</span>
+              Rửa Xe Tự Động<br />
+              <span className="gradient-text">Công Nghệ 4.0</span>
             </h1>
 
             <p className="hero-subtitle">
-              Trải nghiệm dịch vụ làm sạch nhanh chóng, an toàn và sáng bóng vượt trội với hệ thống máy móc tự động hoàn toàn mới.
+              Trải nghiệm dịch vụ rửa xe tự động thế hệ mới cực nhanh, an toàn và sạch bóng vượt trội.
             </p>
 
             <div className="hero-cta">
@@ -248,14 +248,14 @@ export default function Home() {
               <div className="hero-voucher-showcase">
                 <div className="showcase-header">
                   <span className="sparkle-icon">✨</span>
-                  <h4>FEATURED OFFERS</h4>
+                  <h4>ƯU ĐÃI NỔI BẬT</h4>
                   <span className="live-pulse"></span>
                 </div>
 
                 {loadingVouchers ? (
                   <div className="showcase-loading">
                     <div className="spinner-mini"></div>
-                    <span>Loading offers...</span>
+                    <span>Đang tải ưu đãi...</span>
                   </div>
                 ) : (
                   (() => {
@@ -265,7 +265,7 @@ export default function Home() {
                     const discountVal = item.discountValue ?? item.DiscountValue ?? 0
                     const type = item.discountType ?? item.DiscountType ?? 1
                     const minOrder = item.minOrderAmount ?? item.MinOrderAmount
-                    const desc = item.description || (type === 1 ? `Get ${discountVal}% off services` : `Get ${discountVal.toLocaleString('en-US')} VND off your booking`)
+                    const desc = item.description || (type === 1 ? `Giảm ${discountVal}% cho dịch vụ` : `Giảm ${discountVal.toLocaleString('vi-VN')} đ cho đơn đặt lịch`)
 
                     return (
                       <div className="hero-ticket-wrapper">
@@ -275,9 +275,9 @@ export default function Home() {
 
                           <div className="hero-ticket-top">
                             <div className="hero-ticket-discount">
-                              {type === 1 ? `${discountVal}%` : `${(discountVal / 1000).toLocaleString('en-US')}K`}
+                              {type === 1 ? `${discountVal}%` : `${(discountVal / 1000).toLocaleString('vi-VN')}K`}
                             </div>
-                            <div className="hero-ticket-off">DISCOUNT</div>
+                            <div className="hero-ticket-off">GIẢM GIÁ</div>
                           </div>
 
                           <div className="hero-ticket-divider"></div>
@@ -285,7 +285,7 @@ export default function Home() {
                           <div className="hero-ticket-bottom">
                             <div className="hero-ticket-desc">{desc}</div>
                             <div className="hero-ticket-cond">
-                              {minOrder ? `Min booking: ${(minOrder / 1000).toLocaleString('en-US')}K` : 'No minimum booking'}
+                              {minOrder ? `Đơn tối thiểu: ${(minOrder / 1000).toLocaleString('vi-VN')}K` : 'Không yêu cầu tối thiểu'}
                             </div>
                             <div className="hero-ticket-code-row">
                               <code className="hero-ticket-code">{code}</code>
@@ -294,7 +294,7 @@ export default function Home() {
                                 className="hero-copy-btn"
                                 onClick={() => handleCopyCode(code)}
                               >
-                                {copiedCode === code ? 'Copied!' : 'Copy'}
+                                {copiedCode === code ? 'Đã chép!' : 'Sao chép'}
                               </button>
                             </div>
                           </div>
@@ -308,7 +308,7 @@ export default function Home() {
                                 type="button"
                                 className={`dot ${idx === activeVoucherIndex ? 'active' : ''}`}
                                 onClick={() => setActiveVoucherIndex(idx)}
-                                aria-label={`Go to slide ${idx + 1}`}
+                                aria-label={`Xem ưu đãi ${idx + 1}`}
                               />
                             ))}
                           </div>
@@ -321,10 +321,10 @@ export default function Home() {
 
               {/* Floating badges */}
               <div className="float-badge float-badge-1">
-                <span>✨</span> Hot Deals!
+                <span>✨</span> Ưu Đãi Hot!
               </div>
               <Link to="/customer/bookings?startBooking=true" className="float-badge float-badge-2" style={{ textDecoration: 'none' }}>
-                <span>🔥</span> Book Now!
+                <span>🔥</span> Đặt Lịch Ngay!
               </Link>
             </div>
           )}
@@ -333,27 +333,30 @@ export default function Home() {
 
       <div className="m-stripe-divider" />
 
-      {/* ── Why Choose Us ── */}
-      <section className="section" style={{ background: '#000000', padding: '5rem 0' }}>
+      {/* ── Why Choose Us (Clean Bright Section) ── */}
+      <section className="section" style={{ background: '#f8fafc', padding: '5rem 0' }}>
         <div className="container animate-fade-up">
           <div className="section-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="section-label">AuraWash</div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>Tại sao chọn AutoWashPro?</h2>
-            <p style={{ color: '#bbbbbb', marginTop: '0.5rem' }}>Hiệu suất tối đa, bảo vệ tối ưu.</p>
+            <div className="section-label" style={{ color: '#2563eb', fontWeight: 700, letterSpacing: '1px' }}>TẠI SAO CHỌN AUTOWASH PRO</div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>Tại sao nên chọn AutoWashPro?</h2>
+            <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '1.1rem' }}>Hiệu năng vượt trội, bảo vệ xe tối đa.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Tốc độ siêu tốc</h3>
-              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Chỉ mất 5 phút cho một quy trình rửa xe hoàn chỉnh, tiết kiệm thời gian quý báu của bạn.</p>
+            <div style={{ background: '#ffffff', padding: '32px 28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '20px' }}>⚡</div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '10px' }}>Tốc độ cực nhanh</h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6' }}>Chỉ 5 phút cho một chu trình rửa tự động toàn diện, tiết kiệm tối đa thời gian quý báu của bạn.</p>
             </div>
-            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Tiết kiệm nước</h3>
-              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Công nghệ tái chế nước tiên tiến giúp tiết kiệm đến 80% lượng nước so với rửa thủ công.</p>
+            <div style={{ background: '#ffffff', padding: '32px 28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '20px' }}>💧</div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '10px' }}>Tiết kiệm nước &amp; Thân thiện</h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6' }}>Hệ thống tuần hoàn nước thông minh tiết kiệm đến 80% lượng nước so với phương pháp rửa thủ công.</p>
             </div>
-            <div style={{ background: '#1a1a1a', padding: '24px', borderRadius: '0px', border: '1px solid #3c3c3c' }} className="card">
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', marginBottom: '12px' }}>Không trầy xước</h3>
-              <p style={{ color: '#bbbbbb', fontSize: '1rem', lineHeight: '1.5' }}>Sử dụng chổi mút xốp siêu mềm và bọt tuyết chuyên dụng, bảo vệ lớp sơn xe tuyệt đối.</p>
+            <div style={{ background: '#ffffff', padding: '32px 28px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '20px' }}>🛡️</div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '10px' }}>100% Không trầy xước</h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6' }}>Chổi bọt vi sợi siêu mềm kết hợp bọt tuyết chuyên dụng giúp bảo vệ hoàn hảo bề mặt sơn xe.</p>
             </div>
           </div>
         </div>
@@ -365,9 +368,9 @@ export default function Home() {
       <section id="services" className="section">
         <div className="container">
           <div className="section-header">
-            <div className="section-label">Our Services</div>
-            <h2>Find Your <span className="gradient-text">Perfect Wash</span></h2>
-            <p>From a quick exterior rinse to a full ceramic detailing — we have a package for every car and every budget.</p>
+            <div className="section-label">Dịch Vụ Của Chúng Tôi</div>
+            <h2>Lựa Chọn Gói Rửa Xe <span className="gradient-text">Hoàn Hảo</span></h2>
+            <p>Từ gói rửa nhanh ngoại thất đến chăm sóc chi tiết toàn diện — chúng tôi có giải pháp cho mọi loại xe và ngân sách.</p>
           </div>
 
           <div className="branch-map-wrapper">
@@ -376,7 +379,7 @@ export default function Home() {
               <div className="branch-map-view">
                 {loadingBranches ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-                    Loading branches map...
+                    Đang tải bản đồ chi nhánh...
                   </div>
                 ) : (
                   <MapContainer
@@ -420,7 +423,7 @@ export default function Home() {
                                 }}
                                 onClick={() => setSelectedBranchId(b.branchId)}
                               >
-                                Select Branch
+                                Chọn chi nhánh
                               </button>
                             </div>
                           </Popup>
@@ -440,7 +443,7 @@ export default function Home() {
                       <div className="branch-card-status">
                         <span style={{ color: '#10b981' }}>●</span>
                         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                          Open: {selectedBranch.openTime?.substring(0, 5) || '08:00'} - {selectedBranch.closeTime?.substring(0, 5) || '20:00'}
+                          Mở cửa: {selectedBranch.openTime?.substring(0, 5) || '08:00'} - {selectedBranch.closeTime?.substring(0, 5) || '20:00'}
                         </span>
                       </div>
                     </div>
@@ -448,14 +451,14 @@ export default function Home() {
                       <div className="detail-info-item">
                         <span className="detail-info-icon">📍</span>
                         <div className="detail-info-text">
-                          <strong>Address</strong>
+                          <strong>Địa chỉ</strong>
                           {selectedBranch.address}, {selectedBranch.city}
                         </div>
                       </div>
                       <div className="detail-info-item">
                         <span className="detail-info-icon">📞</span>
                         <div className="detail-info-text">
-                          <strong>Phone</strong>
+                          <strong>Số điện thoại</strong>
                           <a href={`tel:${selectedBranch.phone}`} style={{ color: 'var(--color-primary, #3b82f6)', textDecoration: 'none', fontWeight: 600 }}>
                             {selectedBranch.phone}
                           </a>
@@ -479,7 +482,7 @@ export default function Home() {
                           rel="noopener noreferrer"
                           className="btn-detail-secondary"
                         >
-                          🗺️ View Directions
+                          🗺️ Xem chỉ đường
                         </a>
                       )}
                       <button
@@ -487,7 +490,7 @@ export default function Home() {
                         className="btn-detail-reset"
                         onClick={() => setSelectedBranchId('')}
                       >
-                        Reset & Show All Branches
+                        Đặt lại &amp; Xem tất cả chi nhánh
                       </button>
                     </div>
                   </div>
@@ -495,7 +498,7 @@ export default function Home() {
                   /* List of branches */
                   <>
                     <div className="branch-sidebar-header">
-                      <span>Explore Branches ({branches.length})</span>
+                      <span>Khám phá các chi nhánh ({branches.length})</span>
                     </div>
                     <div className="branch-sidebar-list">
                       {branches.map(b => (
@@ -509,7 +512,7 @@ export default function Home() {
                           <div className="branch-card-status">
                             <span style={{ color: '#10b981' }}>●</span>
                             <span style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.75rem' }}>
-                              Open: {b.openTime?.substring(0, 5) || '08:00'} - {b.closeTime?.substring(0, 5) || '20:00'}
+                              Mở cửa: {b.openTime?.substring(0, 5) || '08:00'} - {b.closeTime?.substring(0, 5) || '20:00'}
                             </span>
                           </div>
                         </div>
@@ -524,35 +527,56 @@ export default function Home() {
           <div className="services-grid">
             {loadingServices ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                Loading services list...
+                Đang tải danh sách dịch vụ...
               </div>
             ) : displayServices.length === 0 ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                Currently, no services are active at this branch.
+                Hiện tại chưa có dịch vụ nào tại chi nhánh này.
               </div>
             ) : (
-              displayServices.map((svc, idx) => {
+              displayServices.map((svc) => {
                 return (
                   <div
                     key={svc.id}
                     className="service-card card"
                     style={{
-                      backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.9)), url(/service-bg-${(idx % 3) + 1}.jpg)`
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
+                      padding: '28px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      position: 'relative'
                     }}
                   >
-                    <div className="service-duration-badge">
+                    <div className="service-duration-badge" style={{
+                      position: 'absolute',
+                      top: '24px',
+                      right: '24px',
+                      background: '#eff6ff',
+                      color: '#2563eb',
+                      border: '1px solid #dbeafe',
+                      borderRadius: '9999px',
+                      padding: '4px 12px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                      <span>{svc.durationMinutes} min</span>
+                      <span>{svc.durationMinutes} phút</span>
                     </div>
-                    <h3 className="service-name">{svc.name}</h3>
-                    <p className="service-desc">{svc.description || 'No detailed description available.'}</p>
-                    <div className="service-price">
-                      <span className="price-value">{new Intl.NumberFormat('en-US').format(svc.basePrice)}</span>
-                      <span className="price-currency">VND</span>
+                    <h3 className="service-name" style={{ color: '#0f172a', fontWeight: 800, fontSize: '20px', marginBottom: '8px', paddingRight: '80px' }}>{svc.name}</h3>
+                    <p className="service-desc" style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', minHeight: '44px', marginBottom: '16px', flex: 1 }}>{svc.description || 'Dịch vụ rửa xe tự động chuyên nghiệp.'}</p>
+                    <div className="service-price" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '20px' }}>
+                      <span className="price-value" style={{ color: '#0f172a', fontSize: '28px', fontWeight: 800 }}>{new Intl.NumberFormat('vi-VN').format(svc.basePrice)}</span>
+                      <span className="price-currency" style={{ color: '#64748b', fontWeight: 600, fontSize: '14px' }}>đ</span>
                     </div>
-                    <Link to={`/customer/bookings?serviceId=${svc.id}${selectedBranchId ? `&branchId=${selectedBranchId}` : ''}`}>
-                      <AnimatedButton variant="primary" style={{ width: '100%' }}>
-                        Book This Plan
+                    <Link to={`/customer/bookings?serviceId=${svc.id}${selectedBranchId ? `&branchId=${selectedBranchId}` : ''}`} style={{ textDecoration: 'none' }}>
+                      <AnimatedButton variant="primary" style={{ width: '100%', height: '44px' }}>
+                        Đặt gói dịch vụ này
                       </AnimatedButton>
                     </Link>
                   </div>
@@ -563,48 +587,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── How It Works ── */}
-      <section id="process" className="section section-alt" style={{ background: '#000000', padding: '5rem 0' }}>
+      {/* ── How It Works (Clean Bright Process Section) ── */}
+      <section id="process" className="section section-alt" style={{ background: '#f8fafc', padding: '5rem 0' }}>
         <div className="container animate-fade-up">
           <div className="section-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="section-label">Process</div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>Quy trình 5 bước chuẩn quốc tế</h2>
+            <div className="section-label" style={{ color: '#2563eb', fontWeight: 700, letterSpacing: '1px' }}>Quy Trình</div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>Quy Trình 5 Bước Chuẩn Quốc Tế</h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', gap: '24px' }}>
             {steps.map((step, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: '1', minWidth: '150px' }}>
-                <div style={{ width: '48px', height: '48px', border: '1px solid #3c3c3c', background: '#1a1a1a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 700, marginBottom: '12px' }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2px solid #bfdbfe', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800, marginBottom: '14px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.15)' }}>
                   {step.stepNum}
                 </div>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{step.title}</h4>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{step.title}</h4>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Overview ── */}
-      <section id="reviews" className="section" style={{ background: 'var(--color-bg-alt, #0b0f19)', padding: '5rem 0' }}>
+      {/* ── Overview (Clean Bright Reviews/Stats) ── */}
+      <section id="reviews" className="section" style={{ background: '#ffffff', padding: '5rem 0' }}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: '3rem', textAlign: 'center' }}>
-            <div className="section-label" style={{ textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--color-primary, #3b82f6)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Overview</div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>
-              {selectedBranchId ? 'Branch ' : 'System-Wide '}
-              <span className="gradient-text">Performance &amp; Reviews</span>
+            <div className="section-label" style={{ textTransform: 'uppercase', letterSpacing: '2px', color: '#2563eb', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Tổng Quan</div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a' }}>
+              {selectedBranchId ? 'Chi Nhánh ' : 'Toàn Hệ Thống '}
+              <span className="gradient-text" style={{ color: '#2563eb' }}>Hiệu Suất &amp; Đánh Giá</span>
             </h2>
-            <p style={{ color: 'var(--color-text-muted, #94a3b8)', marginTop: '0.5rem' }}>
+            <p style={{ color: '#64748b', marginTop: '0.5rem' }}>
               {selectedBranchId 
-                ? 'Real-time stats about service quality and customer visits at this branch.' 
-                : 'Overview of operations and service quality across the entire AutoWashPro network.'}
+                ? 'Thông tin thực tế về chất lượng phục vụ và lượt khách tại chi nhánh này.' 
+                : 'Tổng quan vận hành và chất lượng dịch vụ trên toàn hệ thống mạng lưới AutoWashPro.'}
             </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', maxWidth: '960px', margin: '0 auto' }}>
             {/* Bookings Stat Card */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem', textAlign: 'center', background: 'var(--color-bg-card, rgba(30, 41, 59, 0.5))', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', transition: 'transform 0.3s ease' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem', textAlign: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)', transition: 'transform 0.3s ease' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
                   <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -612,28 +636,28 @@ export default function Home() {
                   <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
               </div>
-              <div style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: '1', margin: '0.5rem 0' }} className="gradient-text">
-                {systemStats.totalBookings.toLocaleString('en-US')}
+              <div style={{ fontSize: '3rem', fontWeight: 800, color: '#0f172a', lineHeight: '1', margin: '0.5rem 0' }}>
+                {systemStats.totalBookings.toLocaleString('vi-VN')}
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'white', marginTop: '0.5rem' }}>Appointments Booked</div>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.5rem', maxWidth: '260px' }}>
-                Total number of vehicles successfully washed and serviced.
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginTop: '0.5rem' }}>Lượt Đặt Lịch Phục Vụ</div>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.5rem', maxWidth: '260px' }}>
+                Tổng số lượt phương tiện đã được chăm sóc và phục vụ thành công.
               </p>
             </div>
 
             {/* Rating Stat Card */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem', textAlign: 'center', background: 'var(--color-bg-card, rgba(30, 41, 59, 0.5))', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', transition: 'transform 0.3s ease' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem', textAlign: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)', transition: 'transform 0.3s ease' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </div>
-              <div style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: '1', margin: '0.5rem 0' }} className="gradient-text">
+              <div style={{ fontSize: '3rem', fontWeight: 800, color: '#0f172a', lineHeight: '1', margin: '0.5rem 0' }}>
                 {systemStats.averageRating} / 5
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'white', marginTop: '0.5rem' }}>Service Rating</div>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.5rem', maxWidth: '260px' }}>
-                Average rating from verified customers who experienced our services.
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginTop: '0.5rem' }}>Đánh Giá Dịch Vụ</div>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.5rem', maxWidth: '260px' }}>
+                Điểm đánh giá trung bình từ khách hàng đã trải nghiệm dịch vụ thực tế.
               </p>
             </div>
           </div>
@@ -646,11 +670,11 @@ export default function Home() {
           <div className="cta-card">
             <div className="cta-glow" />
             <div className="cta-content">
-              <h2>Ready for a Spotless Ride?</h2>
-              <p>Book your first wash and get 20% off. No commitment needed.</p>
+              <h2>Sẵn Sàng Cho Một Chiếc Xe Sạch Bóng?</h2>
+              <p>Đặt lịch rửa xe ngay hôm nay để nhận ưu đãi giảm 20%. Nhanh chóng, tiện lợi và tiết kiệm.</p>
               <Link to="/auth?tab=signup">
                 <AnimatedButton variant="premium" size="lg">
-                  Get 20% Off — Book Now
+                  Nhận Ưu Đãi 20% — Đặt Lịch Ngay
                 </AnimatedButton>
               </Link>
             </div>

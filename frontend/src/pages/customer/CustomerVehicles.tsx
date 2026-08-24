@@ -39,23 +39,23 @@ export default function CustomerVehicles() {
 
 
   const engineTypeLabel = (engine?: number) => {
-    if (engine === 1) return 'Xăng (Petrol)'
+    if (engine === 1) return 'Xăng'
     if (engine === 2) return 'Dầu (Diesel)'
     if (engine === 3) return 'Điện (EV)'
     if (engine === 4) return 'Hybrid (HEV)'
-    return 'N/A'
+    return 'Chưa xác định'
   }
 
   const bodyStyleLabel = (style?: number) => {
     if (style === 1) return 'Sedan'
     if (style === 2) return 'SUV'
     if (style === 3) return 'Hatchback'
-    if (style === 4) return 'Pickup (Bán tải)'
-    if (style === 5) return 'Van'
+    if (style === 4) return 'Bán tải (Pickup)'
+    if (style === 5) return 'Xe Van'
     if (style === 6) return 'Minivan'
     if (style === 7) return 'Coupe'
-    if (style === 8) return 'Convertible (Mui trần)'
-    return 'N/A'
+    if (style === 8) return 'Mui trần'
+    return 'Chưa xác định'
   }
 
 
@@ -105,14 +105,9 @@ export default function CustomerVehicles() {
   const totalPages = Math.max(1, Math.ceil(filteredVehicles.length / pageSize))
   const paginatedVehicles = filteredVehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  // Tính danh sách kiểu dáng cho loại xe đang chọn trong form
-  // BE trả về vehicleType là số nguyên (1=Motorbike, 2=Car, 3=Truck)
-  // Dùng Number() để tránh lỗi so sánh kiểu dữ liệu
   const formVehicleType = Number(vehicleForm.vehicleType)
   const filteredBodyStyles = bodyStyleCatalogs.filter(cat => {
     const vt = Number(cat.vehicleType ?? cat.VehicleType)
-    // Legacy fallback: nếu vehicleType chưa được set (= 0 hoặc NaN),
-    // các kiểu dáng có legacyEnumValue (1-8) mặc định thuộc Ô tô (Car = 2)
     if (!vt || isNaN(vt)) {
       const leg = cat.legacyEnumValue ?? cat.LegacyEnumValue
       return formVehicleType === 2 && leg != null
@@ -126,9 +121,9 @@ export default function CustomerVehicles() {
   })
 
   const vehicleTypeLabel = (vehicleType?: VehicleType | number) => {
-    if (vehicleType === 1) return 'Motorbike'
-    if (vehicleType === 3) return 'Truck'
-    return 'Car'
+    if (vehicleType === 1) return 'Xe máy'
+    if (vehicleType === 3) return 'Xe tải'
+    return 'Ô tô'
   }
 
   const getVehicleTypeClass = (type: number) => {
@@ -190,11 +185,11 @@ export default function CustomerVehicles() {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setVehicleError('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WEBP).')
+        setVehicleError('Please select a valid image file (JPG, PNG, WEBP).')
         return
       }
       if (file.size > 5 * 1024 * 1024) {
-        setVehicleError('Kích thước ảnh không được vượt quá 5MB.')
+        setVehicleError('Image size must not exceed 5MB.')
         return
       }
       setVehicleImageFile(file)
@@ -274,12 +269,12 @@ export default function CustomerVehicles() {
       setVehicleImagePreview(null)
       setShowVehicleForm(false)
       setEditingVehicleId(null)
-      setVehicleSuccess(editingVehicleId ? 'Cập nhật thông tin xe thành công.' : 'Đăng ký xe mới thành công.')
+      setVehicleSuccess(editingVehicleId ? 'Vehicle updated successfully.' : 'New vehicle registered successfully.')
     } catch (error: any) {
-      let friendlyError = editingVehicleId ? 'Không thể cập nhật thông tin xe.' : 'Không thể đăng ký xe mới.'
+      let friendlyError = editingVehicleId ? 'Failed to update vehicle information.' : 'Failed to register vehicle.'
       const errorString = error?.message || error?.Message || ''
       if (errorString.toLowerCase().includes('already exists') || errorString.toLowerCase().includes('trùng') || errorString.toLowerCase().includes('conflict') || errorString.includes('409')) {
-        friendlyError = 'Biển số xe này đã được đăng ký bởi tài khoản khác trong hệ thống.'
+        friendlyError = 'This license plate is already registered by another account.'
       }
       setVehicleError(extractErrorMessage(error, friendlyError))
     } finally {
@@ -317,14 +312,15 @@ export default function CustomerVehicles() {
     <div className="portal-page">
       <div className="dash-header">
         <div>
-          <h2>My Vehicles</h2>
+          <h2>Quản lý xe của tôi</h2>
+          <p>Thêm và cập nhật danh sách phương tiện để đặt lịch rửa xe thuận tiện.</p>
         </div>
         <AnimatedButton
           type="button"
           variant="primary"
           onClick={openCreateVehicleForm}
         >
-          Add Vehicle
+          + Thêm xe mới
         </AnimatedButton>
       </div>
 
@@ -341,22 +337,22 @@ export default function CustomerVehicles() {
           <input
             type="text"
             className="form-input"
-            placeholder="VD: Toyota, Honda..."
+            placeholder="Ví dụ: Toyota, Honda, Hyundai..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
         <div style={{ width: '180px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label className="form-label" style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Loại xe</label>
+          <label className="form-label" style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Loại phương tiện</label>
           <select
             className="form-input form-select-custom"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value as any)}
           >
             <option value="all">Tất cả loại xe</option>
-            <option value="car">Ô tô (Car)</option>
-            <option value="motorbike">Xe máy (Motorbike)</option>
-            <option value="truck">Xe tải / xe ba gác (Truck)</option>
+            <option value="car">Ô tô</option>
+            <option value="motorbike">Xe máy</option>
+            <option value="truck">Xe tải</option>
           </select>
         </div>
         {(searchQuery || typeFilter !== 'all') && (
@@ -370,7 +366,7 @@ export default function CustomerVehicles() {
               setTypeFilter('all')
             }}
           >
-            Xóa bộ lọc
+            Đặt lại bộ lọc
           </AnimatedButton>
         )}
       </div>
@@ -378,8 +374,8 @@ export default function CustomerVehicles() {
       {showVehicleForm && (
         <form className="vehicle-form card" onSubmit={handleVehicleSubmit}>
           <div className="vehicle-form-header">
-            <h4>{editingVehicleId ? 'Chỉnh sửa xe' : 'Đăng ký xe'}</h4>
-            <p>{editingVehicleId ? 'Cập nhật thông tin chi tiết xe của bạn.' : 'Thêm một phương tiện mới vào tài khoản của bạn.'}</p>
+            <h4>{editingVehicleId ? 'Chỉnh sửa thông tin xe' : 'Đăng ký xe mới'}</h4>
+            <p>{editingVehicleId ? 'Cập nhật lại thông tin phương tiện của bạn.' : 'Thêm phương tiện mới vào tài khoản của bạn.'}</p>
           </div>
           <div className="vehicle-form-grid">
             <div className="form-group">
@@ -411,7 +407,7 @@ export default function CustomerVehicles() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="vehicle-type">Loại xe *</label>
+              <label className="form-label" htmlFor="vehicle-type">Loại phương tiện *</label>
               <select
                 id="vehicle-type"
                 className="form-input"
@@ -429,9 +425,9 @@ export default function CustomerVehicles() {
                   }))
                 }}
               >
-                <option value={1}>Xe máy (Motorbike)</option>
-                <option value={2}>Ô tô (Car)</option>
-                <option value={3}>Xe tải / xe ba gác (Truck)</option>
+                <option value={1}>Xe máy</option>
+                <option value={2}>Ô tô</option>
+                <option value={3}>Xe tải</option>
               </select>
             </div>
             <div className="form-group">
@@ -450,18 +446,18 @@ export default function CustomerVehicles() {
                   }))
                 }}
               >
-                <option value=""> --Chọn hãng xe-- </option>
+                <option value=""> -- Chọn hãng xe -- </option>
                 {filteredBrandCatalogs.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
-                <option value={CUSTOM_BRAND_VALUE}>Khác</option>
+                <option value={CUSTOM_BRAND_VALUE}>Hãng khác</option>
               </select>
               {vehicleForm.brandCatalogId === CUSTOM_BRAND_VALUE && (
                 <input
                   className="form-input"
                   value={vehicleForm.brand}
                   onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value }))}
-                  placeholder="Nhập hãng xe của bạn"
+                  placeholder="Nhập tên hãng xe của bạn"
                   maxLength={50}
                   style={{ marginTop: 8 }}
                 />
@@ -474,7 +470,7 @@ export default function CustomerVehicles() {
                 className="form-input"
                 value={vehicleForm.model}
                 onChange={e => setVehicleForm(prev => ({ ...prev, model: e.target.value }))}
-                placeholder="VD: Future, Sirius, Camry, Ranger..."
+                placeholder="Ví dụ: Camry, Ranger, Civic..."
                 maxLength={50}
               />
             </div>
@@ -486,7 +482,7 @@ export default function CustomerVehicles() {
                 className="form-input"
                 value={vehicleForm.manufactureYear}
                 onChange={e => setVehicleForm(prev => ({ ...prev, manufactureYear: e.target.value }))}
-                placeholder="VD: 2020"
+                placeholder="Ví dụ: 2022"
                 min={1950}
                 max={new Date().getFullYear() + 1}
               />
@@ -514,7 +510,7 @@ export default function CustomerVehicles() {
               </select>
             </div>
             <div className="form-group animate-slide-in">
-              <label className="form-label" htmlFor="vehicle-style">Kiểu dáng</label>
+              <label className="form-label" htmlFor="vehicle-style">Kiểu dáng thân xe</label>
               <select
                 id="vehicle-style"
                 className="form-input"
@@ -535,16 +531,16 @@ export default function CustomerVehicles() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))
                 ) : (
-                  <option disabled value="">Không có kiểu dáng cho loại xe này</option>
+                  <option disabled value="">Không có kiểu dáng phù hợp cho loại xe này</option>
                 )}
               </select>
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="form-label">Ảnh đại diện xe (Tùy chọn)</label>
+              <label className="form-label">Ảnh phương tiện (Tùy chọn)</label>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                 {vehicleImagePreview ? (
                   <div style={{ position: 'relative', width: '90px', height: '90px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--color-border-dim)' }}>
-                    <img src={vehicleImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={vehicleImagePreview} alt="Xem trước" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -565,7 +561,7 @@ export default function CustomerVehicles() {
                         fontSize: '12px',
                         fontWeight: 'bold',
                       }}
-                      title="Gỡ ảnh"
+                      title="Xóa ảnh"
                     >
                       ✕
                     </button>
@@ -577,7 +573,7 @@ export default function CustomerVehicles() {
                 )}
                 <div>
                   <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <span>📁 {vehicleImagePreview ? 'Chọn ảnh khác' : 'Tải ảnh xe lên'}</span>
+                    <span>📁 {vehicleImagePreview ? 'Đổi ảnh khác' : 'Tải ảnh phương tiện'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -586,7 +582,7 @@ export default function CustomerVehicles() {
                     />
                   </label>
                   <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
-                    Định dạng JPG, PNG, WEBP (tối đa 5MB)
+                    Định dạng: JPG, PNG, WEBP (Tối đa 5MB)
                   </p>
                 </div>
               </div>
@@ -597,7 +593,7 @@ export default function CustomerVehicles() {
               Hủy
             </AnimatedButton>
             <AnimatedButton type="submit" variant="primary" disabled={vehicleLoading}>
-              {vehicleLoading ? 'Đang lưu…' : editingVehicleId ? 'Cập nhật' : 'Lưu xe'}
+              {vehicleLoading ? 'Đang lưu…' : editingVehicleId ? 'Cập nhật' : 'Lưu phương tiện'}
             </AnimatedButton>
           </div>
         </form>
@@ -606,15 +602,15 @@ export default function CustomerVehicles() {
       <div className="vehicle-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {vehicles.length === 0 ? (
           <div className="vehicle-empty card">
-            Chưa có xe nào. Hãy nhấn "Thêm xe" để bắt đầu đăng ký phương tiện của bạn.
+            Bạn chưa đăng ký phương tiện nào. Nhấn "+ Thêm xe mới" để bắt đầu.
           </div>
         ) : filteredVehicles.length === 0 ? (
           <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '30px' }}>
-            Không tìm thấy xe nào phù hợp với bộ lọc hiện tại.
+            Không tìm thấy phương tiện nào phù hợp với bộ lọc.
           </div>
         ) : paginatedVehicles.map((vehicle, index) => {
-          const plate = vehicle.LicensePlate || vehicle.licensePlate || 'Chưa rõ biển số'
-          const brand = vehicle.BrandCatalogName || vehicle.brandCatalogName || vehicle.Brand || vehicle.brand || 'Chưa rõ hãng'
+          const plate = vehicle.LicensePlate || vehicle.licensePlate || 'N/A'
+          const brand = vehicle.BrandCatalogName || vehicle.brandCatalogName || vehicle.Brand || vehicle.brand || 'Khác'
           const vehicleType = vehicle.VehicleType ?? vehicle.vehicleType ?? 2
           return (
             <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
@@ -640,7 +636,7 @@ export default function CustomerVehicles() {
                     <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
                       <span>⚙️ {vehicle.EngineCatalogName ?? vehicle.engineCatalogName ?? engineTypeLabel(vehicle.EngineType ?? vehicle.engineType ?? undefined)}</span>
                       <span>🚙 {vehicle.BodyStyleCatalogName ?? vehicle.bodyStyleCatalogName ?? bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle ?? undefined)}</span>
-                      <span>Hạng xe: <strong style={{ color: 'var(--color-primary)' }}>{vehicle.VehicleCondition || vehicle.vehicleCondition || 'Standard'}</strong></span>
+                      <span>Phân hạng: <strong style={{ color: 'var(--color-primary)' }}>{vehicle.VehicleCondition || vehicle.vehicleCondition || 'Tiêu chuẩn'}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -652,7 +648,7 @@ export default function CustomerVehicles() {
                     onClick={() => handleVehicleEditStart(vehicle)}
                     disabled={vehicleLoading}
                   >
-                    Edit
+                    Chỉnh sửa
                   </button>
                   <button
                     type="button"
@@ -660,7 +656,7 @@ export default function CustomerVehicles() {
                     onClick={() => setVehicleToDelete(vehicle)}
                     disabled={vehicleLoading}
                   >
-                    Remove
+                    Xóa
                   </button>
                 </div>
               </div>
@@ -674,28 +670,28 @@ export default function CustomerVehicles() {
         currentPage={currentPage}
         totalPages={totalPages}
         totalCount={filteredVehicles.length}
-        itemName="xe"
+        itemName="phương tiện"
         onPageChange={setCurrentPage}
       />
 
       <ConfirmModal
         isOpen={!!vehicleToDelete}
-        title="Remove Vehicle"
+        title="Xác nhận xóa phương tiện"
         variant="danger"
         isLoading={vehicleLoading}
         onCancel={() => setVehicleToDelete(null)}
         onConfirm={handleVehicleDeleteConfirm}
-        confirmText="Remove"
+        confirmText="Xác nhận xóa"
         message={
           <>
             <p>
-              Are you sure you want to remove vehicle{' '}
+              Bạn có chắc chắn muốn xóa phương tiện có biển số{' '}
               <span className="highlight-plate">
                 {vehicleToDelete?.LicensePlate || vehicleToDelete?.licensePlate}
               </span>?
             </p>
             <div className="confirm-modal-warning" style={{ marginTop: '12px' }}>
-              This action cannot be undone and will unlink the vehicle from your account.
+              Hành động này không thể hoàn tác và sẽ hủy liên kết xe khỏi tài khoản của bạn.
             </div>
           </>
         }

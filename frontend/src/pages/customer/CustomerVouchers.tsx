@@ -155,12 +155,12 @@ export default function CustomerVouchers() {
 
   // Formatter helpers
   const formatDiscount = (type: number, val: number) => {
-    if (type === 1) return `${val}%`
-    return `${val.toLocaleString('vi-VN')}đ`
+    if (type === 1) return `Giảm ${val}%`
+    return `Giảm ${val.toLocaleString('vi-VN')} đ`
   }
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A'
+    if (!dateStr) return 'Không thời hạn'
     let normalizedStr = dateStr
     if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !/\-\d{2}:\d{2}$/.test(dateStr)) {
       normalizedStr = dateStr + 'Z'
@@ -172,15 +172,15 @@ export default function CustomerVouchers() {
     const year = date.getFullYear()
     const hours = pad(date.getHours())
     const minutes = pad(date.getMinutes())
-    return `${hours}:${minutes} ngày ${day}/${month}/${year}`
+    return `${hours}:${minutes} - ${day}/${month}/${year}`
   }
 
   return (
     <div className="portal-page vouchers-page-container">
       <div className="dash-header">
         <div>
-          <h2>Ưu đãi & Voucher</h2>
-          <p>Xem danh sách quà tặng và đổi mã giảm giá bằng điểm tích lũy của bạn.</p>
+          <h2>Ưu đãi & Mã khuyến mãi</h2>
+          <p>Xem danh sách voucher của bạn và đổi mã ưu đãi bằng điểm tích lũy thành viên.</p>
         </div>
         <div className="points-display-badge card">
           <div className="points-badge-text">
@@ -204,14 +204,14 @@ export default function CustomerVouchers() {
           className={`tab-btn ${activeTab === 'my-vouchers' ? 'active' : ''}`}
           onClick={() => { setActiveTab('my-vouchers'); setMyPage(1); }}
         >
-          Voucher của tôi
+          Mã của tôi
         </button>
         <button 
           type="button" 
           className={`tab-btn ${activeTab === 'redeem' ? 'active' : ''}`}
           onClick={() => setActiveTab('redeem')}
         >
-          Đổi Quà Tặng
+          Đổi điểm lấy quà
         </button>
       </div>
 
@@ -224,14 +224,14 @@ export default function CustomerVouchers() {
               className={`filter-badge ${myStatus === 1 ? 'active' : ''}`}
               onClick={() => { setMyStatus(1); setMyPage(1); }}
             >
-              Chưa sử dụng
+              Chưa dùng
             </button>
             <button 
               type="button" 
               className={`filter-badge ${myStatus === 2 ? 'active' : ''}`}
               onClick={() => { setMyStatus(2); setMyPage(1); }}
             >
-              Đã sử dụng
+              Đã dùng
             </button>
             <button 
               type="button" 
@@ -249,11 +249,11 @@ export default function CustomerVouchers() {
             </div>
           ) : myVouchers.length === 0 ? (
             <div className="empty-statecard card">
-              <h3>Không tìm thấy voucher nào</h3>
-              <p>Bạn chưa có voucher thuộc nhóm này. Hãy tích cực đặt lịch và đổi thưởng nhé!</p>
+              <h3>Không có mã giảm giá nào</h3>
+              <p>Bạn hiện chưa có mã giảm giá nào trong mục này. Hãy đổi voucher bằng điểm tích lũy ngay!</p>
               {myStatus === 1 && (
               <AnimatedButton type="button" variant="primary" onClick={() => setActiveTab('redeem')} style={{ marginTop: '16px' }}>
-                Đổi Voucher Ngay
+                Đổi voucher ngay
               </AnimatedButton>
               )}
             </div>
@@ -272,16 +272,16 @@ export default function CustomerVouchers() {
                   const expiry = item.ExpiredAtUtc ?? item.expiredAtUtc ?? item.EndUtc ?? item.endUtc
 
                   const conditions = [
-                    minOrder != null && <>Đơn tối thiểu: <strong>{minOrder.toLocaleString('vi-VN')}đ</strong></>,
-                    maxDiscount != null && type === 1 && <>Giảm tối đa: <strong>{maxDiscount.toLocaleString('vi-VN')}đ</strong></>,
-                    <>Hạn dùng: <strong>{formatDate(expiry)}</strong></>
+                    minOrder != null && <>Đơn tối thiểu: <strong>{minOrder.toLocaleString('vi-VN')} đ</strong></>,
+                    maxDiscount != null && type === 1 && <>Giảm tối đa: <strong>{maxDiscount.toLocaleString('vi-VN')} đ</strong></>,
+                    <>Hạn sử dụng: <strong>{formatDate(expiry)}</strong></>
                   ].filter(Boolean) as React.ReactNode[]
 
                   return (
                     <VoucherCard
                       key={item.UserVoucherId || item.userVoucherId}
                       discountText={formatDiscount(type, discountVal)}
-                      discountTag={type === 1 ? 'GIẢM PHẦN TRĂM' : 'GIẢM GIÁ TIỀN'}
+                      discountTag={type === 1 ? 'GIẢM THEO %' : 'GIẢM TRỰC TIẾP'}
                       title="Mã giảm giá"
                       code={code}
                       isExpired={isExpired}
@@ -295,7 +295,7 @@ export default function CustomerVouchers() {
                             onClick={() => handleCopyCode(code)}
                             title="Sao chép mã"
                           >
-                            {copiedCode === code ? 'Đã chép!' : 'Sao chép'}
+                            {copiedCode === code ? 'Đã sao chép!' : 'Sao chép'}
                           </button>
                         )
                       }
@@ -305,7 +305,7 @@ export default function CustomerVouchers() {
                         ) : isExpired ? (
                           <span className="ticket-status-label expired">HẾT HẠN</span>
                         ) : (
-                          <span className="ticket-status-label available">CÓ HIỆU LỰC</span>
+                          <span className="ticket-status-label available">KHẢ DỤNG</span>
                         )
                       }
                     />
@@ -364,13 +364,13 @@ export default function CustomerVouchers() {
           {redeemLoading ? (
             <div className="loading-container">
               <div className="spinner"></div>
-              <p>Đang tải danh sách voucher ưu đãi...</p>
+              <p>Đang tải danh sách ưu đãi đổi điểm...</p>
             </div>
           ) : availableVouchers.length === 0 ? (
             <div className="empty-statecard card">
               <div className="empty-state-icon">🎁</div>
-              <h3>Không có quà tặng khả dụng</h3>
-              <p>Hiện tại không có chương trình ưu đãi đổi voucher nào đang hoạt động. Vui lòng quay lại sau.</p>
+              <h3>Không có ưu đãi nào khả dụng</h3>
+              <p>Hiện tại chưa có mã khuyến mãi đổi điểm nào. Vui lòng quay lại sau.</p>
             </div>
           ) : (
             (() => {
@@ -391,9 +391,9 @@ export default function CustomerVouchers() {
                       const branch = item.BranchName || item.branchName
 
                       const conditions = [
-                        <>Mã ưu đãi: <strong>{code}</strong></>,
+                        <>Mã voucher: <strong>{code}</strong></>,
                         branch && <>Áp dụng tại: <strong>{branch}</strong></>,
-                        <>Thời hạn đổi: <strong>đến {formatDate(item.EndUtc || item.endUtc)}</strong></>
+                        <>Hạn sử dụng: <strong>{formatDate(item.EndUtc || item.endUtc)}</strong></>
                       ].filter(Boolean) as React.ReactNode[]
 
                       return (
@@ -401,8 +401,8 @@ export default function CustomerVouchers() {
                           key={item.VoucherId || item.voucherId}
                           className="redeemable-ticket"
                           discountText={formatDiscount(type, discountVal)}
-                          discountTag={type === 1 ? 'GIẢM PHẦN TRĂM' : 'GIẢM GIÁ TIỀN'}
-                          title="Voucher Đổi Thưởng"
+                          discountTag={type === 1 ? 'GIẢM THEO %' : 'GIẢM TRỰC TIẾP'}
+                          title="Voucher Đổi Điểm"
                           code={code}
                           conditions={conditions}
                           actionButton={
@@ -416,7 +416,7 @@ export default function CustomerVouchers() {
                               onClick={() => setConfirmRedeemVoucher(item)}
                               style={{ width: '100%', fontSize: '0.85rem' }}
                             >
-                              {canRedeem ? 'Đổi Voucher' : `Cần thêm ${(reqPoints - customerPoints).toLocaleString('vi-VN')} điểm`}
+                              {canRedeem ? 'Đổi voucher ngay' : `Cần thêm ${(reqPoints - customerPoints).toLocaleString('vi-VN')} điểm`}
                             </AnimatedButton>
                           }
                         />
@@ -439,27 +439,27 @@ export default function CustomerVouchers() {
 
       <ConfirmModal
         isOpen={!!confirmRedeemVoucher}
-        title="Xác nhận đổi Voucher"
+        title="Xác nhận đổi mã voucher"
         variant="primary"
         isLoading={submittingRedeem}
         onCancel={() => setConfirmRedeemVoucher(null)}
         onConfirm={handleRedeemVoucher}
         confirmText="Xác nhận đổi"
-        cancelText="Hủy bỏ"
+        cancelText="Hủy"
         message={
           <>
             <p>
-              Bạn có chắc chắn muốn dùng{' '}
+              Bạn có chắc chắn muốn sử dụng{' '}
               <strong style={{ color: 'var(--color-primary)' }}>
                 {((confirmRedeemVoucher?.RequiredPoints ?? confirmRedeemVoucher?.requiredPoints) || 0).toLocaleString('vi-VN')} điểm
               </strong>{' '}
-              để đổi mã ưu đãi{' '}
+              để đổi lấy mã giảm giá{' '}
               <strong style={{ color: 'var(--color-heading)' }}>
                 {confirmRedeemVoucher?.VoucherCode || confirmRedeemVoucher?.voucherCode}
               </strong>?
             </p>
             <div className="confirm-modal-warning" style={{ marginTop: '12px' }}>
-              Voucher sau khi đổi sẽ xuất hiện trong tab "Voucher của tôi" và điểm tích lũy của bạn sẽ bị trừ tương ứng.
+              Mã voucher sau khi đổi sẽ xuất hiện trong tab "Mã của tôi" và điểm tích lũy của bạn sẽ được trừ ngay lập tức.
             </div>
           </>
         }

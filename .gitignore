@@ -1,0 +1,24 @@
+# Bin and obj folders
+**/bin/
+**/obj/
+
+# Node modules & Vite build
+**/node_modules/
+**/dist/
+frontend/dist/
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local scripts & temp sql
+*.ps1
+clear_all_transaction_data.sql
+seed_walkin_bookings.sql
+seed_walkin_correct.sql
+update_services_vietnamese.sql
+tune_wave_chart.ps1
+balance_bookings.ps1
+fix_database_data.ps1
