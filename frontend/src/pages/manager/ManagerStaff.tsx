@@ -22,7 +22,7 @@ export default function ManagerStaff() {
           const list = await getBranchStaff(myBranch.branchId)
           if (!cancelled) setStaff(list)
         } else {
-          setError('No assigned branch found.')
+          setError('Không tìm thấy chi nhánh được phân công.')
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -41,26 +41,26 @@ export default function ManagerStaff() {
     <div className="portal-page animate-fade-in">
       <div className="dash-header">
         <div>
-          <h2>Staff Directory</h2>
-          <p>Track team members assigned to your branch.</p>
+          <h2>Danh sách nhân viên</h2>
+          <p>Theo dõi và quản lý nhân viên trực thuộc chi nhánh của bạn.</p>
         </div>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
-          Loading staff list...
+          Đang tải danh sách nhân viên...
         </div>
       ) : error ? (
         <div className="empty-state-premium">
           <div className="empty-state-icon-premium">⚠️</div>
-          <h3>Failed to load staff</h3>
+          <h3>Lỗi tải danh sách nhân viên</h3>
           <p>{error}</p>
         </div>
       ) : staff.length === 0 ? (
         <div className="empty-state-premium">
           <div className="empty-state-icon-premium">👥</div>
-          <h3>No staff members found</h3>
-          <p>There are no staff members currently assigned to your branch.</p>
+          <h3>Chưa có nhân viên</h3>
+          <p>Hiện chưa có nhân viên nào được phân công về chi nhánh này.</p>
         </div>
       ) : (
         <div className="vehicle-list">
@@ -72,11 +72,11 @@ export default function ManagerStaff() {
                 </div>
                 <div className="vehicle-card-meta" style={{ marginTop: '6px', color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>
                   {s.email && <div>Email: {s.email}</div>}
-                  {s.phoneNumber && <div>Phone: {s.phoneNumber}</div>}
+                  {s.phoneNumber && <div>Số điện thoại: {s.phoneNumber}</div>}
                 </div>
               </div>
               <span className={`badge ${s.isActive ? 'badge-success' : 'badge-danger'}`} style={{ alignSelf: 'center' }}>
-                {s.isActive ? 'Active' : 'Inactive'}
+                {s.isActive ? 'Hoạt động' : 'Tạm dừng'}
               </span>
             </div>
           ))}
