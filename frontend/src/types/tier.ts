@@ -49,9 +49,9 @@ export function normalizeTierBenefit(raw: Record<string, unknown>): TierBenefit 
 }
 
 export const BenefitTypeLabels: Record<number, string> = {
-  1: 'Giảm giá %',
-  2: 'Đặt trước (ngày)',
-  3: 'Dịch vụ miễn phí',
-  4: 'Hỗ trợ ưu tiên',
-  5: 'Thưởng điểm thêm %',
+  1: 'Discount %',
+  2: 'Advance Booking (Days)',
+  3: 'Free Service',
+  4: 'Priority Support',
+  5: 'Bonus Points %',
 }

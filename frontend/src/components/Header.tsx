@@ -65,18 +65,18 @@ export default function Header() {
 
         {/* Navigation Links */}
         <nav className="navbar-nav">
-          <a href="/#hero" className={`nav-link ${location.pathname === '/' && activeSection === 'hero' ? 'active' : ''}`}>SERVICES</a>
-          <a href="/#services" className={`nav-link ${location.pathname === '/' && activeSection === 'services' ? 'active' : ''}`}>STATIONS</a>
-          <a href="/#process" className={`nav-link ${location.pathname === '/' && activeSection === 'process' ? 'active' : ''}`}>PROCESS</a>
-          <a href="/#reviews" className={`nav-link ${location.pathname === '/' && activeSection === 'reviews' ? 'active' : ''}`}>REVIEWS</a>
+          <a href="/#hero" className={`nav-link ${location.pathname === '/' && activeSection === 'hero' ? 'active' : ''}`}>DỊCH VỤ</a>
+          <a href="/#services" className={`nav-link ${location.pathname === '/' && activeSection === 'services' ? 'active' : ''}`}>CHI NHÁNH</a>
+          <a href="/#process" className={`nav-link ${location.pathname === '/' && activeSection === 'process' ? 'active' : ''}`}>QUY TRÌNH</a>
+          <a href="/#reviews" className={`nav-link ${location.pathname === '/' && activeSection === 'reviews' ? 'active' : ''}`}>ĐÁNH GIÁ</a>
         </nav>
 
         {/* Actions */}
         <div className="navbar-actions">
           {user ? (
             <>
-              <Link to={dashboardPath} className="btn btn-ghost btn-sm">DASHBOARD</Link>
-              <button onClick={handleLogout} className="btn btn-primary btn-sm">SIGN OUT</button>
+              <Link to={dashboardPath} className="btn btn-ghost btn-sm">BẢNG ĐIỀU KHIỂN</Link>
+              <button onClick={handleLogout} className="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
             </>
           ) : (() => {
             const isAuthPage = location.pathname === '/auth'
@@ -91,16 +91,14 @@ export default function Header() {
                 <Link 
                   to="/auth" 
                   className={`btn btn-sm ${isSignInActive ? 'btn-primary' : 'btn-ghost'}`}
-                  style={{ borderRadius: 0 }}
                 >
-                  LOGIN
+                  ĐĂNG NHẬP
                 </Link>
                 <Link 
                   to="/auth?tab=signup" 
                   className={`btn btn-sm ${isGetStartedActive ? 'btn-primary' : 'btn-ghost'}`}
-                  style={{ borderRadius: 0 }}
                 >
-                  BOOK NOW
+                  ĐẶT LỊCH NGAY
                 </Link>
               </>
             )
