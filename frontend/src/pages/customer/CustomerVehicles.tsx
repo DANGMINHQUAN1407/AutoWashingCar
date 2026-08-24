@@ -34,6 +34,8 @@ export default function CustomerVehicles() {
     bodyStyleCatalogId: '',
   })
   const [isPlateComposing, setIsPlateComposing] = useState(false)
+  const [vehicleImageFile, setVehicleImageFile] = useState<File | null>(null)
+  const [vehicleImagePreview, setVehicleImagePreview] = useState<string | null>(null)
 
 
   const engineTypeLabel = (engine?: number) => {
@@ -149,6 +151,9 @@ export default function CustomerVehicles() {
       engineCatalogId: '',
       bodyStyleCatalogId: '',
     })
+    setVehicleImageFile(null)
+    setVehicleImagePreview(null)
+    setEditingVehicleId(null)
     setShowVehicleForm(true)
   }
 
@@ -176,7 +181,30 @@ export default function CustomerVehicles() {
       engineCatalogId: vehicle.EngineCatalogId ?? vehicle.engineCatalogId ?? '',
       bodyStyleCatalogId: vehicle.BodyStyleCatalogId ?? vehicle.bodyStyleCatalogId ?? '',
     })
+    setVehicleImageFile(null)
+    setVehicleImagePreview(vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || null)
     setShowVehicleForm(true)
+  }
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setVehicleError('Vui lòng chọn file hình ảnh hợp lệ (JPG, PNG, WEBP).')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setVehicleError('Kích thước ảnh không được vượt quá 5MB.')
+        return
+      }
+      setVehicleImageFile(file)
+      setVehicleImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setVehicleImageFile(null)
+    setVehicleImagePreview(null)
   }
 
   const handleVehicleSubmit = async (e: React.FormEvent) => {
@@ -209,6 +237,21 @@ export default function CustomerVehicles() {
         ? await api.updateVehicle(editingVehicleId, payload)
         : await api.createVehicle(payload)
 
+      const targetVehicleId = savedVehicle?.VehicleId || savedVehicle?.vehicleId || editingVehicleId
+
+      if (targetVehicleId && vehicleImageFile) {
+        try {
+          const uploadedImg = await api.uploadVehicleImage(targetVehicleId, vehicleImageFile)
+          const imgUrl = uploadedImg?.imageUrl || uploadedImg?.ImageUrl || uploadedImg?.data?.imageUrl
+          if (imgUrl) {
+            savedVehicle.PrimaryImageUrl = imgUrl
+            savedVehicle.primaryImageUrl = imgUrl
+          }
+        } catch (imgErr) {
+          console.error('Failed to upload vehicle image:', imgErr)
+        }
+      }
+
       setVehicles(prev => {
         if (editingVehicleId) {
           return prev.map(vehicle => (vehicle.VehicleId || vehicle.vehicleId) === editingVehicleId ? { ...vehicle, ...savedVehicle } : vehicle)
@@ -227,6 +270,8 @@ export default function CustomerVehicles() {
         engineCatalogId: '',
         bodyStyleCatalogId: '',
       })
+      setVehicleImageFile(null)
+      setVehicleImagePreview(null)
       setShowVehicleForm(false)
       setEditingVehicleId(null)
       setVehicleSuccess(editingVehicleId ? 'Cập nhật thông tin xe thành công.' : 'Đăng ký xe mới thành công.')
@@ -494,9 +539,61 @@ export default function CustomerVehicles() {
                 )}
               </select>
             </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">Ảnh đại diện xe (Tùy chọn)</label>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {vehicleImagePreview ? (
+                  <div style={{ position: 'relative', width: '90px', height: '90px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--color-border-dim)' }}>
+                    <img src={vehicleImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: 'rgba(0,0,0,0.65)',
+                        border: 'none',
+                        color: '#fff',
+                        borderRadius: '50%',
+                        width: '22px',
+                        height: '22px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                      }}
+                      title="Gỡ ảnh"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ width: '90px', height: '90px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: 'var(--color-text-dim)' }}>
+                    📷
+                  </div>
+                )}
+                <div>
+                  <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📁 {vehicleImagePreview ? 'Chọn ảnh khác' : 'Tải ảnh xe lên'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleImageFileChange}
+                    />
+                  </label>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
+                    Định dạng JPG, PNG, WEBP (tối đa 5MB)
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="vehicle-form-actions">
-            <AnimatedButton type="button" variant="ghost" onClick={() => { setShowVehicleForm(false); setEditingVehicleId(null) }}>
+            <AnimatedButton type="button" variant="ghost" onClick={() => { setShowVehicleForm(false); setEditingVehicleId(null); setVehicleImageFile(null); setVehicleImagePreview(null); }}>
               Hủy
             </AnimatedButton>
             <AnimatedButton type="submit" variant="primary" disabled={vehicleLoading}>
@@ -523,9 +620,17 @@ export default function CustomerVehicles() {
             <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
               <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', border: '1px solid var(--color-border-dim)' }}>
-                    {vehicleType === 1 ? '🏍️' : vehicleType === 3 ? '🚚' : '🚗'}
-                  </div>
+                  {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
+                    <img
+                      src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || undefined}
+                      alt={plate}
+                      style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }}
+                    />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', border: '1px solid var(--color-border-dim)' }}>
+                      {vehicleType === 1 ? '🏍️' : vehicleType === 3 ? '🚚' : '🚗'}
+                    </div>
+                  )}
                   <div>
                     <div className="vehicle-card-title" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{plate}</div>
                     <div className="vehicle-card-meta" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>

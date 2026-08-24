@@ -801,13 +801,23 @@ export default function CustomerBookings() {
 
   // Filter bookings based on activeTab
   const filteredBookings = bookings.filter(b => {
+    const isPast = Boolean(b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime));
     if (activeTab === 'upcoming') {
-      // Active statuses: Pending (1), Confirmed (2), Checked In (3), In Progress (4)
-      const isActive = b.bookingStatus >= 1 && b.bookingStatus <= 4;
-      const isPast = b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime);
-      return isActive && !isPast;
+      // Pending (1): Luôn hiển thị để khách có thể thanh toán cọc hoặc hủy đơn
+      if (b.bookingStatus === 1) return true;
+      // Checked In (3) & In Progress (4): Đang được phục vụ tại gara
+      if (b.bookingStatus === 3 || b.bookingStatus === 4) return true;
+      // Confirmed (2): Hiển thị nếu lịch hẹn chưa trôi qua
+      if (b.bookingStatus === 2) return !isPast;
+      return false;
     }
-    // History tab shows ALL bookings
+    if (activeTab === 'history') {
+      // Completed (5), Closed (6), Cancelled (7), No Show (8)
+      if (b.bookingStatus >= 5) return true;
+      // Confirmed cũ đã qua thời gian hẹn
+      if (b.bookingStatus === 2 && isPast) return true;
+      return false;
+    }
     return true;
   });
 

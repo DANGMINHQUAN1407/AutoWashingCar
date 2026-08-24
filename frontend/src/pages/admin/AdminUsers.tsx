@@ -152,7 +152,7 @@ export default function AdminUsers() {
       fullName: user.fullName,
       email: user.email || '',
       phoneNumber: user.phoneNumber || '',
-      role: user.role === 'Admin' || user.role === 'Customer' ? 'Staff' : user.role, // Only allow Staff/Manager roles
+      role: user.role || 'Customer',
     })
     setModalFormError(null)
     setModalMode('edit')
@@ -232,11 +232,11 @@ export default function AdminUsers() {
       <div className="glass-filters">
         {/* Search filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="search-input">Search User</label>
+          <label className="form-label" htmlFor="search-input">Search by Name</label>
           <input
             id="search-input"
             className="form-input form-input-icon"
-            placeholder="Search by name, email..."
+            placeholder="Search by name..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
@@ -547,15 +547,27 @@ export default function AdminUsers() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="staff-role">Role *</label>
-                <select
-                  id="staff-role"
-                  className="form-input form-select-custom"
-                  value={modalForm.role}
-                  onChange={e => setModalForm(prev => ({ ...prev, role: e.target.value }))}
-                >
-                  <option value="Staff">Staff</option>
-                  <option value="Manager">Manager</option>
-                </select>
+                {modalMode === 'edit' && (selectedUser?.role === 'Customer' || selectedUser?.role === 'Admin') ? (
+                  <select
+                    id="staff-role"
+                    className="form-input form-select-custom"
+                    value={modalForm.role}
+                    disabled
+                    style={{ opacity: 0.7, cursor: 'not-allowed' }}
+                  >
+                    <option value={modalForm.role}>{modalForm.role}</option>
+                  </select>
+                ) : (
+                  <select
+                    id="staff-role"
+                    className="form-input form-select-custom"
+                    value={modalForm.role}
+                    onChange={e => setModalForm(prev => ({ ...prev, role: e.target.value }))}
+                  >
+                    <option value="Staff">Staff</option>
+                    <option value="Manager">Manager</option>
+                  </select>
+                )}
               </div>
 
               <div className="confirm-modal-actions" style={{ marginTop: '14px' }}>

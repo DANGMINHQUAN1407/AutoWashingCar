@@ -52,8 +52,11 @@ public class PaymentService(
         if (booking.BookingStatus != BookingStatus.Pending)
             throw AppException.BadRequest(ValidationMessage.Payment.OnlyPayWhenPending);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var alreadyPaid = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         if (alreadyPaid > 0)
@@ -161,8 +164,11 @@ public class PaymentService(
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCreateQrForClosed);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;
@@ -219,8 +225,11 @@ public class PaymentService(
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCollectForClosed);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;
