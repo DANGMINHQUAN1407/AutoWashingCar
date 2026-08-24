@@ -752,23 +752,23 @@ export default function CustomerBookings() {
   const getStatusLabel = (status: number) => {
     switch (status) {
       case 1:
-        return 'Pending Payment';
+        return 'Chờ thanh toán cọc';
       case 2:
-        return 'Confirmed';
+        return 'Đã xác nhận';
       case 3:
-        return 'Checked In';
+        return 'Đã Check-in';
       case 4:
-        return 'In Progress';
+        return 'Đang thực hiện';
       case 5:
-        return 'Completed';
+        return 'Hoàn thành';
       case 6:
-        return 'Closed';
+        return 'Đã đóng';
       case 7:
-        return 'Cancelled';
+        return 'Đã hủy';
       case 8:
-        return 'No Show';
+        return 'Vắng mặt';
       default:
-        return 'Unknown';
+        return 'Không xác định';
     }
   };
 
@@ -796,7 +796,9 @@ export default function CustomerBookings() {
   };
 
   const getVehicleLabel = (type?: number) => {
-    return type === 1 ? 'Motorbike' : 'Car';
+    if (type === 1) return 'Xe máy';
+    if (type === 3) return 'Xe tải';
+    return 'Ô tô';
   };
 
   // Filter bookings based on activeTab
@@ -846,8 +848,8 @@ export default function CustomerBookings() {
 
   // Format currency helper
   const formatVND = (value?: number) => {
-    if (value === undefined) return '0 VND';
-    return new Intl.NumberFormat('en-US').format(value) + ' VND';
+    if (value === undefined) return '0 đ';
+    return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
   };
 
   const handleApplyVoucherCode = async () => {
@@ -918,12 +920,12 @@ export default function CustomerBookings() {
     <div className="portal-page">
       <div className="dash-header">
         <div>
-          <h2>Car Wash Appointments</h2>
-          <p>Book your car care appointment and track your booking status.</p>
+          <h2>Đặt lịch rửa xe</h2>
+          <p>Đặt lịch chăm sóc xe và theo dõi tiến trình phục vụ dễ dàng.</p>
         </div>
         {viewMode === 'list' && (
           <AnimatedButton type="button" variant="primary" onClick={handleStartWizard}>
-            Book New Appointment
+            + Đặt lịch mới
           </AnimatedButton>
         )}
       </div>
@@ -991,25 +993,25 @@ export default function CustomerBookings() {
               className={`bookings-tab-btn ${activeTab === 'upcoming' ? 'active' : ''}`}
               onClick={() => setActiveTab('upcoming')}
             >
-              Upcoming
+              Sắp diễn ra
             </button>
             <button
               type="button"
               className={`bookings-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
             >
-              History
+              Lịch sử
             </button>
           </div>
 
           <div className="booking-list">
             {loadingList ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Loading bookings...
+                Đang tải danh sách lịch hẹn...
               </div>
             ) : filteredBookings.length === 0 ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Không tìm thấy lịch hẹn nào. Click "Book New Appointment" để đặt lịch mới!
+                Không tìm thấy lịch hẹn nào. Bấm "+ Đặt lịch mới" để đặt lịch ngay!
               </div>
             ) : (
               paginatedBookings.map(b => {
@@ -1022,7 +1024,7 @@ export default function CustomerBookings() {
                     {isActive && <div className="booking-status-indicator" />}
                     <div className="booking-main">
                       <div className="booking-header">
-                        <h4>Booking ID: {b.bookingCode}</h4>
+                        <h4>Mã đơn: {b.bookingCode}</h4>
                         <StatusBadge
                           type={getStatusClass(b.bookingStatus)}
                           label={getStatusLabel(b.bookingStatus)}
@@ -1030,14 +1032,14 @@ export default function CustomerBookings() {
                       </div>
                       <div className="booking-details">
                         <span>
-                          <strong>Date:</strong> {b.slotDate || 'Not scheduled'}
+                          <strong>Ngày:</strong> {b.slotDate || 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Time:</strong>{' '}
-                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Not scheduled'}
+                          <strong>Giờ:</strong>{' '}
+                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Total:</strong> {formatVND(b.bookingFinalAmount)}
+                          <strong>Tổng tiền:</strong> {formatVND(b.bookingFinalAmount)}
                         </span>
                       </div>
                     </div>
@@ -1049,7 +1051,7 @@ export default function CustomerBookings() {
                       >
                         {b.bookingStatus >= 1 && b.bookingStatus <= 4
                           ? '🔍 Chi tiết & Theo dõi'
-                          : 'Details'}
+                          : 'Chi tiết'}
                       </button>
                       {b.bookingStatus === 1 && (
                         <button
@@ -1057,7 +1059,7 @@ export default function CustomerBookings() {
                           className="btn btn-primary btn-sm"
                           onClick={() => handlePaymentRedirect(b.bookingId, false)}
                         >
-                          Pay Deposit
+                          Thanh toán cọc
                         </button>
                       )}
                       {(b.bookingStatus === 1 || b.bookingStatus === 2) && (
@@ -1066,7 +1068,7 @@ export default function CustomerBookings() {
                           className="btn btn-danger btn-sm"
                           onClick={() => handleCancelBookingClick(b)}
                         >
-                          Cancel Booking
+                          Hủy lịch
                         </button>
                       )}
                       {(b.bookingStatus === 5 || b.bookingStatus === 6) &&
