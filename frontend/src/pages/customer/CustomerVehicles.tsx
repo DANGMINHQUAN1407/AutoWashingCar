@@ -35,6 +35,7 @@ export default function CustomerVehicles() {
   })
   const [isPlateComposing, setIsPlateComposing] = useState(false)
 
+
   const engineTypeLabel = (engine?: number) => {
     if (engine === 1) return 'Xăng (Petrol)'
     if (engine === 2) return 'Dầu (Diesel)'
@@ -522,7 +523,9 @@ export default function CustomerVehicles() {
             <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
               <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🚗</div>
+                  <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', border: '1px solid var(--color-border-dim)' }}>
+                    {vehicleType === 1 ? '🏍️' : vehicleType === 3 ? '🚚' : '🚗'}
+                  </div>
                   <div>
                     <div className="vehicle-card-title" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{plate}</div>
                     <div className="vehicle-card-meta" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
