@@ -1245,6 +1245,7 @@ export default function CustomerBookings() {
                   const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Unknown Brand';
                   const type = v.VehicleType ?? v.vehicleType ?? 2;
                   const id = v.VehicleId || v.vehicleId;
+                  const imageUrl = v.PrimaryImageUrl || v.primaryImageUrl;
                   return (
                     <div
                       key={id || plate}
@@ -1252,18 +1253,53 @@ export default function CustomerBookings() {
                       onClick={() => id && setSelectedVehicleId(id)}
                     >
                       <div className="wizard-card-item-indicator" />
-                      <h4 style={{ color: 'var(--color-heading)', marginBottom: '4px' }}>
-                        🚘 {plate}
-                      </h4>
-                      <p
-                        style={{
-                          fontSize: '0.88rem',
-                          color: 'var(--color-text-muted)',
-                          marginBottom: '10px',
-                        }}
-                      >
-                        {brand}
-                      </p>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={plate}
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: 'var(--radius-sm, 8px)',
+                              objectFit: 'cover',
+                              border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: 'var(--radius-sm, 8px)',
+                              background: 'rgba(255,255,255,0.05)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.4rem',
+                              border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {type === 1 ? '🏍️' : type === 3 ? '🚚' : '🚗'}
+                          </div>
+                        )}
+                        <div>
+                          <h4 style={{ color: 'var(--color-heading)', margin: 0, fontSize: '1rem', fontWeight: 'bold' }}>
+                            {plate}
+                          </h4>
+                          <p
+                            style={{
+                              fontSize: '0.82rem',
+                              color: 'var(--color-text-muted)',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            {brand}
+                          </p>
+                        </div>
+                      </div>
                       <span className={`badge ${type === 1 ? 'badge-motorbike' : 'badge-car'}`}>
                         {getVehicleLabel(type)}
                       </span>
