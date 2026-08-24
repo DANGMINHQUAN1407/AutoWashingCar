@@ -655,7 +655,10 @@ export default function AdminTiers() {
                   required
                   placeholder="Ví dụ: Đồng, Bạc, Vàng, Kim cương..."
                   value={tierForm.tierName}
-                  onChange={e => setTierForm(prev => ({ ...prev, tierName: e.target.value }))}
+                  onChange={e => {
+                    setTierForm(prev => ({ ...prev, tierName: e.target.value }))
+                    setTierFormError(null)
+                  }}
                 />
               </div>
 
@@ -669,8 +672,12 @@ export default function AdminTiers() {
                     className="form-input"
                     required
                     placeholder="Ví dụ: 500"
-                    value={tierForm.minPoints}
-                    onChange={e => setTierForm(prev => ({ ...prev, minPoints: parseInt(e.target.value) || 0 }))}
+                    value={tierForm.minPoints || ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
+                      setTierForm(prev => ({ ...prev, minPoints: val }))
+                      setTierFormError(null)
+                    }}
                   />
                 </div>
 
@@ -684,8 +691,12 @@ export default function AdminTiers() {
                     className="form-input"
                     required
                     placeholder="Ví dụ: 1.2"
-                    value={tierForm.earnRate}
-                    onChange={e => setTierForm(prev => ({ ...prev, earnRate: parseFloat(e.target.value) || 0.0 }))}
+                    value={tierForm.earnRate || ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0.0
+                      setTierForm(prev => ({ ...prev, earnRate: val }))
+                      setTierFormError(null)
+                    }}
                   />
                   <span className="benefit-help-text" style={{ marginTop: '4px', display: 'block', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
                     Hệ số nhân điểm thưởng (ví dụ: 1.0 là mặc định, 1.2 là tích điểm nhanh hơn 20%). Tránh nhập dạng phần trăm 100.

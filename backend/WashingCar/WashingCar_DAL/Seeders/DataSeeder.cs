@@ -25,7 +25,10 @@ public static class DataSeeder
         // --- BƯỚC 2: SEED GÓI DỊCH VỤ VÀ ADD-ON ---
         await SeedDefaultServicesAndAddOnsAsync(db);
 
-        // --- BƯỚC 3: TẠO TÀI KHOẢN SUPER ADMIN ---
+        // --- BƯỚC 3: SEED HẠNG THÀNH VIÊN VÀ QUYỀN LỢI ---
+        await SeedTiersAndBenefitsAsync(db);
+
+        // --- BƯỚC 4: TẠO TÀI KHOẢN SUPER ADMIN ---
         await SeedAdminAsync(db, configuration);
     }
 
@@ -333,5 +336,93 @@ public static class DataSeeder
 
         await db.Users.AddAsync(adminUser);
         await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedTiersAndBenefitsAsync(WashingCarDbContext db)
+    {
+        var now = DateTime.UtcNow;
+
+        // 1. Tạo 4 hạng mặc định nếu chưa có
+        if (!await db.Tiers.AnyAsync())
+        {
+            var defaultTiers = new[]
+            {
+                new Tier { TierId = Guid.NewGuid(), TierName = "Bronze", MinPoints = 0, EarnRate = 1.0m, Benefits = "Tích điểm tiêu chuẩn, đặt lịch trước tối đa 3 ngày.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Silver", MinPoints = 500, EarnRate = 1.1m, Benefits = "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%, quà tặng khăn lau cao cấp.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Gold", MinPoints = 1500, EarnRate = 1.25m, Benefits = "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%, miễn phí khử mùi Nano, ưu tiên khoang VIP.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Diamond", MinPoints = 3000, EarnRate = 1.5m, Benefits = "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%, miễn phí tẩy ố kính & dưỡng lốp, chăm sóc chuyên biệt VIP.", IsActive = true, CreatedAtUtc = now },
+            };
+            await db.Tiers.AddRangeAsync(defaultTiers);
+            await db.SaveChangesAsync();
+        }
+
+        // 2. Nạp quyền lợi (Tier Benefits) tương ứng cho từng hạng
+        var tiers = await db.Tiers.Include(t => t.TierBenefits).ToListAsync();
+        foreach (var tier in tiers)
+        {
+            var name = tier.TierName.ToLower();
+
+            // 🥉 1. HẠNG ĐỒNG (Bronze)
+            if (name.Contains("bronze") || name.Contains("đồng") || name.Contains("dong") || name.Contains("member"))
+            {
+                tier.Benefits = "Tích điểm tiêu chuẩn, đặt lịch trước tối đa 3 ngày.";
+                AddOrUpdateBenefit(tier, 2, "3", "Đặt lịch trước tối đa 3 ngày", now);
+            }
+            // 🥈 2. HẠNG BẠC (Silver)
+            else if (name.Contains("silver") || name.Contains("bạc") || name.Contains("bac"))
+            {
+                tier.Benefits = "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%, quà tặng khăn lau cao cấp.";
+                AddOrUpdateBenefit(tier, 1, "5", "Giảm giá 5% trực tiếp trên hóa đơn đặt lịch", now);
+                AddOrUpdateBenefit(tier, 2, "7", "Đặt lịch trước tối đa 7 ngày", now);
+                AddOrUpdateBenefit(tier, 3, "Tặng 01 khăn lau xe chuyên dụng Microfiber", "Quà tặng tri ân thành viên Bạc", now);
+                AddOrUpdateBenefit(tier, 5, "10", "Tích lũy thêm 10% điểm thưởng mỗi lần rửa xe", now);
+            }
+            // 🥇 3. HẠNG VÀNG (Gold)
+            else if (name.Contains("gold") || name.Contains("vàng") || name.Contains("vang"))
+            {
+                tier.Benefits = "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%, miễn phí khử mùi Nano, ưu tiên khoang VIP.";
+                AddOrUpdateBenefit(tier, 1, "10", "Giảm giá 10% trực tiếp trên mọi dịch vụ", now);
+                AddOrUpdateBenefit(tier, 2, "14", "Đặt lịch trước tối đa 14 ngày", now);
+                AddOrUpdateBenefit(tier, 3, "Miễn phí 01 lần Xịt sương Nano khử khuẩn khoang lái", "Tặng dịch vụ xịt khử mùi Nano", now);
+                AddOrUpdateBenefit(tier, 4, "Ưu tiên điều phối khoang rửa VIP và tiếp nhận nhanh", "Quyền ưu tiên khoang VIP", now);
+                AddOrUpdateBenefit(tier, 5, "20", "Tích lũy thêm 20% điểm thưởng", now);
+            }
+            // 💎 4. HẠNG KIM CƯƠNG (Diamond / Platinum)
+            else if (name.Contains("diamond") || name.Contains("kim") || name.Contains("platinum"))
+            {
+                tier.Benefits = "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%, miễn phí tẩy ố kính & dưỡng lốp, chăm sóc chuyên biệt VIP.";
+                AddOrUpdateBenefit(tier, 1, "15", "Giảm giá 15% trực tiếp trên toàn bộ hóa đơn", now);
+                AddOrUpdateBenefit(tier, 2, "30", "Đặt lịch trước không giới hạn (tối đa 30 ngày)", now);
+                AddOrUpdateBenefit(tier, 3, "Miễn phí Tẩy ố kính lái & Phủ dưỡng bóng lốp cao cấp", "Dịch vụ chăm sóc chuyên sâu miễn phí", now);
+                AddOrUpdateBenefit(tier, 4, "Hỗ trợ Hotline riêng 24/7 và Ưu tiên khoang rửa cao cấp nhất", "Dịch vụ khách hàng thượng hạng", now);
+                AddOrUpdateBenefit(tier, 5, "30", "Tích lũy thêm 30% điểm thưởng", now);
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static void AddOrUpdateBenefit(Tier tier, byte benefitType, string benefitValue, string description, DateTime now)
+    {
+        var existing = tier.TierBenefits.FirstOrDefault(b => b.BenefitType == benefitType);
+        if (existing is null)
+        {
+            tier.TierBenefits.Add(new TierBenefit
+            {
+                TierBenefitId = Guid.NewGuid(),
+                TierId = tier.TierId,
+                BenefitType = benefitType,
+                BenefitValue = benefitValue,
+                Description = description,
+                IsActive = true,
+                CreatedAtUtc = now,
+            });
+        }
+        else
+        {
+            existing.BenefitValue = benefitValue;
+            existing.Description = description;
+            existing.IsActive = true;
+        }
     }
 }
