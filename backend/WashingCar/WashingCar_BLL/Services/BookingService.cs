@@ -819,7 +819,10 @@ public class BookingService(
         var slotStartLocal = booking.SlotInventory.SlotDate
             .ToDateTime(booking.SlotInventory.SlotStartTime);
         var cancellation = CancellationPolicy.Evaluate(nowLocal, slotStartLocal);
-        if (cancellation.IsAfterSlotStart)
+
+        // Chỉ áp dụng giới hạn cửa sổ thời gian hủy đối với đơn Confirmed (đã thanh toán cọc).
+        // Đối với đơn Pending (chưa thanh toán), khách luôn có quyền hủy đơn để giải phóng slot và gỡ đơn quá hạn.
+        if (booking.BookingStatus == BookingStatus.Confirmed && cancellation.IsAfterSlotStart)
             throw AppException.BadRequest(ValidationMessage.Booking.CancellationWindowClosed);
 
         // Nhả chỗ slot đã giữ (booking.SlotInventory đã được Include)
@@ -1002,10 +1005,18 @@ public class BookingService(
                     continue;
                 }
 
-                if (await paymentRepo.HasPendingOrCompletedPaymentAsync(bookingId, ct))
+                var completedAmount = await paymentRepo.GetCompletedAmountAsync(bookingId, ct);
+                if (completedAmount > 0)
                 {
                     await transaction.RollbackAsync(ct);
                     continue;
+                }
+
+                // Hủy các giao dịch Pending quá hạn để giải phóng booking
+                var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(bookingId, ct);
+                foreach (var pendingPayment in pendingPayments)
+                {
+                    pendingPayment.PaymentStatus = PaymentStatus.Cancelled;
                 }
 
                 var slot = booking.SlotInventory;

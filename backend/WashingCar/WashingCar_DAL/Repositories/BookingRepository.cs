@@ -129,6 +129,8 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
         var q = ApplyFilters(
             _db.Bookings.AsNoTracking()
                .Include(b => b.SlotInventory)
+               .Include(b => b.Vehicle)
+               .Include(b => b.User)
                .Include(b => b.BookingLines)
                .Include(b => b.AssignedStaff)
                .Where(b => b.UserId == userId),
