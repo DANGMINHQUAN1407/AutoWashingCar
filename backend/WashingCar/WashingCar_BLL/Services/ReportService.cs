@@ -37,11 +37,37 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
         var networkHealth = branches.Count > 0
             ? (int)Math.Round((double)activeBranches / branches.Count * 100)
             : 0;
-        var revenueWeeks = await GetWeeklyNetRevenuePercentagesAsync(branchId: null, ct);
+        var revenueData = await GetWeeklyNetRevenueDataAsync(branchId: null, ct);
 
         var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         var monthlyWashes = await db.Bookings.AsNoTracking()
             .CountAsync(b => completedStatuses.Contains(b.BookingStatus) && b.CreatedAtUtc >= currentMonthStart, ct);
+
+        var totalCustomers = await db.Users.AsNoTracking()
+            .CountAsync(u => u.Role == UserRole.Customer, ct);
+
+        var totalBookings = await db.Bookings.AsNoTracking().CountAsync(ct);
+
+        var loyaltyMembers = await db.LoyaltyAccounts.AsNoTracking().CountAsync(ct);
+
+        var completedServices = await db.Bookings.AsNoTracking()
+            .CountAsync(b => completedStatuses.Contains(b.BookingStatus), ct);
+
+        var totalVehicles = await db.Vehicles.AsNoTracking().CountAsync(ct);
+
+        var vouchersUsed = await db.Bookings.AsNoTracking()
+            .CountAsync(b => b.VoucherId != null, ct);
+
+        var pointsRedeemed = await db.LoyaltyLedgerEntries.AsNoTracking()
+            .Where(l => l.Points < 0)
+            .SumAsync(l => (int?)Math.Abs(l.Points), ct) ?? 0;
+
+        var onlineCount = await db.Bookings.AsNoTracking().CountAsync(b => b.BookingType == BookingType.Online, ct);
+        var walkInCount = await db.Bookings.AsNoTracking().CountAsync(b => b.BookingType == BookingType.WalkIn, ct);
+        var onlinePct = totalBookings > 0 ? (int)Math.Round((double)onlineCount / totalBookings * 100) : 55;
+        var walkInPct = totalBookings > 0 ? (int)Math.Round((double)walkInCount / totalBookings * 100) : 30;
+        var vipPct = Math.Max(0, 100 - (onlinePct + walkInPct));
+        var conversionRate = totalBookings > 0 ? (int)Math.Round((double)completedServices / totalBookings * 100) : 100;
 
         return new DashboardStatsDto
         {
@@ -55,7 +81,22 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             NetRevenue = systemLedger.NetRevenue,
             NetworkHealth = networkHealth,
             MonthlyWashes = monthlyWashes,
-            RevenueWeeks = revenueWeeks
+            RevenueWeeks = revenueData.Percentages,
+            RevenueWeeklyAmounts = revenueData.Amounts,
+            CurrentMonthRevenue = revenueData.CurrentMonthRevenue,
+
+            TotalCustomers = totalCustomers,
+            TotalBookings = totalBookings,
+            LoyaltyMembers = loyaltyMembers,
+            CompletedServices = completedServices,
+            TotalVehicles = totalVehicles,
+            VouchersUsed = vouchersUsed,
+            PointsRedeemed = pointsRedeemed,
+
+            OnlinePct = onlinePct,
+            WalkInPct = walkInPct,
+            VipPct = vipPct,
+            ConversionRate = conversionRate
         };
     }
 
@@ -72,7 +113,7 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
         var activeStatuses = new byte[] { BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.CheckedIn, BookingStatus.InProgress };
         var activeOrders = await db.Bookings.AsNoTracking()
             .CountAsync(b => b.BranchId == branch.BranchId && activeStatuses.Contains(b.BookingStatus), ct);
-        var revenueWeeks = await GetWeeklyNetRevenuePercentagesAsync(branch.BranchId, ct);
+        var revenueData = await GetWeeklyNetRevenueDataAsync(branch.BranchId, ct);
 
         return new DashboardStatsDto
         {
@@ -84,7 +125,9 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             RefundedAmount = branchLedger.RefundedAmount,
             NetRevenue = branchLedger.NetRevenue,
             ActiveOrders = activeOrders,
-            RevenueWeeks = revenueWeeks
+            RevenueWeeks = revenueData.Percentages,
+            RevenueWeeklyAmounts = revenueData.Amounts,
+            CurrentMonthRevenue = revenueData.CurrentMonthRevenue
         };
     }
 
@@ -202,10 +245,11 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
         return (gross, refunded, gross - refunded);
     }
 
-    private async Task<List<int>> GetWeeklyNetRevenuePercentagesAsync(
+    private async Task<(List<int> Percentages, List<decimal> Amounts, decimal CurrentMonthRevenue)> GetWeeklyNetRevenueDataAsync(
         Guid? branchId, CancellationToken ct)
     {
         var cutoffUtc = DateTime.UtcNow.AddDays(-70);
+        var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         var rows = await db.Payments.AsNoTracking()
             .Where(p => p.PaymentStatus == PaymentStatus.Completed
                      && (p.PaidAtUtc ?? p.CreatedAtUtc) >= cutoffUtc)
@@ -220,25 +264,33 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
 
         var weeklyNet = new decimal[10];
         var todayLocal = DateTime.UtcNow.AddHours(VietnamTimeHelper.UtcOffsetHours).Date;
+        decimal currentMonthRevenue = 0;
+
         foreach (var row in rows)
         {
+            var net = row.PaymentType == PaymentType.Refund ? -row.Amount : row.Amount;
+            if (row.EventUtc >= currentMonthStart)
+            {
+                currentMonthRevenue += net;
+            }
+
             var eventLocalDate = row.EventUtc.AddHours(VietnamTimeHelper.UtcOffsetHours).Date;
             var diff = (todayLocal - eventLocalDate).Days;
             if (diff is < 0 or >= 70)
                 continue;
 
             var weekIndex = 9 - (diff / 7);
-            weeklyNet[weekIndex] += row.PaymentType == PaymentType.Refund
-                ? -row.Amount
-                : row.Amount;
+            weeklyNet[weekIndex] += net;
         }
 
         var maxRevenue = weeklyNet.Select(Math.Abs).DefaultIfEmpty(0m).Max();
-        return weeklyNet
+        var percentages = weeklyNet
             .Select(value => maxRevenue > 0
                 ? (int)Math.Round(value * 100 / maxRevenue)
                 : 0)
             .ToList();
+
+        return (percentages, weeklyNet.ToList(), currentMonthRevenue);
     }
 
     private static void ValidateDateRange(DateOnly? fromDate, DateOnly? toDate)
