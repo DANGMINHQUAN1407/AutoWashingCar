@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace WashingCar_DAL.Entities;
 
 public class VehicleBrandCatalog
@@ -6,6 +9,8 @@ public class VehicleBrandCatalog
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public bool IsActive { get; set; }
+    public byte VehicleType { get; set; }
+    public bool IsLuxury { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public byte[] RowVersion { get; set; } = null!;

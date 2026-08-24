@@ -3,7 +3,10 @@ import * as api from '../../services/api'
 import type { BranchService } from '../../types/branch'
 import type { Slot } from '../../types/slot'
 import type { Booking } from '../../types/booking'
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
 import './Staff.css'
+
+const CUSTOM_BRAND_VALUE = '__custom__'
 
 const BOOKING_STATUS_LABEL: Record<number, { label: string; color: string }> = {
   1: { label: 'Pending', color: 'var(--color-text-muted)' },
@@ -58,8 +61,11 @@ export default function StaffCustomers() {
   const [selectedVehicleId, setSelectedVehicleId] = useState('')
   const [addNew, setAddNew] = useState(false)
   const [newPlate, setNewPlate] = useState('')
+  const [isNewPlateComposing, setIsNewPlateComposing] = useState(false)
   const [newType, setNewType] = useState(2)
   const [newBrand, setNewBrand] = useState('')
+  const [newBrandCatalogId, setNewBrandCatalogId] = useState('')
+  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([])
 
   const [services, setServices] = useState<BranchService[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -90,6 +96,9 @@ export default function StaffCustomers() {
       try {
         const me = await api.getMe()
         const currentBranchId = me?.branchId ?? me?.BranchId ?? ''
+        api.getVehicleBrands({ isActive: true, page: 1, pageSize: 9999 })
+          .then(res => setBrandCatalogs(res.items || []))
+          .catch(() => setBrandCatalogs([]))
 
         if (currentBranchId) {
           setBranchId(currentBranchId)
@@ -227,6 +236,10 @@ export default function StaffCustomers() {
     if (selected.size === 0) { setError('Please select at least one service.'); return }
     if (!addNew && !selectedVehicleId) { setError('Please select or add a vehicle.'); return }
     if (addNew && !newPlate.trim()) { setError('Enter the vehicle license plate.'); return }
+    if (addNew) {
+      const plateError = getLicensePlateError(newPlate, newType)
+      if (plateError) { setError(plateError); return }
+    }
 
     setSubmitting(true)
     setError('')
@@ -236,7 +249,7 @@ export default function StaffCustomers() {
         SlotInventoryId: slotId,
         Services: Array.from(selected).map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         ExistingVehicleId: !addNew && selectedVehicleId ? selectedVehicleId : undefined,
-        NewVehicle: addNew ? { LicensePlate: newPlate.trim(), VehicleType: newType, Brand: newBrand || undefined } : undefined,
+        NewVehicle: addNew ? { LicensePlate: formatLicensePlateInput(newPlate, newType), VehicleType: newType, Brand: newBrand || undefined, BrandCatalogId: newBrandCatalogId && newBrandCatalogId !== CUSTOM_BRAND_VALUE ? newBrandCatalogId : undefined } : undefined,
         VoucherCode: voucherCode.trim() || undefined,
       })
       setSuccess(`Walk-in booking ${booking.bookingCode} created — vehicle added to queue!`)
@@ -247,6 +260,7 @@ export default function StaffCustomers() {
       setAddNew(false)
       setNewPlate('')
       setNewBrand('')
+      setNewBrandCatalogId('')
       setVoucherCode('')
       setCustomerVouchers([])
       setSearchDone(false)
@@ -416,12 +430,12 @@ export default function StaffCustomers() {
                   </div>
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label className="form-label" style={{ color: 'var(--color-heading)' }}>Biển số xe <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                    <input className="form-input" placeholder="VD: 30F-123.45" value={newPlate} onChange={e => setNewPlate(e.target.value)} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
+                    <input className="form-input" placeholder={licensePlatePlaceholder(newType)} value={newPlate} onCompositionStart={() => setIsNewPlateComposing(true)} onCompositionEnd={e => { const value = e.currentTarget.value; setIsNewPlateComposing(false); setNewPlate(formatLicensePlateInput(value, newType)) }} onChange={e => { const value = e.currentTarget.value; setNewPlate(isNewPlateComposing ? value : formatLicensePlateInput(value, newType)) }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
                   </div>
                   <div className="form-row-2">
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ color: 'var(--color-heading)' }}>Loại xe</label>
-                      <select className="form-input" value={newType} onChange={e => setNewType(Number(e.target.value))} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
+                      <select className="form-input" value={newType} onChange={e => { const nextType = Number(e.target.value); setNewType(nextType); setNewPlate(prev => formatLicensePlateInput(prev, nextType)); setNewBrandCatalogId(''); setNewBrand('') }} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}>
                         <option value={1}>Xe máy</option>
                         <option value={2}>Ô tô</option>
                         <option value={3}>Xe tải</option>
@@ -429,7 +443,33 @@ export default function StaffCustomers() {
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ color: 'var(--color-heading)' }}>Hãng xe</label>
-                      <input className="form-input" placeholder="VD: Toyota…" value={newBrand} onChange={e => setNewBrand(e.target.value)} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }} />
+                      <select
+                        className="form-input"
+                        value={newBrandCatalogId}
+                        onChange={e => {
+                          const catId = e.target.value
+                          const matched = brandCatalogs.find(c => c.id === catId)
+                          setNewBrandCatalogId(catId)
+                          setNewBrand(catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '')
+                        }}
+                        style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42 }}
+                      >
+                        <option value="">-- Chọn hãng xe --</option>
+                        {brandCatalogs.filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(newType)).map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                        <option value={CUSTOM_BRAND_VALUE}>Khác</option>
+                      </select>
+                      {newBrandCatalogId === CUSTOM_BRAND_VALUE && (
+                        <input
+                          className="form-input"
+                          placeholder="Nhập hãng xe"
+                          value={newBrand}
+                          onChange={e => setNewBrand(e.target.value)}
+                          maxLength={50}
+                          style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', height: 42, marginTop: 8 }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

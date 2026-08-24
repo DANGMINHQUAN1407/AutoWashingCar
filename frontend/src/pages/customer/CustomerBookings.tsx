@@ -9,7 +9,10 @@ import AnimatedButton from '../../components/AnimatedButton';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import StatusBadge, { type BadgeType } from '../../components/StatusBadge';
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate';
 import '../Dashboard.css';
+
+const CUSTOM_BRAND_VALUE = '__custom__';
 
 // Helper to get local date string in YYYY-MM-DD format
 function getLocalDateString(date = new Date()) {
@@ -38,6 +41,71 @@ function isSlotInPast(slotDateStr: string, slotStartTimeStr: string) {
 
   return false;
 }
+
+// Chinh sach phi huy (khop CancellationPolicy.cs cua backend)
+const FREE_CANCELLATION_HOURS = 24;
+const SAME_DAY_CANCELLATION_HOURS = 2;
+
+type CancellationEstimate = {
+  hoursRemaining: number;
+  feeRate: number;
+  feeAmount: number;
+  refundAmount: number;
+  isWindowClosed: boolean;
+};
+
+function estimateCancellationFee(
+  slotDateStr?: string,
+  slotStartTimeStr?: string,
+  paidAmount = 0
+): CancellationEstimate | null {
+  if (!slotDateStr || !slotStartTimeStr) return null;
+
+  const [hh, mm] = slotStartTimeStr.split(':');
+  const slotStart = new Date(`${slotDateStr}T${hh.padStart(2, '0')}:${(mm ?? '00').padStart(2, '0')}:00`);
+  if (Number.isNaN(slotStart.getTime())) return null;
+
+  const hoursRemaining = (slotStart.getTime() - Date.now()) / 3600000;
+  if (hoursRemaining <= 0) {
+    return {
+      hoursRemaining: 0,
+      feeRate: 0.3,
+      feeAmount: 0,
+      refundAmount: 0,
+      isWindowClosed: true,
+    };
+  }
+
+  const feeRate =
+    hoursRemaining >= FREE_CANCELLATION_HOURS
+      ? 0
+      : hoursRemaining >= SAME_DAY_CANCELLATION_HOURS
+        ? 0.1
+        : 0.3;
+  const feeAmount = Math.round(paidAmount * feeRate);
+
+  return {
+    hoursRemaining,
+    feeRate,
+    feeAmount,
+    refundAmount: Math.max(paidAmount - feeAmount, 0),
+    isWindowClosed: false,
+  };
+}
+
+// Backend tra ve chuoi UTC khong kem hau to 'Z' — them vao truoc khi parse
+// de tranh trinh duyet hieu nham la gio local.
+function parseUtcDate(value?: string): Date | null {
+  if (!value) return null;
+  const normalized = /(Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// Gioi han dat lich phia backend: toi da 1 don Pending con hieu luc va 3 don Confirmed
+const PENDING_BOOKING_EXPIRY_MINUTES = 15;
+const MAX_PENDING_BOOKINGS = 1;
+const MAX_CONFIRMED_BOOKINGS = 3;
 
 export default function CustomerBookings() {
   // Helper to load cached wizard state from sessionStorage
@@ -75,6 +143,7 @@ export default function CustomerBookings() {
 
   // Master lists
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [services, setServices] = useState<BranchService[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -96,7 +165,9 @@ export default function CustomerBookings() {
   // Inline Vehicle form
   const [showQuickVehicle, setShowQuickVehicle] = useState(false);
   const [quickPlate, setQuickPlate] = useState('');
+  const [isQuickPlateComposing, setIsQuickPlateComposing] = useState(false);
   const [quickBrand, setQuickBrand] = useState('');
+  const [quickBrandCatalogId, setQuickBrandCatalogId] = useState('');
   const [quickModel, setQuickModel] = useState('');
   const [quickType, setQuickType] = useState<VehicleType>(2);
   const [quickYear, setQuickYear] = useState('');
@@ -104,6 +175,7 @@ export default function CustomerBookings() {
   const [quickBodyStyle, setQuickBodyStyle] = useState<'' | number>('');
   const [quickEngineCatalogId, setQuickEngineCatalogId] = useState<string>('');
   const [quickBodyStyleCatalogId, setQuickBodyStyleCatalogId] = useState<string>('');
+  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([]);
   const [engineCatalogs, setEngineCatalogs] = useState<any[]>([]);
   const [bodyStyleCatalogs, setBodyStyleCatalogs] = useState<any[]>([]);
   const [quickVehicleLoading, setQuickVehicleLoading] = useState(false);
@@ -285,15 +357,18 @@ export default function CustomerBookings() {
   // Load master data when entering wizard
   const initWizardData = async () => {
     setErrorMsg(null);
+    setBranchesLoading(true);
     try {
-      const [branchRes, vehicleRes, engineRes, bodyStyleRes] = await Promise.all([
+      const [branchRes, vehicleRes, brandRes, engineRes, bodyStyleRes] = await Promise.all([
         api.getBranches({ isActive: true }),
         api.getMyVehicles(),
+        api.getVehicleBrands({ isActive: true, page: 1, pageSize: 9999 }),
         api.getEngineTypes({ isActive: true, page: 1, pageSize: 9999 }),
         api.getBodyStyles({ isActive: true, page: 1, pageSize: 9999 }),
       ]);
       setBranches(branchRes.items || []);
       setVehicles(vehicleRes || []);
+      setBrandCatalogs(brandRes.items || []);
       setEngineCatalogs(engineRes.items || []);
       setBodyStyleCatalogs(bodyStyleRes.items || []);
 
@@ -311,6 +386,8 @@ export default function CustomerBookings() {
     } catch (err) {
       setErrorMsg(extractErrorMessage(err, 'Failed to load branch or vehicle information.'));
       return [];
+    } finally {
+      setBranchesLoading(false);
     }
   };
 
@@ -530,10 +607,17 @@ export default function CustomerBookings() {
     setQuickVehicleLoading(true);
     setErrorMsg(null);
     try {
+      const plateError = getLicensePlateError(quickPlate, quickType);
+      if (plateError) {
+        setErrorMsg(plateError);
+        return;
+      }
+
       const data = await api.createVehicle({
-        LicensePlate: quickPlate.trim().toUpperCase(),
+        LicensePlate: formatLicensePlateInput(quickPlate, quickType),
         VehicleType: quickType,
         Brand: quickBrand.trim() || undefined,
+        BrandCatalogId: quickBrandCatalogId && quickBrandCatalogId !== CUSTOM_BRAND_VALUE ? quickBrandCatalogId : undefined,
         Model: quickModel.trim() || undefined,
         ManufactureYear: quickYear ? Number(quickYear) : undefined,
         EngineType: quickEngineType !== '' ? Number(quickEngineType) : undefined,
@@ -548,6 +632,7 @@ export default function CustomerBookings() {
       }
       setQuickPlate('');
       setQuickBrand('');
+      setQuickBrandCatalogId('');
       setQuickModel('');
       setQuickYear('');
       setQuickEngineType('');
@@ -620,93 +705,6 @@ export default function CustomerBookings() {
       }
     } catch (err) {
       setErrorMsg(extractErrorMessage(err, 'Failed to initialize payment.'));
-    }
-  };
-
-  // Cancellation policy estimation based on BE CancellationPolicy
-  const getCancellationEstimate = (booking: Booking | null) => {
-    if (!booking) return null;
-    const paidAmount = Number(booking.depositAmount || booking.bookingFinalAmount || 0);
-    if (!booking.slotDate || !booking.slotStartTime) {
-      return {
-        hoursRemaining: 99,
-        feeRate: 0,
-        feePercent: 0,
-        feeAmount: 0,
-        refundAmount: paidAmount,
-        tierText: 'Miễn phí hủy (> 24h)',
-        tierClass: 'badge-success',
-        isClosed: false,
-      };
-    }
-    try {
-      const parts = booking.slotStartTime.split(':').map(Number);
-      const slotDateObj = new Date(
-        `${booking.slotDate}T${String(parts[0] || 0).padStart(2, '0')}:${String(parts[1] || 0).padStart(2, '0')}:00`
-      );
-      const now = new Date();
-      const diffMs = slotDateObj.getTime() - now.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      if (diffHours <= 0) {
-        return {
-          hoursRemaining: 0,
-          feeRate: 0.3,
-          feePercent: 30,
-          feeAmount: Math.round(paidAmount * 0.3),
-          refundAmount: Math.max(0, paidAmount - Math.round(paidAmount * 0.3)),
-          tierText: 'Đã quá giờ bắt đầu slot (Khung hủy đã đóng)',
-          tierClass: 'badge-danger',
-          isClosed: true,
-        };
-      }
-      if (diffHours >= 24) {
-        return {
-          hoursRemaining: Math.floor(diffHours),
-          feeRate: 0,
-          feePercent: 0,
-          feeAmount: 0,
-          refundAmount: paidAmount,
-          tierText: 'Miễn phí hủy (Trước > 24 tiếng)',
-          tierClass: 'badge-success',
-          isClosed: false,
-        };
-      }
-      if (diffHours >= 2) {
-        const fee = Math.round(paidAmount * 0.1);
-        return {
-          hoursRemaining: Math.floor(diffHours),
-          feeRate: 0.1,
-          feePercent: 10,
-          feeAmount: fee,
-          refundAmount: Math.max(0, paidAmount - fee),
-          tierText: 'Phí hủy 10% (Trong vòng 2 - 24 tiếng)',
-          tierClass: 'badge-warning',
-          isClosed: false,
-        };
-      }
-      const fee = Math.round(paidAmount * 0.3);
-      return {
-        hoursRemaining: Math.max(0, Math.floor(diffHours)),
-        feeRate: 0.3,
-        feePercent: 30,
-        feeAmount: fee,
-        refundAmount: Math.max(0, paidAmount - fee),
-        tierText: 'Phí hủy 30% (Sát giờ hẹn < 2 tiếng)',
-        tierClass: 'badge-danger',
-        isClosed: false,
-      };
-    } catch {
-      return {
-        hoursRemaining: 99,
-        feeRate: 0,
-        feePercent: 0,
-        feeAmount: 0,
-        refundAmount: paidAmount,
-        tierText: 'Miễn phí hủy',
-        tierClass: 'badge-success',
-        isClosed: false,
-      };
     }
   };
 
@@ -812,6 +810,21 @@ export default function CustomerBookings() {
     // History tab shows ALL bookings
     return true;
   });
+
+  // Kiem tra gioi han dat lich truoc khi cho phep sang Buoc 2
+  const activePendingBookings = bookings.filter(b => {
+    if (b.bookingStatus !== 1) return false;
+    const createdAt = parseUtcDate(b.createdAtUtc);
+    if (!createdAt) return true;
+    return Date.now() - createdAt.getTime() < PENDING_BOOKING_EXPIRY_MINUTES * 60 * 1000;
+  });
+  const confirmedBookingsCount = bookings.filter(b => b.bookingStatus === 2).length;
+  const bookingLimitMessage =
+    activePendingBookings.length >= MAX_PENDING_BOOKINGS
+      ? `Bạn đang có ${activePendingBookings.length} đơn chờ thanh toán (hết hạn sau ${PENDING_BOOKING_EXPIRY_MINUTES} phút kể từ lúc tạo). Vui lòng hoàn tất hoặc huỷ đơn đó trước khi đặt lịch mới.`
+      : confirmedBookingsCount >= MAX_CONFIRMED_BOOKINGS
+        ? `Bạn đã có ${confirmedBookingsCount} lịch hẹn đã xác nhận — đạt giới hạn ${MAX_CONFIRMED_BOOKINGS} đơn. Vui lòng hoàn tất hoặc huỷ bớt trước khi đặt thêm.`
+        : null;
 
   // Dynamic client-side total pages computation
   useEffect(() => {
@@ -1135,112 +1148,78 @@ export default function CustomerBookings() {
           )}
 
           {/* STEP 1: SELECT BRANCH & CHOOSE PRELIMINARY SERVICES */}
-          {wizardStep === 1 && (() => {
-            const activePending = bookings.filter(b => {
-              if (b.bookingStatus !== 1) return false;
-              // Nếu slot đã qua thì không còn giữ chỗ
-              if (b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime)) return false;
-              // Nếu đơn pending đã tạo quá 15 phút thì coi như đã hết hạn
-              if (b.createdAtUtc) {
-                const diffMs = Date.now() - new Date(b.createdAtUtc).getTime();
-                if (diffMs > 15 * 60 * 1000) return false;
-              }
-              return true;
-            });
+          {wizardStep === 1 && (
+            <div>
+              <h3>Step 1: Select Branch</h3>
+              <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+                Please select the branch most convenient for you.
+              </p>
 
-            const activeConfirmed = bookings.filter(b => {
-              if (b.bookingStatus !== 2) return false;
-              if (b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime)) return false;
-              return true;
-            });
-
-            const isPendingBlocked = activePending.length >= 1;
-            const isConfirmedBlocked = activeConfirmed.length >= 3;
-            const isLimitBlocked = isPendingBlocked || isConfirmedBlocked;
-
-            return (
-              <div>
-                <h3>Step 1: Select Branch</h3>
-                <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                  Please select the branch most convenient for you.
-                </p>
-
-                {isLimitBlocked && (
-                  <div
-                    className="alert alert-warning"
-                    style={{
-                      marginBottom: '20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '14px 18px',
-                      borderRadius: '8px',
-                      background: 'rgba(234, 179, 8, 0.1)',
-                      border: '1px solid rgba(234, 179, 8, 0.3)',
-                    }}
-                  >
-                    <span style={{ fontSize: '1.4rem' }}>⚠️</span>
-                    <div>
-                      <strong style={{ color: '#EAB308' }}>Giới hạn đặt lịch:</strong>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>
-                        {isPendingBlocked
-                          ? 'Bạn hiện đang có 1 đơn đặt lịch chờ thanh toán (Pending). Vui lòng hoàn tất thanh toán hoặc hủy đơn này trước khi tạo thêm lịch mới.'
-                          : 'Bạn đã đạt giới hạn tối đa 3 lịch hẹn đang hoạt động (Confirmed). Vui lòng hoàn tất hoặc hủy bớt lịch trước khi tạo thêm.'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {branches.length === 0 ? (
-                  <p>Loading branches...</p>
-                ) : (
-                  <div className="wizard-selection-grid">
-                    {branches.map(b => (
-                      <div
-                        key={b.branchId}
-                        className={`wizard-card-item ${selectedBranchId === b.branchId ? 'selected' : ''}`}
-                        onClick={() => !isLimitBlocked && setSelectedBranchId(b.branchId)}
-                        style={{ opacity: isLimitBlocked ? 0.6 : 1, cursor: isLimitBlocked ? 'not-allowed' : 'pointer' }}
-                      >
-                        <div className="wizard-card-item-indicator" />
-                        <h4 style={{ color: 'var(--color-heading)', marginBottom: '8px' }}>
-                          {b.name}
-                        </h4>
-                        <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>
-                          📍 {b.address}, {b.city}
-                        </p>
-                        {b.openTime && b.closeTime && (
-                          <p
-                            style={{
-                              fontSize: '0.8rem',
-                              color: 'var(--color-text-muted)',
-                              marginTop: '8px',
-                            }}
-                          >
-                            🕒 Hours: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-                  <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')} showArrow={false}>
-                    ← Cancel
-                  </AnimatedButton>
-                  <AnimatedButton
-                    type="button"
-                    variant="primary"
-                    disabled={!selectedBranchId || isLimitBlocked}
-                    onClick={() => setWizardStep(2)}
-                  >
-                    Next
-                  </AnimatedButton>
+              {bookingLimitMessage && (
+                <div
+                  className="badge badge-warning"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  ⚠️ {bookingLimitMessage}
                 </div>
+              )}
+
+              {branchesLoading ? (
+                <p>Loading branches...</p>
+              ) : branches.length === 0 ? (
+                <p>No active branches available. Please contact the shop to create or activate a branch.</p>
+              ) : (
+                <div className="wizard-selection-grid">
+                  {branches.map(b => (
+                    <div
+                      key={b.branchId}
+                      className={`wizard-card-item ${selectedBranchId === b.branchId ? 'selected' : ''}`}
+                      onClick={() => setSelectedBranchId(b.branchId)}
+                    >
+                      <div className="wizard-card-item-indicator" />
+                      <h4 style={{ color: 'var(--color-heading)', marginBottom: '8px' }}>
+                        {b.name}
+                      </h4>
+                      <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>
+                        📍 {b.address}, {b.city}
+                      </p>
+                      {b.openTime && b.closeTime && (
+                        <p
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--color-text-muted)',
+                            marginTop: '8px',
+                          }}
+                        >
+                          🕒 Hours: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+                <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')} showArrow={false}>
+                  ← Cancel
+                </AnimatedButton>
+                <AnimatedButton
+                  type="button"
+                  variant="primary"
+                  disabled={!selectedBranchId || !!bookingLimitMessage}
+                  onClick={() => setWizardStep(2)}
+                >
+                  Next
+                </AnimatedButton>
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {/* STEP 2: SELECT VEHICLE OR ADD VEHICLE */}
           {wizardStep === 2 && (
@@ -1253,7 +1232,7 @@ export default function CustomerBookings() {
               <div className="wizard-selection-grid">
                 {vehicles.map(v => {
                   const plate = v.LicensePlate || v.licensePlate;
-                  const brand = v.Brand || v.brand || 'Unknown Brand';
+                  const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Unknown Brand';
                   const type = v.VehicleType ?? v.vehicleType ?? 2;
                   const id = v.VehicleId || v.vehicleId;
                   return (
@@ -1311,8 +1290,17 @@ export default function CustomerBookings() {
                           className="form-input"
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
                           value={quickPlate}
-                          onChange={e => setQuickPlate(e.target.value)}
-                          placeholder="30F-123.45"
+                          onCompositionStart={() => setIsQuickPlateComposing(true)}
+                          onCompositionEnd={e => {
+                            const value = e.currentTarget.value;
+                            setIsQuickPlateComposing(false);
+                            setQuickPlate(formatLicensePlateInput(value, quickType));
+                          }}
+                          onChange={e => {
+                            const value = e.currentTarget.value;
+                            setQuickPlate(isQuickPlateComposing ? value : formatLicensePlateInput(value, quickType));
+                          }}
+                          placeholder={licensePlatePlaceholder(quickType)}
                           required
                         />
                       </div>
@@ -1325,7 +1313,11 @@ export default function CustomerBookings() {
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
                           value={quickType}
                           onChange={e => {
-                            setQuickType(Number(e.target.value) as VehicleType);
+                            const nextType = Number(e.target.value) as VehicleType;
+                            setQuickType(nextType);
+                            setQuickPlate(prev => formatLicensePlateInput(prev, nextType));
+                            setQuickBrandCatalogId('');
+                            setQuickBrand('');
                             setQuickBodyStyle('');
                             setQuickBodyStyleCatalogId('');
                           }}
@@ -1339,13 +1331,35 @@ export default function CustomerBookings() {
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
                           Brand
                         </label>
-                        <input
+                        <select
                           className="form-input"
                           style={{ padding: '6px 10px', fontSize: '0.9rem' }}
-                          value={quickBrand}
-                          onChange={e => setQuickBrand(e.target.value)}
-                          placeholder="Toyota, Honda..."
-                        />
+                          value={quickBrandCatalogId}
+                          onChange={e => {
+                            const catId = e.target.value;
+                            const matched = brandCatalogs.find(c => c.id === catId);
+                            setQuickBrandCatalogId(catId);
+                            setQuickBrand(catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '');
+                          }}
+                        >
+                          <option value="">-- Select brand --</option>
+                          {brandCatalogs
+                            .filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(quickType))
+                            .map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          <option value={CUSTOM_BRAND_VALUE}>Other / custom</option>
+                        </select>
+                        {quickBrandCatalogId === CUSTOM_BRAND_VALUE && (
+                          <input
+                            className="form-input"
+                            style={{ padding: '6px 10px', fontSize: '0.9rem', marginTop: 8 }}
+                            value={quickBrand}
+                            onChange={e => setQuickBrand(e.target.value)}
+                            placeholder="Enter brand"
+                            maxLength={50}
+                          />
+                        )}
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
@@ -1469,315 +1483,249 @@ export default function CustomerBookings() {
           )}
 
           {/* STEP 3: SELECT SERVICES & DATE/TIME SLOT */}
-          {wizardStep === 3 && (() => {
-            // Phân nhóm theo ServicePackageType (1=Standard, 2=AddOn, 3=Premium)
-            const mainPackages = services.filter(
-              s => (s.servicePackageType ?? 1) === 1 || (s.servicePackageType ?? 1) === 3
-            );
-            const addOns = services.filter(s => s.servicePackageType === 2);
-            const fallbackPackages = mainPackages.length > 0 ? mainPackages : services;
+          {wizardStep === 3 && (
+            <div>
+              <h3>Step 3: Services & Appointment Time</h3>
+              <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+                Please select the services you need and choose an available time slot.
+              </p>
 
-            const selectedMainPackage = fallbackPackages.find(s => selectedServiceIds.includes(s.serviceId));
-            const isPremiumSelected = selectedMainPackage?.servicePackageType === 3;
-            const selectedAddOnIds = selectedServiceIds.filter(
-              id => addOns.some(a => a.serviceId === id) && id !== selectedMainPackage?.serviceId
-            );
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
+                {/* Services list (Left) */}
+                <div>
+                  {(() => {
+                    const mainPackages = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const addOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+                    const selectedMain = mainPackages.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
+                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
 
-            const handleSelectMainPackage = (pkg: BranchService) => {
-              if (pkg.servicePackageType === 3) {
-                // Premium loại trừ mọi dịch vụ phụ
-                setSelectedServiceIds([pkg.serviceId]);
-              } else {
-                // Standard giữ lại các add-ons hợp lệ
-                const validAddOns = selectedServiceIds.filter(id => addOns.some(a => a.serviceId === id));
-                setSelectedServiceIds([pkg.serviceId, ...validAddOns]);
-              }
-            };
+                    const selectMainPackage = (svc: BranchService) => {
+                      setSelectedServiceIds(prev => {
+                        // Premium loai tru moi add-on; Standard giu lai add-on dang chon
+                        const keptAddOns = (svc.servicePackageType ?? 1) === 3
+                          ? []
+                          : prev.filter(id => addOns.some(a => a.serviceId === id));
+                        return [svc.serviceId, ...keptAddOns];
+                      });
+                    };
 
-            const handleToggleAddOn = (addon: BranchService) => {
-              if (isPremiumSelected) return;
-              if (!selectedMainPackage) {
-                // Nếu chưa chọn gói chính, tự động chọn gói đầu tiên
-                const firstMain = fallbackPackages[0];
-                if (firstMain) {
-                  setSelectedServiceIds([firstMain.serviceId, addon.serviceId]);
-                }
-                return;
-              }
-              const isSelected = selectedServiceIds.includes(addon.serviceId);
-              if (isSelected) {
-                setSelectedServiceIds(prev => prev.filter(id => id !== addon.serviceId));
-              } else {
-                setSelectedServiceIds(prev => [...prev, addon.serviceId]);
-              }
-            };
+                    const toggleAddOn = (svc: BranchService) => {
+                      if (isPremiumSelected) return;
+                      setSelectedServiceIds(prev =>
+                        prev.includes(svc.serviceId)
+                          ? prev.filter(id => id !== svc.serviceId)
+                          : [...prev, svc.serviceId]
+                      );
+                    };
 
-            const totalDuration = services
-              .filter(s => selectedServiceIds.includes(s.serviceId))
-              .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-
-            const totalBasePrice = services
-              .filter(s => selectedServiceIds.includes(s.serviceId))
-              .reduce((sum, s) => sum + (s.basePrice || 0), 0);
-
-            return (
-              <div>
-                <h3>Step 3: Services &amp; Appointment Time</h3>
-                <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                  Please select your main wash package, optional add-on services, and an available time slot.
-                </p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '28px' }}>
-                  {/* Services Selection (Left) */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {/* Section 1: Main Wash Package */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px', marginBottom: '12px' }}>
-                        <h4 style={{ margin: 0 }}>
-                          1️⃣ Gói Dịch Vụ Chính <span style={{ fontSize: '0.8rem', color: '#EF4444' }}>(Bắt buộc chọn 1)</span>
+                    return (
+                      <>
+                        <h4
+                          style={{
+                            borderBottom: '1px solid var(--color-border-dim)',
+                            paddingBottom: '8px',
+                            marginBottom: '12px',
+                          }}
+                        >
+                          Gói Dịch Vụ Chính
                         </h4>
-                      </div>
-
-                      {fallbackPackages.length === 0 ? (
-                        <p style={{ color: 'var(--color-text-muted)' }}>
-                          No main packages available at this branch.
-                        </p>
-                      ) : (
-                        <div className="wizard-service-list">
-                          {fallbackPackages.map(pkg => {
-                            const isSelected = selectedMainPackage?.serviceId === pkg.serviceId;
-                            const isPrem = pkg.servicePackageType === 3;
-                            return (
-                              <div
-                                key={pkg.serviceId}
-                                className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
-                                style={{
-                                  borderRadius: '8px',
-                                  border: isSelected ? '2px solid var(--color-primary, #3B82F6)' : '1px solid var(--color-border)',
-                                  background: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'var(--color-bg)',
-                                }}
-                                onClick={() => handleSelectMainPackage(pkg)}
-                              >
-                                <div
-                                  style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    borderRadius: '50%',
-                                    border: isSelected ? '6px solid var(--color-primary, #3B82F6)' : '2px solid var(--color-border)',
-                                    background: '#fff',
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <div className="wizard-service-info" style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <h5 style={{ margin: 0 }}>{pkg.serviceName}</h5>
-                                    {isPrem ? (
-                                      <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-                                        ✨ Premium (Trọn gói)
-                                      </span>
-                                    ) : (
-                                      <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-                                        Standard (Gói chính)
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                                    ⏱️ Thời lượng: {pkg.durationMinutes} phút
-                                    {pkg.description && ` • ${pkg.description}`}
-                                  </p>
-                                </div>
-                                <div className="wizard-service-price" style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                                  {formatVND(pkg.basePrice)}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Section 2: Add-on Services */}
-                    {addOns.length > 0 && (
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px', marginBottom: '12px' }}>
-                          <h4 style={{ margin: 0 }}>
-                            2️⃣ Dịch Vụ Bổ Sung (Add-on tùy chọn)
-                          </h4>
-                          {isPremiumSelected && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                              (Không áp dụng cho gói Premium)
-                            </span>
-                          )}
-                        </div>
-
-                        {isPremiumSelected ? (
-                          <div
-                            style={{
-                              padding: '14px',
-                              borderRadius: '8px',
-                              background: 'rgba(234, 179, 8, 0.08)',
-                              border: '1px dashed rgba(234, 179, 8, 0.3)',
-                              fontSize: '0.88rem',
-                              color: 'var(--color-text-dim)',
-                            }}
-                          >
-                            ✨ <strong>Gói Premium đã bao gồm trọn gói</strong> tất cả các quy trình chăm sóc chuyên sâu, không yêu cầu dịch vụ bổ sung.
-                          </div>
-                        ) : !selectedMainPackage ? (
-                          <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                            👉 Vui lòng chọn 1 Gói Dịch Vụ Chính ở trên trước khi chọn dịch vụ bổ sung.
+                        {mainPackages.length === 0 ? (
+                          <p style={{ color: 'var(--color-text-muted)' }}>
+                            Chi nhánh này chưa có gói dịch vụ chính nào.
                           </p>
                         ) : (
                           <div className="wizard-service-list">
-                            {addOns.map(addon => {
-                              const isSelected = selectedAddOnIds.includes(addon.serviceId);
+                            {mainPackages.map(s => {
+                              const isSelected = selectedServiceIds.includes(s.serviceId);
                               return (
                                 <div
-                                  key={addon.serviceId}
+                                  key={s.serviceId}
                                   className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
-                                  style={{
-                                    borderRadius: '8px',
-                                    border: isSelected ? '1px solid #10B981' : '1px solid var(--color-border)',
-                                    background: isSelected ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-bg)',
-                                  }}
-                                  onClick={() => handleToggleAddOn(addon)}
+                                  onClick={() => selectMainPackage(s)}
                                 >
-                                  <div className="wizard-service-checkbox" style={{ borderColor: isSelected ? '#10B981' : undefined, background: isSelected ? '#10B981' : undefined }} />
-                                  <div className="wizard-service-info" style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <h5 style={{ margin: 0 }}>{addon.serviceName}</h5>
-                                      <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
-                                        + Add-on
-                                      </span>
-                                    </div>
-                                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                                      ⏱️ +{addon.durationMinutes} phút
-                                      {addon.description && ` • ${addon.description}`}
-                                    </p>
+                                  <div className="wizard-service-checkbox" style={{ borderRadius: '50%' }} />
+                                  <div className="wizard-service-info">
+                                    <h5>
+                                      {s.serviceName}
+                                      {(s.servicePackageType ?? 1) === 3 && (
+                                        <span className="badge badge-warning" style={{ marginLeft: '8px' }}>
+                                          Trọn gói
+                                        </span>
+                                      )}
+                                    </h5>
+                                    <p>⏱️ Thời gian: {s.durationMinutes} phút</p>
                                   </div>
-                                  <div className="wizard-service-price" style={{ fontWeight: '600', color: isSelected ? '#10B981' : 'inherit' }}>
-                                    +{formatVND(addon.basePrice)}
-                                  </div>
+                                  <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
                                 </div>
                               );
                             })}
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {/* Summary bar */}
-                    {selectedMainPackage && (
-                      <div
-                        style={{
-                          padding: '12px 16px',
-                          borderRadius: '8px',
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--color-border-dim)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          fontSize: '0.9rem',
-                        }}
-                      >
-                        <span>
-                          Tổng thời gian ước tính: <strong>⏱️ {totalDuration} phút</strong>
-                        </span>
-                        <span>
-                          Tạm tính dịch vụ: <strong style={{ color: 'var(--color-primary, #3B82F6)', fontSize: '1.05rem' }}>{formatVND(totalBasePrice)}</strong>
-                        </span>
-                      </div>
-                    )}
+                        <h4
+                          style={{
+                            borderBottom: '1px solid var(--color-border-dim)',
+                            paddingBottom: '8px',
+                            margin: '24px 0 12px',
+                          }}
+                        >
+                          Dịch Vụ Bổ Sung
+                        </h4>
+                        {isPremiumSelected ? (
+                          <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
+                            Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
+                          </div>
+                        ) : addOns.length === 0 ? (
+                          <p style={{ color: 'var(--color-text-muted)' }}>
+                            Chi nhánh này chưa có dịch vụ bổ sung nào.
+                          </p>
+                        ) : (
+                          <div className="wizard-service-list">
+                            {addOns.map(s => {
+                              const isSelected = selectedServiceIds.includes(s.serviceId);
+                              return (
+                                <div
+                                  key={s.serviceId}
+                                  className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
+                                  style={!selectedMain ? { opacity: 0.55 } : undefined}
+                                  onClick={() => selectedMain && toggleAddOn(s)}
+                                >
+                                  <div className="wizard-service-checkbox" />
+                                  <div className="wizard-service-info">
+                                    <h5>{s.serviceName}</h5>
+                                    <p>⏱️ +{s.durationMinutes} phút</p>
+                                  </div>
+                                  <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {!selectedMain && addOns.length > 0 && !isPremiumSelected && (
+                          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                            Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
+                          </p>
+                        )}
+
+                        {/* Thanh tổng kết cập nhật theo thời gian thực */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            marginTop: '20px',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--color-border-dim)',
+                            background: 'var(--color-surface-alt, rgba(255,255,255,0.03))',
+                          }}
+                        >
+                          <span style={{ color: 'var(--color-text-muted)' }}>
+                            ⏱️ Ước tính: <strong>{estimatedMinutes}</strong> phút
+                          </span>
+                          <span style={{ color: 'var(--color-heading)' }}>
+                            Tạm tính: <strong>{formatVND(estimatedPrice)}</strong>
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Date & Time Slot selection (Right) */}
+                <div>
+                  <h4
+                    style={{
+                      borderBottom: '1px solid var(--color-border-dim)',
+                      paddingBottom: '8px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    Appointment Schedule
+                  </h4>
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="form-label">Select Date</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={selectedDate}
+                      onChange={e => setSelectedDate(e.target.value)}
+                      min={getLocalDateString()}
+                    />
                   </div>
 
-                  {/* Date & Time Slot selection (Right) */}
-                  <div>
-                    <h4
+                  <label className="form-label">Available Time Slots</label>
+                  {slots.length === 0 ? (
+                    <p
                       style={{
-                        borderBottom: '1px solid var(--color-border-dim)',
-                        paddingBottom: '8px',
-                        marginBottom: '12px',
+                        fontSize: '0.88rem',
+                        color: 'var(--color-text-muted)',
+                        marginTop: '8px',
                       }}
                     >
-                      Appointment Schedule
-                    </h4>
-                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label className="form-label">Select Date</label>
-                      <input
-                        type="date"
-                        className="form-input"
-                        value={selectedDate}
-                        onChange={e => setSelectedDate(e.target.value)}
-                        min={getLocalDateString()}
-                      />
+                      No available time slots on this date. Please select another date.
+                    </p>
+                  ) : (
+                    <div className="slots-time-grid">
+                      {slots.map(slot => {
+                        const isSelected = selectedSlotId === slot.slotInventoryId;
+                        const isFull = slot.availableCount <= 0;
+                        const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
+                        const isDisable = isFull || isPast;
+                        return (
+                          <div
+                            key={slot.slotInventoryId}
+                            className={`slot-chip-item ${isSelected ? 'selected' : ''} ${isDisable ? 'disabled' : ''}`}
+                            onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
+                          >
+                            <span className="slot-chip-time">
+                              {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
+                            </span>
+                            <span className="slot-chip-meta">
+                              {isPast
+                                ? 'Past'
+                                : isFull
+                                  ? 'Full'
+                                  : `${slot.availableCount} slots left`}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <label className="form-label">Available Time Slots</label>
-                    {slots.length === 0 ? (
-                      <p
-                        style={{
-                          fontSize: '0.88rem',
-                          color: 'var(--color-text-muted)',
-                          marginTop: '8px',
-                        }}
-                      >
-                        No available time slots on this date. Please select another date.
-                      </p>
-                    ) : (
-                      <div className="slots-time-grid">
-                        {slots.map(slot => {
-                          const isSelected = selectedSlotId === slot.slotInventoryId;
-                          const isFull = slot.availableCount <= 0;
-                          const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
-                          const isDisable = isFull || isPast;
-                          return (
-                            <div
-                              key={slot.slotInventoryId}
-                              className={`slot-chip-item ${isSelected ? 'selected' : ''} ${isDisable ? 'disabled' : ''}`}
-                              onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
-                            >
-                              <span className="slot-chip-time">
-                                {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
-                              </span>
-                              <span className="slot-chip-meta">
-                                {isPast
-                                  ? 'Past'
-                                  : isFull
-                                    ? 'Full'
-                                    : `${slot.availableCount} slots left`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginTop: '30px',
-                    borderTop: '1px solid var(--color-border-dim)',
-                    paddingTop: '20px',
-                  }}
-                >
-                  <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
-                    ← Back
-                  </AnimatedButton>
-                  <AnimatedButton
-                    type="button"
-                    variant="primary"
-                    disabled={!selectedMainPackage || !selectedSlotId}
-                    onClick={() => setWizardStep(4)}
-                  >
-                    View Quote &amp; Confirm
-                  </AnimatedButton>
+                  )}
                 </div>
               </div>
-            );
-          })()}
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '30px',
+                  borderTop: '1px solid var(--color-border-dim)',
+                  paddingTop: '20px',
+                }}
+              >
+                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
+                  ← Back
+                </AnimatedButton>
+                <AnimatedButton
+                  type="button"
+                  variant="primary"
+                  disabled={
+                    !services.some(
+                      s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
+                    ) || !selectedSlotId
+                  }
+                  onClick={() => setWizardStep(4)}
+                >
+                  View Quote &amp; Confirm
+                </AnimatedButton>
+              </div>
+            </div>
+          )}
 
           {/* STEP 4: QUOTE PREVIEW & CONFIRM */}
           {wizardStep === 4 && (
@@ -2970,54 +2918,6 @@ export default function CustomerBookings() {
               Are you sure you want to cancel booking code{' '}
               <span className="highlight-plate">{bookingToCancel?.bookingCode}</span>?
             </p>
-
-            {bookingToCancel && (() => {
-              const est = getCancellationEstimate(bookingToCancel);
-              if (!est) return null;
-              const hasDeposit = (bookingToCancel.depositAmount || 0) > 0 || (bookingToCancel.bookingFinalAmount || 0) > 0;
-              return (
-                <div
-                  style={{
-                    margin: '12px 0',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid var(--color-border-dim)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>⏱️ Thời gian trước giờ hẹn:</span>
-                    <strong style={{ fontSize: '0.88rem' }}>{est.hoursRemaining} tiếng</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>📋 Mức phí áp dụng:</span>
-                    <span className={`badge ${est.tierClass}`} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
-                      {est.tierText}
-                    </span>
-                  </div>
-                  {hasDeposit && (
-                    <div style={{ borderTop: '1px dashed var(--color-border-dim)', paddingTop: '8px', marginTop: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '0.84rem' }}>
-                        <span style={{ color: 'var(--color-text-muted)' }}>Tiền cọc đã thanh toán:</span>
-                        <span>{formatVND(bookingToCancel.depositAmount || bookingToCancel.bookingFinalAmount || 0)}</span>
-                      </div>
-                      {est.feeAmount > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '0.84rem', color: '#EF4444' }}>
-                          <span>Khấu trừ phí hủy ({est.feePercent}%):</span>
-                          <span>- {formatVND(est.feeAmount)}</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', fontWeight: 'bold', color: '#10B981', fontSize: '0.9rem' }}>
-                        <span>Tiền hoàn cọc dự kiến:</span>
-                        <span>{formatVND(est.refundAmount)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
             <div
               className="form-group"
               style={{ width: '100%', textAlign: 'left', marginTop: '12px' }}
@@ -3035,12 +2935,52 @@ export default function CustomerBookings() {
                 required
               />
             </div>
-            <div
-              className="confirm-modal-warning"
-              style={{ fontSize: '0.8rem', marginTop: '12px' }}
-            >
-              This action will release your slot for other customers and free up the schedule.
-            </div>
+            {(() => {
+              const estimate = estimateCancellationFee(
+                bookingToCancel?.slotDate,
+                bookingToCancel?.slotStartTime,
+                bookingToCancel?.depositAmount ?? 0
+              );
+              if (!estimate) return null;
+              if (estimate.isWindowClosed) {
+                return (
+                  <div
+                    className="confirm-modal-warning"
+                    style={{ fontSize: '0.82rem', marginTop: '12px' }}
+                  >
+                    Lịch hẹn đã tới giờ, cổng huỷ đã đóng. Vui lòng liên hệ chi nhánh để được hỗ trợ.
+                  </div>
+                );
+              }
+              const hoursText =
+                estimate.hoursRemaining >= 1
+                  ? `${Math.floor(estimate.hoursRemaining)} giờ ${Math.round((estimate.hoursRemaining % 1) * 60)} phút`
+                  : `${Math.max(Math.round(estimate.hoursRemaining * 60), 1)} phút`;
+              const paidDeposit = bookingToCancel?.depositAmount ?? 0;
+              return (
+                <div
+                  className="confirm-modal-warning"
+                  style={{ fontSize: '0.82rem', marginTop: '12px', textAlign: 'left' }}
+                >
+                  <div>⏳ Còn <strong>{hoursText}</strong> trước giờ hẹn.</div>
+                  <div>
+                    💸 Phí huỷ áp dụng: <strong>{Math.round(estimate.feeRate * 100)}%</strong>
+                    {paidDeposit > 0 ? ` (-${formatVND(estimate.feeAmount)})` : ''}
+                  </div>
+                  {paidDeposit > 0 ? (
+                    <div>
+                      💰 Tiền cọc hoàn lại dự kiến: <strong>{formatVND(estimate.refundAmount)}</strong>
+                      {' '}/ {formatVND(paidDeposit)}
+                    </div>
+                  ) : (
+                    <div>💰 Đơn chưa thanh toán cọc nên không bị khấu trừ tiền.</div>
+                  )}
+                  <div style={{ marginTop: '6px' }}>
+                    Thao tác này sẽ giải phóng khung giờ của bạn cho khách hàng khác.
+                  </div>
+                </div>
+              );
+            })()}
           </>
         }
       />

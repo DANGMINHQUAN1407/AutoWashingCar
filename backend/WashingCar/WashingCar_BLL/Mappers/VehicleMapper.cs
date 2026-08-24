@@ -23,6 +23,7 @@ public static class VehicleMapper
         EngineCatalogName = v.EngineCatalog?.Name,
         BodyStyleCatalogId = v.BodyStyleCatalogId,
         BodyStyleCatalogName = v.BodyStyleCatalog?.Name,
+        IsLuxuryBrand = v.BrandCatalog?.IsLuxury,
         VehicleCondition = VehicleConditionPolicy.GetCondition(v.ManufactureYear).ToString(),
         PrimaryImageUrl = v.VehicleImages
             .Where(image => image.IsPrimary)

@@ -10,20 +10,22 @@ public class VehicleBrandCatalogRepository(WashingCarDbContext db) : IVehicleBra
 {
     private readonly WashingCarDbContext _db = db;
 
-    public async Task<(List<VehicleBrandCatalog> Items, int TotalCount)> GetAllPaginatedAsync(
-        VehicleCatalogQuery query)
+    public async Task<(List<VehicleBrandCatalog> Items, int TotalCount)> GetAllPaginatedAsync(VehicleCatalogQuery query)
     {
         var q = _db.VehicleBrandCatalogs.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = query.Search.Trim();
-            q = q.Where(x => EF.Functions.Like(x.Code, $"%{search}%")
-                          || EF.Functions.Like(x.Name, $"%{search}%"));
+            q = q.Where(x => EF.Functions.Like(x.Code, $"%{search}%") ||
+                             EF.Functions.Like(x.Name, $"%{search}%"));
         }
 
         if (query.IsActive.HasValue)
             q = q.Where(x => x.IsActive == query.IsActive.Value);
+
+        if (query.VehicleType.HasValue)
+            q = q.Where(x => x.VehicleType == (byte)query.VehicleType.Value);
 
         var totalCount = await q.CountAsync();
         q = query.SortBy?.ToLowerInvariant() switch
@@ -42,16 +44,17 @@ public class VehicleBrandCatalogRepository(WashingCarDbContext db) : IVehicleBra
 
     public Task<bool> ExistsCodeAsync(string code, Guid? excludeId = null)
     {
-        var normalized = code.Trim().ToUpperInvariant();
-        return _db.VehicleBrandCatalogs.AnyAsync(x => x.Code.ToUpper() == normalized
-            && (excludeId == null || x.VehicleBrandCatalogId != excludeId.Value));
+        var normalized = code.Trim().ToUpper();
+        return _db.VehicleBrandCatalogs.AnyAsync(x => x.Code.ToUpper() == normalized &&
+            (excludeId == null || x.VehicleBrandCatalogId != excludeId.Value));
     }
 
-    public Task<bool> ExistsNameAsync(string name, Guid? excludeId = null)
+    public Task<bool> ExistsNameAsync(string name, byte vehicleType, Guid? excludeId = null)
     {
-        var normalized = name.Trim().ToUpperInvariant();
-        return _db.VehicleBrandCatalogs.AnyAsync(x => x.Name.ToUpper() == normalized
-            && (excludeId == null || x.VehicleBrandCatalogId != excludeId.Value));
+        var normalized = name.Trim().ToUpper();
+        return _db.VehicleBrandCatalogs.AnyAsync(x => x.Name.ToUpper() == normalized &&
+            x.VehicleType == vehicleType &&
+            (excludeId == null || x.VehicleBrandCatalogId != excludeId.Value));
     }
 
     public async Task<VehicleBrandCatalog> CreateAsync(VehicleBrandCatalog item)

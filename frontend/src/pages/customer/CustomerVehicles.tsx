@@ -4,7 +4,10 @@ import { extractErrorMessage } from '../../utils/errorUtils'
 import AnimatedButton from '../../components/AnimatedButton'
 import ConfirmModal from '../../components/ConfirmModal'
 import Pagination from '../../components/Pagination'
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
 import '../Dashboard.css'
+
+const CUSTOM_BRAND_VALUE = '__custom__'
 
 export default function CustomerVehicles() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -14,10 +17,9 @@ export default function CustomerVehicles() {
   const [vehicleError, setVehicleError] = useState<string | null>(null)
   const [vehicleSuccess, setVehicleSuccess] = useState<string | null>(null)
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null)
+  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([])
   const [engineCatalogs, setEngineCatalogs] = useState<any[]>([])
   const [bodyStyleCatalogs, setBodyStyleCatalogs] = useState<any[]>([])
-  const [brandCatalogs, setBrandCatalogs] = useState<any[]>([])
-  const [isCustomBrand, setIsCustomBrand] = useState(false)
 
   const [vehicleForm, setVehicleForm] = useState({
     licensePlate: '',
@@ -31,6 +33,8 @@ export default function CustomerVehicles() {
     engineCatalogId: '',
     bodyStyleCatalogId: '',
   })
+  const [isPlateComposing, setIsPlateComposing] = useState(false)
+
 
   const engineTypeLabel = (engine?: number) => {
     if (engine === 1) return 'Xăng (Petrol)'
@@ -52,6 +56,7 @@ export default function CustomerVehicles() {
     return 'N/A'
   }
 
+
   // Search, filter, and pagination states
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'car' | 'motorbike' | 'truck'>('all')
@@ -68,13 +73,13 @@ export default function CustomerVehicles() {
       .then(setVehicles)
       .catch(() => setVehicles([]))
 
-    api.getBrands({ isActive: true, page: 1, pageSize: 9999 })
-      .then(res => setBrandCatalogs(res.items))
-      .catch(() => setBrandCatalogs([]))
-
     api.getEngineTypes({ isActive: true, page: 1, pageSize: 9999 })
       .then(res => setEngineCatalogs(res.items))
       .catch(() => setEngineCatalogs([]))
+
+    api.getVehicleBrands({ isActive: true, page: 1, pageSize: 9999 })
+      .then(res => setBrandCatalogs(res.items))
+      .catch(() => setBrandCatalogs([]))
 
     api.getBodyStyles({ isActive: true, page: 1, pageSize: 9999 })
       .then(res => setBodyStyleCatalogs(res.items))
@@ -83,7 +88,7 @@ export default function CustomerVehicles() {
 
   // Client-side filtering & pagination calculations
   const filteredVehicles = vehicles.filter(v => {
-    const brand = (v.Brand || v.brand || '').toLowerCase()
+    const brand = (v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || '').toLowerCase()
     const matchesSearch = brand.includes(searchQuery.toLowerCase())
 
     const type = v.VehicleType ?? v.vehicleType ?? 2
@@ -113,6 +118,11 @@ export default function CustomerVehicles() {
     return vt === formVehicleType
   })
 
+  const filteredBrandCatalogs = brandCatalogs.filter(cat => {
+    const vt = Number(cat.vehicleType ?? cat.VehicleType)
+    return vt === formVehicleType
+  })
+
   const vehicleTypeLabel = (vehicleType?: VehicleType | number) => {
     if (vehicleType === 1) return 'Motorbike'
     if (vehicleType === 3) return 'Truck'
@@ -127,7 +137,6 @@ export default function CustomerVehicles() {
 
   const openCreateVehicleForm = () => {
     setEditingVehicleId(null)
-    setIsCustomBrand(false)
     setVehicleForm({
       licensePlate: '',
       vehicleType: 2 as VehicleType,
@@ -153,15 +162,13 @@ export default function CustomerVehicles() {
     setVehicleError(null)
     setVehicleSuccess(null)
     setEditingVehicleId(vehicleId)
-    const bName = vehicle.Brand || vehicle.brand || ''
-    const bCatId = vehicle.BrandCatalogId || vehicle.brandCatalogId || ''
-    const matchedBrand = brandCatalogs.find(b => b.id === bCatId || b.name.toLowerCase() === bName.toLowerCase())
-    setIsCustomBrand(!matchedBrand && !!bName)
     setVehicleForm({
       licensePlate: vehicle.LicensePlate || vehicle.licensePlate || '',
       vehicleType: (vehicle.VehicleType ?? vehicle.vehicleType ?? 2) as VehicleType,
-      brand: bName,
-      brandCatalogId: bCatId || matchedBrand?.id || '',
+      brand: vehicle.Brand || vehicle.brand || '',
+      brandCatalogId: (vehicle.BrandCatalogId ?? vehicle.brandCatalogId)
+        ? (vehicle.BrandCatalogId ?? vehicle.brandCatalogId ?? '')
+        : (vehicle.Brand || vehicle.brand ? CUSTOM_BRAND_VALUE : ''),
       model: vehicle.Model || vehicle.model || '',
       manufactureYear: (vehicle.ManufactureYear ?? vehicle.manufactureYear ?? '').toString(),
       engineType: vehicle.EngineType ?? vehicle.engineType ?? '',
@@ -179,11 +186,17 @@ export default function CustomerVehicles() {
     setVehicleSuccess(null)
 
     try {
+      const plateError = getLicensePlateError(vehicleForm.licensePlate, vehicleForm.vehicleType)
+      if (plateError) {
+        setVehicleError(plateError)
+        return
+      }
+
       const payload = {
-        LicensePlate: vehicleForm.licensePlate.trim().toUpperCase(),
+        LicensePlate: formatLicensePlateInput(vehicleForm.licensePlate, vehicleForm.vehicleType),
         VehicleType: vehicleForm.vehicleType,
         Brand: vehicleForm.brand.trim() || undefined,
-        BrandCatalogId: vehicleForm.brandCatalogId || undefined,
+        BrandCatalogId: vehicleForm.brandCatalogId && vehicleForm.brandCatalogId !== CUSTOM_BRAND_VALUE ? vehicleForm.brandCatalogId : undefined,
         Model: vehicleForm.model.trim() || undefined,
         ManufactureYear: vehicleForm.manufactureYear ? Number(vehicleForm.manufactureYear) : undefined,
         EngineType: vehicleForm.engineType !== '' ? Number(vehicleForm.engineType) : undefined,
@@ -202,7 +215,6 @@ export default function CustomerVehicles() {
         }
         return [savedVehicle, ...prev]
       })
-      setIsCustomBrand(false)
       setVehicleForm({
         licensePlate: '',
         vehicleType: 2,
@@ -254,6 +266,7 @@ export default function CustomerVehicles() {
       setVehicleToDelete(null)
     }
   }
+
 
   return (
     <div className="portal-page">
@@ -330,8 +343,23 @@ export default function CustomerVehicles() {
                 id="vehicle-license"
                 className="form-input"
                 value={vehicleForm.licensePlate}
-                onChange={e => setVehicleForm(prev => ({ ...prev, licensePlate: e.target.value }))}
-                placeholder="VD: 30F-123.45"
+                onCompositionStart={() => setIsPlateComposing(true)}
+                onCompositionEnd={e => {
+                  const value = e.currentTarget.value
+                  setIsPlateComposing(false)
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    licensePlate: formatLicensePlateInput(value, prev.vehicleType),
+                  }))
+                }}
+                onChange={e => {
+                  const value = e.currentTarget.value
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    licensePlate: isPlateComposing ? value : formatLicensePlateInput(value, prev.vehicleType),
+                  }))
+                }}
+                placeholder={licensePlatePlaceholder(vehicleForm.vehicleType)}
                 required
                 minLength={6}
                 maxLength={20}
@@ -348,6 +376,9 @@ export default function CustomerVehicles() {
                   setVehicleForm(prev => ({
                     ...prev,
                     vehicleType: val,
+                    licensePlate: formatLicensePlateInput(prev.licensePlate, val),
+                    brandCatalogId: '',
+                    brand: '',
                     bodyStyleCatalogId: '',
                     bodyStyle: ''
                   }))
@@ -362,42 +393,32 @@ export default function CustomerVehicles() {
               <label className="form-label" htmlFor="vehicle-brand">Hãng xe</label>
               <select
                 id="vehicle-brand"
-                className="form-input"
-                value={isCustomBrand ? '__custom__' : (vehicleForm.brandCatalogId || '')}
+                className="form-input form-select-custom"
+                value={vehicleForm.brandCatalogId}
                 onChange={e => {
-                  const val = e.target.value
-                  if (val === '__custom__') {
-                    setIsCustomBrand(true)
-                    setVehicleForm(prev => ({ ...prev, brandCatalogId: '', brand: '' }))
-                  } else {
-                    setIsCustomBrand(false)
-                    const selected = brandCatalogs.find(b => b.id === val)
-                    setVehicleForm(prev => ({
-                      ...prev,
-                      brandCatalogId: selected ? selected.id : '',
-                      brand: selected ? selected.name : '',
-                    }))
-                  }
+                  const catId = e.target.value
+                  const matched = brandCatalogs.find(c => c.id === catId)
+                  setVehicleForm(prev => ({
+                    ...prev,
+                    brandCatalogId: catId,
+                    brand: catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '',
+                  }))
                 }}
               >
-                <option value="">-- Chọn hãng xe --</option>
-                {brandCatalogs.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
+                <option value=""> --Chọn hãng xe-- </option>
+                {filteredBrandCatalogs.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
-                <option value="__custom__">➕ Hãng khác (Nhập tay)...</option>
+                <option value={CUSTOM_BRAND_VALUE}>Khác</option>
               </select>
-              {isCustomBrand && (
+              {vehicleForm.brandCatalogId === CUSTOM_BRAND_VALUE && (
                 <input
-                  type="text"
                   className="form-input"
-                  style={{ marginTop: '8px' }}
                   value={vehicleForm.brand}
-                  onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value, brandCatalogId: '' }))}
-                  placeholder="Nhập tên hãng xe (VD: Audi, Porsche, Harley...)"
+                  onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value }))}
+                  placeholder="Nhập hãng xe của bạn"
                   maxLength={50}
-                  required
+                  style={{ marginTop: 8 }}
                 />
               )}
             </div>
@@ -496,7 +517,7 @@ export default function CustomerVehicles() {
           </div>
         ) : paginatedVehicles.map((vehicle, index) => {
           const plate = vehicle.LicensePlate || vehicle.licensePlate || 'Chưa rõ biển số'
-          const brand = vehicle.Brand || vehicle.brand || 'Chưa rõ hãng'
+          const brand = vehicle.BrandCatalogName || vehicle.brandCatalogName || vehicle.Brand || vehicle.brand || 'Chưa rõ hãng'
           const vehicleType = vehicle.VehicleType ?? vehicle.vehicleType ?? 2
           return (
             <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>

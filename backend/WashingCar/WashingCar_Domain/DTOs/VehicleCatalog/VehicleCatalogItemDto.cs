@@ -8,6 +8,7 @@ public class VehicleCatalogItemDto
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public bool IsActive { get; set; }
+    public bool IsLuxury { get; set; }
     public byte? LegacyEnumValue { get; set; }
     public VehicleType? VehicleType { get; set; }
 }
