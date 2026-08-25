@@ -390,33 +390,56 @@ export default function AdminDashboard() {
 
           <div className="adm-status-body">
             {/* Donut Ring */}
-            <div className="adm-donut-circle-wrap">
-              <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: 'rotate(-90deg)' }}>
-                <circle
-                  cx="65"
-                  cy="65"
-                  r="52"
-                  fill="none"
-                  stroke="#f1f5f9"
-                  strokeWidth="14"
-                />
-                <circle
-                  cx="65"
-                  cy="65"
-                  r="52"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="14"
-                  strokeDasharray={`${2 * Math.PI * 52 * 0.98} ${2 * Math.PI * 52 * 0.02}`}
-                  strokeDashoffset="0"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="adm-donut-center-text">
-                <div className="adm-donut-center-num">{totalBookings || completedServices}</div>
-                <div className="adm-donut-center-sub">tổng lịch hẹn</div>
-              </div>
-            </div>
+            {(() => {
+              const activeCount = stats?.activeOrders ?? (totalBookings - completedServices);
+              const radius = 52;
+              const circ = 2 * Math.PI * radius;
+              const completedPct = totalBookings > 0 ? (completedServices / totalBookings) : 1;
+              const activePct = totalBookings > 0 ? (activeCount / totalBookings) : 0;
+
+              return (
+                <div className="adm-donut-circle-wrap">
+                  <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle
+                      cx="65"
+                      cy="65"
+                      r={radius}
+                      fill="none"
+                      stroke="#f1f5f9"
+                      strokeWidth="14"
+                    />
+                    {/* Active/Pending slice (Amber) */}
+                    <circle
+                      cx="65"
+                      cy="65"
+                      r={radius}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="14"
+                      strokeDasharray={`${circ * (completedPct + activePct)} ${circ * Math.max(0, 1 - completedPct - activePct)}`}
+                      strokeDashoffset="0"
+                      strokeLinecap="round"
+                    />
+                    {/* Completed slice (Green) */}
+                    <circle
+                      cx="65"
+                      cy="65"
+                      r={radius}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="14"
+                      strokeDasharray={`${circ * completedPct} ${circ * Math.max(0, 1 - completedPct)}`}
+                      strokeDashoffset="0"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="adm-donut-center-text">
+                    <div className="adm-donut-center-num">{totalBookings || completedServices}</div>
+                    <div className="adm-donut-center-sub">tổng lịch hẹn</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Breakdown Progress Bars */}
             <div className="adm-status-breakdown">
@@ -439,12 +462,12 @@ export default function AdminDashboard() {
                 <div className="adm-status-row-top">
                   <div className="adm-status-row-left">
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
-                    <span>Đang chờ</span>
+                    <span>Đang chờ / Đang xử lý</span>
                   </div>
-                  <span className="adm-status-row-count">{stats?.activeOrders ?? 0}</span>
+                  <span className="adm-status-row-count">{stats?.activeOrders ?? (totalBookings - completedServices)}</span>
                 </div>
                 <div className="adm-progress-bar-bg">
-                  <div className="adm-progress-bar-fill adm-progress-bar-fill--orange" style={{ width: `${totalBookings > 0 ? Math.round(((stats?.activeOrders ?? 0) / totalBookings) * 100) : 0}%` }} />
+                  <div className="adm-progress-bar-fill adm-progress-bar-fill--orange" style={{ width: `${totalBookings > 0 ? Math.round(((stats?.activeOrders ?? (totalBookings - completedServices)) / totalBookings) * 100) : 0}%` }} />
                 </div>
               </div>
 
@@ -455,10 +478,10 @@ export default function AdminDashboard() {
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
                     <span>Đã hủy</span>
                   </div>
-                  <span className="adm-status-row-count">0</span>
+                  <span className="adm-status-row-count">{stats?.cancelledOrders ?? 0}</span>
                 </div>
                 <div className="adm-progress-bar-bg">
-                  <div className="adm-progress-bar-fill adm-progress-bar-fill--red" style={{ width: '0%' }} />
+                  <div className="adm-progress-bar-fill adm-progress-bar-fill--red" style={{ width: `${totalBookings > 0 ? Math.round(((stats?.cancelledOrders ?? 0) / totalBookings) * 100) : 0}%` }} />
                 </div>
               </div>
             </div>

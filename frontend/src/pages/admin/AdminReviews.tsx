@@ -230,8 +230,9 @@ export default function AdminReviews() {
       {/* Filter Panel */}
       <div className="card filter-panel" style={{ marginTop: '24px' }}>
         <form onSubmit={handleSearchSubmit} className="filter-form">
-          <div className="filter-group-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '16px' }}>
-            <div className="filter-item">
+          {/* Hàng 1: Search bar */}
+          <div className="filter-search-row">
+            <div className="filter-item" style={{ flex: 1 }}>
               <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Tìm kiếm đánh giá</label>
               <div className="search-input-wrapper">
                 <input
@@ -244,7 +245,10 @@ export default function AdminReviews() {
                 <button type="submit" className="btn btn-primary search-submit-btn">Tìm kiếm</button>
               </div>
             </div>
+          </div>
 
+          {/* Hàng 2: 4 dropdown filter */}
+          <div className="filter-group-row">
             <div className="filter-item">
               <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Lọc theo chi nhánh</label>
               <select

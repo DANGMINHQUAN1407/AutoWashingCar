@@ -12,14 +12,14 @@ function getSingleLineChartData(revenueWeeks: number[] = [], weeklyAmounts: numb
   const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(() => 0)
   const n = pcts.length
-  
+
   const width = 800
   const height = 240
   const padLeft = 45
   const padRight = 30
   const padTop = 45
   const padBottom = 35
-  
+
   const innerW = width - padLeft - padRight
   const innerH = height - padTop - padBottom
 
@@ -64,32 +64,35 @@ function MiniRingProgress({ percent, color = '#38bdf8' }: { percent: number; col
   return (
     <div style={{ position: 'relative', width: size, height: size, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
       </svg>
       <span style={{ position: 'absolute', fontSize: '9px', fontWeight: 700, color: '#ffffff' }}>{percent}%</span>
     </div>
   )
 }
 
-function SalesDonutChart({ totalRate = 100, onlinePct = 55, walkInPct = 30, vipPct = 15 }: { totalRate?: number; onlinePct?: number; walkInPct?: number; vipPct?: number }) {
+function SalesDonutChart({ totalRate = 100, onlinePct = 55 }: { totalRate?: number; onlinePct?: number }) {
   const size = 170
   const strokeWidth = 16
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
-  
-  const c1 = (onlinePct / 100) * circumference
-  const c2 = (walkInPct / 100) * circumference
-  const c3 = (vipPct / 100) * circumference
-  
+
+  // Chỉ có 2 kênh đặt lịch thực tế trong DB: Online và Walk-in (Trực tiếp)
+  // Đảm bảo tổng 2 segment = 100%
+  const safeOnline = Math.min(Math.max(onlinePct, 0), 100)
+  const safeWalkIn = 100 - safeOnline
+
+  const c1 = (safeOnline / 100) * circumference
+  const c2 = (safeWalkIn / 100) * circumference
+
   const offset1 = 0
   const offset2 = -c1
-  const offset3 = -(c1 + c2)
 
   return (
     <div className="mgr-panel" style={{ padding: '20px', textAlign: 'center' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Tỷ lệ kênh bán hàng</h3>
+        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Tỷ lệ kênh đặt lịch</h3>
         <span style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}>•••</span>
       </div>
 
@@ -125,37 +128,22 @@ function SalesDonutChart({ totalRate = 100, onlinePct = 55, walkInPct = 30, vipP
             strokeDashoffset={offset2}
             strokeLinecap="round"
           />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth={strokeWidth}
-            strokeDasharray={`${c3} ${circumference - c3}`}
-            strokeDashoffset={offset3}
-            strokeLinecap="round"
-          />
         </svg>
-        
+
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{totalRate}%</span>
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '3px' }}>Hoàn tất</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#3b82f6' }} />
-          Online ({onlinePct}%)
+          Online ({safeOnline}%)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>
           <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#22c55e' }} />
-          Trực tiếp ({walkInPct}%)
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>
-          <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ef4444' }} />
-          VIP ({vipPct}%)
+          Trực tiếp ({safeWalkIn}%)
         </div>
       </div>
     </div>
@@ -349,8 +337,8 @@ export default function ManagerDashboard() {
               const { points, linePath, areaPath, width, height, padLeft, padRight, padTop, padBottom, innerH } = getSingleLineChartData(stats?.revenueWeeks, stats?.revenueWeeklyAmounts)
               return (
                 <div className="coupler-chart-container" style={{ position: 'relative', width: '100%', height: '240px', marginTop: '10px' }}>
-                  <svg 
-                    viewBox={`0 0 ${width} ${height}`} 
+                  <svg
+                    viewBox={`0 0 ${width} ${height}`}
                     preserveAspectRatio="none"
                     style={{ width: '100%', height: '100%', overflow: 'visible' }}
                   >
@@ -374,21 +362,21 @@ export default function ManagerDashboard() {
                       const y = padTop + ratio * innerH
                       return (
                         <g key={idx}>
-                          <line 
-                            x1={padLeft} 
-                            y1={y} 
-                            x2={width - padRight} 
-                            y2={y} 
-                            stroke="#f1f5f9" 
-                            strokeWidth="1.2" 
+                          <line
+                            x1={padLeft}
+                            y1={y}
+                            x2={width - padRight}
+                            y2={y}
+                            stroke="#f1f5f9"
+                            strokeWidth="1.2"
                             strokeDasharray={ratio === 1 ? 'none' : '4 4'}
                           />
-                          <text 
-                            x={padLeft - 10} 
-                            y={y + 4} 
-                            textAnchor="end" 
-                            fontSize="11" 
-                            fill="#94a3b8" 
+                          <text
+                            x={padLeft - 10}
+                            y={y + 4}
+                            textAnchor="end"
+                            fontSize="11"
+                            fill="#94a3b8"
                             fontWeight="500"
                           >
                             {Math.round((1 - ratio) * 100)}
@@ -399,12 +387,12 @@ export default function ManagerDashboard() {
 
                     <path d={areaPath} fill="url(#singleWaveAreaGrad)" />
 
-                    <path 
-                      d={linePath} 
-                      fill="none" 
-                      stroke="url(#singleWaveLineGrad)" 
-                      strokeWidth="3.5" 
-                      strokeLinecap="round" 
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="url(#singleWaveLineGrad)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                       filter="url(#singleWaveGlow)"
                     />
@@ -412,57 +400,57 @@ export default function ManagerDashboard() {
                     {points.map((pt, i) => (
                       <g key={`pt-${i}`}>
                         {pt.isPeak && (
-                          <rect 
-                            x={pt.x - 16} 
-                            y={pt.y} 
-                            width="32" 
-                            height={height - padBottom - pt.y} 
-                            fill="#3b82f6" 
-                            opacity="0.12" 
+                          <rect
+                            x={pt.x - 16}
+                            y={pt.y}
+                            width="32"
+                            height={height - padBottom - pt.y}
+                            fill="#3b82f6"
+                            opacity="0.12"
                             rx="4"
                           />
                         )}
 
-                        <circle 
-                          cx={pt.x} 
-                          cy={pt.y} 
-                          r={pt.isPeak ? 6 : 4.5} 
-                          fill="#ffffff" 
-                          stroke="#3b82f6" 
-                          strokeWidth={pt.isPeak ? 3 : 2.5} 
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={pt.isPeak ? 6 : 4.5}
+                          fill="#ffffff"
+                          stroke="#3b82f6"
+                          strokeWidth={pt.isPeak ? 3 : 2.5}
                         />
-                        
+
                         {pt.isPeak && (
                           <g>
-                            <rect 
-                              x={pt.x - 30} 
-                              y={pt.y - 38} 
-                              width="60" 
-                              height="28" 
-                              rx="6" 
-                              fill="#0f172a" 
+                            <rect
+                              x={pt.x - 30}
+                              y={pt.y - 38}
+                              width="60"
+                              height="28"
+                              rx="6"
+                              fill="#0f172a"
                               filter="drop-shadow(0 4px 6px rgba(0,0,0,0.25))"
                             />
-                            <polygon 
-                              points={`${pt.x - 5},${pt.y - 10} ${pt.x + 5},${pt.y - 10} ${pt.x},${pt.y - 4}`} 
-                              fill="#0f172a" 
+                            <polygon
+                              points={`${pt.x - 5},${pt.y - 10} ${pt.x + 5},${pt.y - 10} ${pt.x},${pt.y - 4}`}
+                              fill="#0f172a"
                             />
-                            <text 
-                              x={pt.x} 
-                              y={pt.y - 26} 
-                              textAnchor="middle" 
-                              fontSize="9" 
-                              fontWeight="600" 
+                            <text
+                              x={pt.x}
+                              y={pt.y - 26}
+                              textAnchor="middle"
+                              fontSize="9"
+                              fontWeight="600"
                               fill="#94a3b8"
                             >
                               Doanh thu
                             </text>
-                            <text 
-                              x={pt.x} 
-                              y={pt.y - 14} 
-                              textAnchor="middle" 
-                              fontSize="11" 
-                              fontWeight="700" 
+                            <text
+                              x={pt.x}
+                              y={pt.y - 14}
+                              textAnchor="middle"
+                              fontSize="11"
+                              fontWeight="700"
                               fill="#ffffff"
                             >
                               {pt.label}
@@ -470,12 +458,12 @@ export default function ManagerDashboard() {
                           </g>
                         )}
 
-                        <text 
-                          x={pt.x} 
-                          y={height - 10} 
-                          textAnchor="middle" 
-                          fontSize="11.5" 
-                          fontWeight="600" 
+                        <text
+                          x={pt.x}
+                          y={height - 10}
+                          textAnchor="middle"
+                          fontSize="11.5"
+                          fontWeight="600"
                           fill="#64748b"
                         >
                           {pt.weekLabel}
@@ -541,11 +529,9 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="mgr-right-col">
-          <SalesDonutChart 
-            totalRate={stats?.conversionRate ?? 100} 
-            onlinePct={stats?.onlinePct ?? 55} 
-            walkInPct={stats?.walkInPct ?? 30} 
-            vipPct={stats?.vipPct ?? 15} 
+          <SalesDonutChart
+            totalRate={stats?.conversionRate ?? 100}
+            onlinePct={stats?.onlinePct ?? 55}
           />
 
           <div className="mgr-panel mgr-branch-info">
