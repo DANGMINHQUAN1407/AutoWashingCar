@@ -119,7 +119,7 @@ public class PaymentController(IPaymentService paymentService) : BaseApiControll
     [Authorize(Roles = $"{UserRole.Staff},{UserRole.Manager},{UserRole.Admin}")]
     public async Task<IActionResult> GetList([FromQuery] PaymentQuery query, CancellationToken ct)
     {
-        var result = await _paymentService.GetPaymentsAsync(query, ct);
+        var result = await _paymentService.GetPaymentsAsync(CurrentUserId, query, ct);
         return Paged(result);
     }
 
@@ -128,8 +128,7 @@ public class PaymentController(IPaymentService paymentService) : BaseApiControll
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var isPrivileged = User.IsInRole(UserRole.Staff) || User.IsInRole(UserRole.Manager) || User.IsInRole(UserRole.Admin);
-        var payment = await _paymentService.GetByIdAsync(CurrentUserId, isPrivileged, id, ct);
+        var payment = await _paymentService.GetByIdAsync(CurrentUserId, id, ct);
         return Success(payment);
     }
 }
