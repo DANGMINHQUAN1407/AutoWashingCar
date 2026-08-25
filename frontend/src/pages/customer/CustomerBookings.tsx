@@ -570,6 +570,8 @@ export default function CustomerBookings() {
       setErrorMsg(null);
       try {
         const payload: any = {
+          // Backend cần VehicleId để áp bảng giá theo loại xe
+          VehicleId: selectedVehicleId,
           SlotInventoryId: selectedSlotId,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
           RedeemMode: redeemMode,
@@ -752,23 +754,23 @@ export default function CustomerBookings() {
   const getStatusLabel = (status: number) => {
     switch (status) {
       case 1:
-        return 'Pending Payment';
+        return 'Chờ thanh toán cọc';
       case 2:
-        return 'Confirmed';
+        return 'Đã xác nhận';
       case 3:
-        return 'Checked In';
+        return 'Đã Check-in';
       case 4:
-        return 'In Progress';
+        return 'Đang thực hiện';
       case 5:
-        return 'Completed';
+        return 'Hoàn thành';
       case 6:
-        return 'Closed';
+        return 'Đã đóng';
       case 7:
-        return 'Cancelled';
+        return 'Đã hủy';
       case 8:
-        return 'No Show';
+        return 'Vắng mặt';
       default:
-        return 'Unknown';
+        return 'Không xác định';
     }
   };
 
@@ -796,18 +798,30 @@ export default function CustomerBookings() {
   };
 
   const getVehicleLabel = (type?: number) => {
-    return type === 1 ? 'Motorbike' : 'Car';
+    if (type === 1) return 'Xe máy';
+    if (type === 3) return 'Xe tải';
+    return 'Ô tô';
   };
 
   // Filter bookings based on activeTab
   const filteredBookings = bookings.filter(b => {
+    const isPast = Boolean(b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime));
     if (activeTab === 'upcoming') {
-      // Active statuses: Pending (1), Confirmed (2), Checked In (3), In Progress (4)
-      const isActive = b.bookingStatus >= 1 && b.bookingStatus <= 4;
-      const isPast = b.slotDate && b.slotStartTime && isSlotInPast(b.slotDate, b.slotStartTime);
-      return isActive && !isPast;
+      // Pending (1): Luôn hiển thị để khách có thể thanh toán cọc hoặc hủy đơn
+      if (b.bookingStatus === 1) return true;
+      // Checked In (3) & In Progress (4): Đang được phục vụ tại gara
+      if (b.bookingStatus === 3 || b.bookingStatus === 4) return true;
+      // Confirmed (2): Hiển thị nếu lịch hẹn chưa trôi qua
+      if (b.bookingStatus === 2) return !isPast;
+      return false;
     }
-    // History tab shows ALL bookings
+    if (activeTab === 'history') {
+      // Completed (5), Closed (6), Cancelled (7), No Show (8)
+      if (b.bookingStatus >= 5) return true;
+      // Confirmed cũ đã qua thời gian hẹn
+      if (b.bookingStatus === 2 && isPast) return true;
+      return false;
+    }
     return true;
   });
 
@@ -836,8 +850,8 @@ export default function CustomerBookings() {
 
   // Format currency helper
   const formatVND = (value?: number) => {
-    if (value === undefined) return '0 VND';
-    return new Intl.NumberFormat('en-US').format(value) + ' VND';
+    if (value === undefined) return '0 đ';
+    return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
   };
 
   const handleApplyVoucherCode = async () => {
@@ -848,6 +862,7 @@ export default function CustomerBookings() {
     setVoucherError(null);
     try {
       const testQuote = await api.getBookingQuote({
+        VehicleId: selectedVehicleId,
         SlotInventoryId: selectedSlotId,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         VoucherCode: code,
@@ -908,12 +923,12 @@ export default function CustomerBookings() {
     <div className="portal-page">
       <div className="dash-header">
         <div>
-          <h2>Car Wash Appointments</h2>
-          <p>Book your car care appointment and track your booking status.</p>
+          <h2>Đặt lịch rửa xe</h2>
+          <p>Đặt lịch chăm sóc xe và theo dõi tiến trình phục vụ dễ dàng.</p>
         </div>
         {viewMode === 'list' && (
           <AnimatedButton type="button" variant="primary" onClick={handleStartWizard}>
-            Book New Appointment
+            + Đặt lịch mới
           </AnimatedButton>
         )}
       </div>
@@ -981,25 +996,25 @@ export default function CustomerBookings() {
               className={`bookings-tab-btn ${activeTab === 'upcoming' ? 'active' : ''}`}
               onClick={() => setActiveTab('upcoming')}
             >
-              Upcoming
+              Sắp diễn ra
             </button>
             <button
               type="button"
               className={`bookings-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
             >
-              History
+              Lịch sử
             </button>
           </div>
 
           <div className="booking-list">
             {loadingList ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Loading bookings...
+                Đang tải danh sách lịch hẹn...
               </div>
             ) : filteredBookings.length === 0 ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Không tìm thấy lịch hẹn nào. Click "Book New Appointment" để đặt lịch mới!
+                Không tìm thấy lịch hẹn nào. Bấm "+ Đặt lịch mới" để đặt lịch ngay!
               </div>
             ) : (
               paginatedBookings.map(b => {
@@ -1012,7 +1027,7 @@ export default function CustomerBookings() {
                     {isActive && <div className="booking-status-indicator" />}
                     <div className="booking-main">
                       <div className="booking-header">
-                        <h4>Booking ID: {b.bookingCode}</h4>
+                        <h4>Mã đơn: {b.bookingCode}</h4>
                         <StatusBadge
                           type={getStatusClass(b.bookingStatus)}
                           label={getStatusLabel(b.bookingStatus)}
@@ -1020,14 +1035,14 @@ export default function CustomerBookings() {
                       </div>
                       <div className="booking-details">
                         <span>
-                          <strong>Date:</strong> {b.slotDate || 'Not scheduled'}
+                          <strong>Ngày:</strong> {b.slotDate || 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Time:</strong>{' '}
-                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Not scheduled'}
+                          <strong>Giờ:</strong>{' '}
+                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Total:</strong> {formatVND(b.bookingFinalAmount)}
+                          <strong>Tổng tiền:</strong> {formatVND(b.bookingFinalAmount)}
                         </span>
                       </div>
                     </div>
@@ -1039,7 +1054,7 @@ export default function CustomerBookings() {
                       >
                         {b.bookingStatus >= 1 && b.bookingStatus <= 4
                           ? '🔍 Chi tiết & Theo dõi'
-                          : 'Details'}
+                          : 'Chi tiết'}
                       </button>
                       {b.bookingStatus === 1 && (
                         <button
@@ -1047,7 +1062,7 @@ export default function CustomerBookings() {
                           className="btn btn-primary btn-sm"
                           onClick={() => handlePaymentRedirect(b.bookingId, false)}
                         >
-                          Pay Deposit
+                          Thanh toán cọc
                         </button>
                       )}
                       {(b.bookingStatus === 1 || b.bookingStatus === 2) && (
@@ -1056,7 +1071,7 @@ export default function CustomerBookings() {
                           className="btn btn-danger btn-sm"
                           onClick={() => handleCancelBookingClick(b)}
                         >
-                          Cancel Booking
+                          Hủy lịch
                         </button>
                       )}
                       {(b.bookingStatus === 5 || b.bookingStatus === 6) &&
@@ -1235,6 +1250,7 @@ export default function CustomerBookings() {
                   const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Unknown Brand';
                   const type = v.VehicleType ?? v.vehicleType ?? 2;
                   const id = v.VehicleId || v.vehicleId;
+                  const imageUrl = v.PrimaryImageUrl || v.primaryImageUrl;
                   return (
                     <div
                       key={id || plate}
@@ -1242,18 +1258,53 @@ export default function CustomerBookings() {
                       onClick={() => id && setSelectedVehicleId(id)}
                     >
                       <div className="wizard-card-item-indicator" />
-                      <h4 style={{ color: 'var(--color-heading)', marginBottom: '4px' }}>
-                        🚘 {plate}
-                      </h4>
-                      <p
-                        style={{
-                          fontSize: '0.88rem',
-                          color: 'var(--color-text-muted)',
-                          marginBottom: '10px',
-                        }}
-                      >
-                        {brand}
-                      </p>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={plate}
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: 'var(--radius-sm, 8px)',
+                              objectFit: 'cover',
+                              border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: 'var(--radius-sm, 8px)',
+                              background: 'rgba(255,255,255,0.05)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.4rem',
+                              border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {type === 1 ? '🏍️' : type === 3 ? '🚚' : '🚗'}
+                          </div>
+                        )}
+                        <div>
+                          <h4 style={{ color: 'var(--color-heading)', margin: 0, fontSize: '1rem', fontWeight: 'bold' }}>
+                            {plate}
+                          </h4>
+                          <p
+                            style={{
+                              fontSize: '0.82rem',
+                              color: 'var(--color-text-muted)',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            {brand}
+                          </p>
+                        </div>
+                      </div>
                       <span className={`badge ${type === 1 ? 'badge-motorbike' : 'badge-car'}`}>
                         {getVehicleLabel(type)}
                       </span>

@@ -106,6 +106,9 @@ public static class ValidationMessage
         public const string OnlyEditWhenEditableStatus            = "Chỉ thêm/sửa dịch vụ khi booking ở trạng thái Confirmed/CheckedIn/InProgress";
         public const string CustomerVehicleNotFound               = "Không tìm thấy xe của khách";
         public const string MustChooseOrCreateVehicle              = "Cần chọn xe có sẵn hoặc khai báo xe mới cho khách";
+        public const string WalkInVehicleChoiceExclusive            = "Walk-in phải chọn đúng một: xe có sẵn hoặc xe mới";
+        public const string WalkInActorMustBeStaff                  = "Tài khoản thực hiện walk-in phải là Staff, Manager hoặc Admin";
+        public const string WalkInStaffNotAtBranch                  = "Nhân viên chỉ được tạo walk-in tại chi nhánh mình phụ trách";
         public const string LicensePlateExistsForCustomer         = "Biển số xe đã tồn tại cho khách này";
         public const string MinRedeemPoints                       = "Số điểm quy đổi tối thiểu là 1.000";
         public const string CodeGenerationFailed                  = "Không sinh được mã booking, vui lòng thử lại";
@@ -186,6 +189,25 @@ public static class ValidationMessage
         public const string ActiveChildrenPreventGroupDeactivation = "Không thể vô hiệu hóa nhóm khi còn dịch vụ con đang hoạt động";
     }
 
+    public static class ServicePricing
+    {
+        public const string NotFound = "Không tìm thấy cấu hình giá dịch vụ";
+        public const string ServiceNotFound = "Không tìm thấy dịch vụ để cấu hình giá";
+        public const string ServiceMustBeLeaf = "Chỉ dịch vụ leaf mới được cấu hình giá";
+        public const string ServiceInactive = "Không thể cấu hình giá cho dịch vụ đang ngừng hoạt động";
+        public const string InvalidVehicleType = "Loại xe không được hỗ trợ";
+        public const string DuplicateScope = "Dịch vụ đã có cấu hình giá cho loại xe và động cơ này";
+        public const string EngineNotFound = "Không tìm thấy loại động cơ";
+        public const string EngineInactive = "Loại động cơ đang ngừng sử dụng";
+        public const string EngineVehicleTypeMismatch = "Loại động cơ không phù hợp với loại xe";
+        public const string CannotDeactivateLastRule = "Không thể vô hiệu hóa cấu hình giá cuối cùng của dịch vụ đang hoạt động";
+        public const string BookingVehicleRequired = "Booking phải có xe để xác định bảng giá";
+        public const string NoActiveRule = "Dịch vụ chưa có cấu hình giá active cho bất kỳ loại xe nào";
+
+        public static string NotAvailable(string serviceName) =>
+            $"Dịch vụ '{serviceName}' chưa được cấu hình cho loại xe/động cơ này";
+    }
+
     public static class Loyalty
     {
         public const string AccountNotFound          = "Người dùng chưa có tài khoản loyalty";
@@ -220,6 +242,23 @@ public static class ValidationMessage
     {
         public const string NotFound            = "Không tìm thấy xe";
         public const string LicensePlateExists  = "Biển số xe đã tồn tại";
+    }
+
+    public static class VehicleTransfer
+    {
+        public const string VehicleNotFound = "Không tìm thấy xe hoặc xe không thuộc tài khoản hiện tại";
+        public const string TargetUserNotFound = "Không tìm thấy chủ xe mới";
+        public const string TargetMustBeCustomer = "Chủ xe mới phải là tài khoản Customer đang hoạt động";
+        public const string CannotTransferToSelf = "Chủ xe mới phải khác chủ xe hiện tại";
+        public const string PendingRequestExists = "Xe đang có yêu cầu chuyển nhượng chờ xử lý";
+        public const string RequestNotFound = "Không tìm thấy yêu cầu chuyển nhượng";
+        public const string RequestNotPending = "Yêu cầu chuyển nhượng không còn ở trạng thái chờ duyệt";
+        public const string OnlyAdminCanReview = "Chỉ Admin được phê duyệt hoặc từ chối chuyển nhượng xe";
+        public const string VehicleHasBlockingBookings = "Không thể chuyển nhượng khi xe còn booking đang xử lý";
+        public const string CurrentOwnershipNotFound = "Không tìm thấy bản ghi chủ sở hữu hiện tại";
+        public const string TargetInactive = "Tài khoản chủ xe mới đã bị vô hiệu hóa hoặc xóa";
+        public const string NoteRequiredForReject = "Vui lòng nhập lý do từ chối yêu cầu chuyển nhượng";
+        public const string CannotCancelNonPending = "Chỉ có thể hủy yêu cầu đang chờ duyệt";
     }
 
     public static class Report

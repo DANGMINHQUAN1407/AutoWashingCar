@@ -67,6 +67,16 @@ public partial class User
 
     public virtual ICollection<Vehicle> VehicleUsers { get; set; } = new List<Vehicle>();
 
+    public virtual ICollection<VehicleTransferRequest> VehicleTransferRequestsFrom { get; set; } = new List<VehicleTransferRequest>();
+
+    public virtual ICollection<VehicleTransferRequest> VehicleTransferRequestsTo { get; set; } = new List<VehicleTransferRequest>();
+
+    public virtual ICollection<VehicleTransferRequest> VehicleTransferRequestsReviewed { get; set; } = new List<VehicleTransferRequest>();
+
+    public virtual ICollection<VehicleOwnershipHistory> VehicleOwnershipHistories { get; set; } = new List<VehicleOwnershipHistory>();
+
+    public virtual ICollection<VehicleOwnershipHistory> RecordedOwnershipHistories { get; set; } = new List<VehicleOwnershipHistory>();
+
     public virtual ICollection<Voucher> VoucherApprovedByUsers { get; set; } = new List<Voucher>();
 
     public virtual ICollection<Voucher> VoucherCreatedByUsers { get; set; } = new List<Voucher>();

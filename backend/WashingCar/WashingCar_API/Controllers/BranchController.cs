@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WashingCar_BLL.Interfaces;
 using WashingCar_Common.Enum;
 using WashingCar_Domain.DTOs.Branch;
+using WashingCar_Domain.DTOs.Common;
 
 namespace WashingCar_API.Controllers;
 
@@ -47,10 +48,11 @@ public class BranchController(IBranchService service) : BaseApiController
     /// <remarks>Gọi: BranchService.GetServicesAsync → IBranchRepository.GetByIdAsync + GetServicesAsync.</remarks>
     [HttpGet("{id:guid}/services")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetServices(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetServices(
+        Guid id, [FromQuery] PaginationQuery query, CancellationToken ct)
     {
-        var services = await _service.GetServicesAsync(id, ct);
-        return Success(services);
+        var services = await _service.GetServicesAsync(id, query, ct);
+        return Paged(services);
     }
 
     // ── Manager ─────────────────────────────────────────────────────────────
@@ -149,14 +151,15 @@ public class BranchController(IBranchService service) : BaseApiController
     /// <remarks>Gọi: BranchService.GetStaffAsync → IBranchRepository.GetByIdAsync + GetStaffAsync.</remarks>
     [HttpGet("{id:guid}/staff")]
     [Authorize(Roles = $"{UserRole.Admin},{UserRole.Manager}")]
-    public async Task<IActionResult> GetStaff(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetStaff(
+        Guid id, [FromQuery] PaginationQuery query, CancellationToken ct)
     {
         var managerId = User.IsInRole(UserRole.Manager)
             ? CurrentUserId
             : (Guid?)null;
 
-        var staff = await _service.GetStaffAsync(id, managerId, ct);
-        return Success(staff);
+        var staff = await _service.GetStaffAsync(id, query, managerId, ct);
+        return Paged(staff);
     }
 
     /// <summary>

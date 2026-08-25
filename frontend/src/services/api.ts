@@ -258,8 +258,8 @@ export async function getMe() {
 }
 
 export async function getMyVehicles(): Promise<Vehicle[]> {
-  const res = await fetchWithAuth('/api/vehicles', { method: 'GET' });
-  return Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
+  const res = await fetchWithAuth('/api/vehicles?PageSize=100', { method: 'GET' });
+  return unwrapPagedItems<Vehicle>(res);
 }
 
 export async function createVehicle(data: CreateVehicleRequest): Promise<Vehicle> {
@@ -377,7 +377,7 @@ export async function getMyBranch(): Promise<Branch> {
 
 export async function getBranchServices(branchId: string): Promise<BranchService[]> {
   const res = await fetchWithAuth(`/api/branches/${branchId}/services`)
-  const items = unwrapData<Record<string, unknown>[]>(res) ?? []
+  const items = unwrapPagedItems<Record<string, unknown>>(res)
   return (Array.isArray(items) ? items : []).map(normalizeBranchService)
 }
 
@@ -811,7 +811,7 @@ export async function deleteSlot(id: string): Promise<any> {
 
 export async function getAvailableSlots(branchId: string, date: string): Promise<Slot[]> {
   const res = await fetchWithAuth(`/api/slots/available?branchId=${branchId}&date=${date}`)
-  const items = unwrapData<Record<string, unknown>[]>(res) ?? []
+  const items = unwrapPagedItems<Record<string, unknown>>(res)
   return (Array.isArray(items) ? items : []).map(normalizeSlot)
 }
 
@@ -868,7 +868,7 @@ export async function adjustPoints(data: { UserId: string; Points: number; Descr
 
 export async function getActiveTiers(): Promise<any[]> {
   const res = await fetchWithAuth('/api/tiers/active', { method: 'GET' })
-  return unwrapData<any[]>(res) ?? []
+  return unwrapPagedItems<any>(res)
 }
 
 export async function lookupCustomerByPhone(phone: string): Promise<any> {
@@ -1066,7 +1066,7 @@ export async function deactivateTier(id: string): Promise<any> {
 
 export async function getTierBenefits(tierId: string): Promise<any[]> {
   const res = await fetchWithAuth(`/api/tiers/${tierId}/benefits`, { method: 'GET' })
-  const items = unwrapData<Record<string, unknown>[]>(res) ?? []
+  const items = unwrapPagedItems<Record<string, unknown>>(res)
   return (Array.isArray(items) ? items : []).map(normalizeTierBenefit)
 }
 

@@ -107,7 +107,7 @@ export default function ManagerVouchers() {
 
       <div className="dash-header">
         <div>
-          <h2>Voucher Approvals</h2>
+          <h2>Phê duyệt mã khuyến mãi</h2>
           <p>Duyệt các voucher do nhân viên tạo hoặc xem voucher toàn hệ thống do Admin phát hành.</p>
         </div>
       </div>

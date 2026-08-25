@@ -1,10 +1,11 @@
+using WashingCar_Domain.DTOs;
 using WashingCar_Domain.DTOs.Vehicle;
 
 namespace WashingCar_BLL.Interfaces
 {
     public interface IVehicleService
     {
-        Task<List<VehicleDto>> GetMyVehiclesAsync(Guid userId);
+        Task<PagedResult<VehicleDto>> GetMyVehiclesAsync(Guid userId, VehicleQuery query, CancellationToken ct = default);
         Task<VehicleDto> GetByIdAsync(Guid userId, Guid vehicleId);
         Task<VehicleDto> CreateAsync(Guid userId, CreateVehicleRequest request);
         Task<VehicleDto> UpdateAsync(Guid userId, Guid vehicleId, UpdateVehicleRequest request);

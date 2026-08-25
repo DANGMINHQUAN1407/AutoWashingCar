@@ -103,29 +103,29 @@ export default function CustomerProfile() {
         NewPassword: newPassword
       })
 
-      setPasswordMessage({ text: 'Password updated successfully!', type: 'success' })
+      setPasswordMessage({ text: 'Cập nhật mật khẩu thành công!', type: 'success' })
       setOldPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
       console.error(err)
-      setPasswordMessage({ text: extractErrorMessage(err, 'Failed to change password. Please try again.'), type: 'error' })
+      setPasswordMessage({ text: extractErrorMessage(err, 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.'), type: 'error' })
     } finally {
       setPasswordLoading(false)
     }
   }
 
-  const memberTier = user?.tierName || 'Bronze'
+  const memberTier = user?.tierName || 'Đồng'
   const memberSince = user && (user as any).createdAtUtc
-    ? new Date((user as any).createdAtUtc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'Unknown'
+    ? new Date((user as any).createdAtUtc).toLocaleDateString('vi-VN', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    : 'Chưa xác định'
 
   return (
     <div className="portal-page profile-page-container">
       <div className="dash-header">
         <div>
-          <h2>Account Settings</h2>
-          <p>Update your personal information and manage your account security settings.</p>
+          <h2>Cài đặt tài khoản</h2>
+          <p>Cập nhật thông tin cá nhân và quản lý bảo mật tài khoản của bạn.</p>
         </div>
       </div>
 
@@ -136,21 +136,21 @@ export default function CustomerProfile() {
             <div className="profile-avatar-large">
               {(fullName || 'U').substring(0, 2).toUpperCase()}
             </div>
-            <h3>{fullName || 'Customer'}</h3>
-            <span className="profile-tier-badge">{memberTier} Member</span>
+            <h3>{fullName || 'Khách hàng'}</h3>
+            <span className="profile-tier-badge">Thành viên hạng {memberTier}</span>
             
             <div className="profile-meta-info-list">
               <div className="profile-meta-row">
-                <span className="meta-label">Role:</span>
-                <span className="meta-val">Customer</span>
+                <span className="meta-label">Vai trò:</span>
+                <span className="meta-val">Khách hàng</span>
               </div>
               <div className="profile-meta-row">
-                <span className="meta-label">Joined:</span>
+                <span className="meta-label">Ngày tham gia:</span>
                 <span className="meta-val">{memberSince}</span>
               </div>
               <div className="profile-meta-row">
-                <span className="meta-label">Status:</span>
-                <span className="meta-val status-active">Active</span>
+                <span className="meta-label">Trạng thái:</span>
+                <span className="meta-val status-active">Hoạt động</span>
               </div>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function CustomerProfile() {
         <div className="profile-right-column">
           {/* Card 1: Edit Details */}
           <div className="card profile-form-card">
-            <h3 className="form-card-title">👤 Personal Information</h3>
+            <h3 className="form-card-title">👤 Thông tin cá nhân</h3>
             
             {profileMessage && (
               <div className={`profile-alert alert-${profileMessage.type}`}>
@@ -171,13 +171,13 @@ export default function CustomerProfile() {
             <form onSubmit={handleUpdateProfile} className="profile-form">
               <div className="form-group-row">
                 <div className="form-group">
-                  <label htmlFor="fullName">Full Name <span className="req-star">*</span></label>
+                  <label htmlFor="fullName">Họ và tên <span className="req-star">*</span></label>
                   <input
                     type="text"
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter full name"
+                    placeholder="Nhập họ và tên"
                     disabled={profileLoading}
                     required
                   />
@@ -186,7 +186,7 @@ export default function CustomerProfile() {
 
               <div className="form-group-row two-cols">
                 <div className="form-group">
-                  <label htmlFor="email">Email Address</label>
+                  <label htmlFor="email">Địa chỉ Email</label>
                   <input
                     type="email"
                     id="email"
@@ -198,13 +198,13 @@ export default function CustomerProfile() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="phoneNumber">Phone Number</label>
+                  <label htmlFor="phoneNumber">Số điện thoại</label>
                   <input
                     type="tel"
                     id="phoneNumber"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="Enter phone number"
+                    placeholder="Nhập số điện thoại"
                     disabled={profileLoading}
                   />
                 </div>
@@ -216,14 +216,14 @@ export default function CustomerProfile() {
                 className="btn-save"
                 disabled={profileLoading}
               >
-                {profileLoading ? 'Saving...' : 'Save Changes'}
+                {profileLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
               </AnimatedButton>
             </form>
           </div>
 
           {/* Card 2: Security / Password change */}
           <div className="card profile-form-card">
-            <h3 className="form-card-title">🔒 Security & Password</h3>
+            <h3 className="form-card-title">🔒 Bảo mật & Đổi mật khẩu</h3>
 
             {passwordMessage && (
               <div className={`profile-alert alert-${passwordMessage.type}`}>
@@ -234,7 +234,7 @@ export default function CustomerProfile() {
             <form onSubmit={handleChangePassword} className="profile-form">
               <div className="form-group-row">
                 <div className="form-group">
-                  <label htmlFor="oldPassword">Current Password <span className="req-star">*</span></label>
+                  <label htmlFor="oldPassword">Mật khẩu hiện tại <span className="req-star">*</span></label>
                   <input
                     type="password"
                     id="oldPassword"
@@ -249,13 +249,13 @@ export default function CustomerProfile() {
 
               <div className="form-group-row two-cols">
                 <div className="form-group">
-                  <label htmlFor="newPassword">New Password <span className="req-star">*</span></label>
+                  <label htmlFor="newPassword">Mật khẩu mới <span className="req-star">*</span></label>
                   <input
                     type="password"
                     id="newPassword"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimum 8 characters"
+                    placeholder="Tối thiểu 8 ký tự"
                     disabled={passwordLoading}
                     required
                     minLength={8}
@@ -263,13 +263,13 @@ export default function CustomerProfile() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirm New Password <span className="req-star">*</span></label>
+                  <label htmlFor="confirmPassword">Nhập lại mật khẩu mới <span className="req-star">*</span></label>
                   <input
                     type="password"
                     id="confirmPassword"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Retype new password"
+                    placeholder="Nhập lại mật khẩu mới"
                     disabled={passwordLoading}
                     required
                     minLength={8}
@@ -283,7 +283,7 @@ export default function CustomerProfile() {
                 className="btn-save"
                 disabled={passwordLoading}
               >
-                {passwordLoading ? 'Changing password...' : 'Update Password'}
+                {passwordLoading ? 'Đang đổi mật khẩu...' : 'Cập nhật mật khẩu'}
               </AnimatedButton>
             </form>
           </div>

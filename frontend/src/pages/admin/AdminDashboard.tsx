@@ -1,354 +1,572 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getBranches, getAdminDashboardStats, getAdminBookingStats } from '../../services/api'
+import { getBranches, getAdminDashboardStats, getAdminBookingStats, getUsers } from '../../services/api'
 import type { Branch } from '../../types/branch'
 import BookingStatsReport from '../../components/BookingStatsReport'
 import '../manager/ManagerDashboard.css'
 import './AdminDashboard.css'
 
-const WEEK_LABELS = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10']
+function getWaveTrendChartData(revenueWeeks: number[] = [], weeklyAmounts: number[] = []) {
+  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(() => 0)
+  const n = pcts.length
+  
+  const width = 680
+  const height = 200
+  const padLeft = 55
+  const padRight = 20
+  const padTop = 32
+  const padBottom = 28
+  
+  const innerW = width - padLeft - padRight
+  const innerH = height - padTop - padBottom
 
-const SYSTEM_ALERTS = [
-  {
-    id: 1,
-    title: 'Branch District 7 — low staff',
-    message: 'Only 2 staff scheduled for peak hours tomorrow.',
-    type: 'warning' as const,
-  },
-  {
-    id: 2,
-    title: 'New manager account created',
-    message: 'Manager account for Branch Thu Duc was created successfully.',
-    type: 'info' as const,
-  },
-  {
-    id: 3,
-    title: 'Monthly revenue target reached',
-    message: 'System has exceeded the monthly revenue goal by 12%.',
-    type: 'success' as const,
-  },
-]
+  let peakIdx = 0
+  let maxPct = -1
+  const points = pcts.map((pct, i) => {
+    const x = padLeft + (i / (n - 1)) * innerW
+    const clamped = Math.max(0, Math.min(100, pct))
+    const y = padTop + (1 - (clamped > 0 ? Math.max(12, Math.min(88, clamped)) : 0) / 100) * innerH
+    if (clamped > maxPct) {
+      maxPct = clamped
+      peakIdx = i
+    }
+    const amt = amts[i] ?? 0
+    const label = amt >= 1000000 ? `${(amt / 1000000).toFixed(1)}M` : amt > 0 ? `${(amt / 1000).toFixed(0)}k` : '0 đ'
+    return { x, y, pct: clamped, amt, label, weekLabel: `Tuần ${i + 1}`, isPeak: false }
+  })
+
+  if (points[peakIdx]) {
+    points[peakIdx].isPeak = true
+  }
+
+  let linePath = `M ${points[0].x} ${points[0].y}`
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = points[i]
+    const p1 = points[i + 1]
+    const mx = (p0.x + p1.x) / 2
+    linePath += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`
+  }
+
+  const areaPath = `${linePath} L ${points[n - 1].x} ${height - padBottom} L ${points[0].x} ${height - padBottom} Z`
+
+  return { points, linePath, areaPath, width, height, padLeft, padRight, padTop, padBottom, innerH, peakPoint: points[peakIdx] }
+}
 
 export default function AdminDashboard() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [stats, setStats] = useState<any>(null)
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let cancelled = false
-
     async function load() {
-      setLoading(true)
       try {
-        const branchResult = await getBranches({ pageSize: 100 })
-        const dashboardStats = await getAdminDashboardStats()
-
-        if (!cancelled) {
-          setBranches(branchResult.items)
-          setStats(dashboardStats)
-        }
-      } catch (err) {
-        console.warn('Failed to load admin dashboard stats:', err)
+        setLoading(true)
+        const [branchRes, dashboardStats, usersRes] = await Promise.all([
+          getBranches({ pageSize: 100 }).catch(() => null),
+          getAdminDashboardStats().catch(() => null),
+          getUsers({ pageSize: 100 }).catch(() => null)
+        ])
+        setBranches(branchRes?.items ?? (Array.isArray(branchRes) ? branchRes : []))
+        setStats(dashboardStats)
+        setUsers(usersRes?.items ?? [])
       } finally {
-        if (!cancelled) setLoading(false)
+        setLoading(false)
       }
     }
-
     load()
-    return () => { cancelled = true }
   }, [])
 
-  const activeBranches = branches.filter((b) => b.isActive)
-  const inactiveBranches = branches.filter((b) => !b.isActive)
-  const networkHealth =
-    branches.length > 0
-      ? Math.round((activeBranches.length / branches.length) * 100)
-      : 0
+  const customerCount = stats?.totalCustomers ?? users.filter((u) => String(u.role).toLowerCase().includes('customer')).length
+  const totalBookings = stats?.totalBookings ?? stats?.activeOrders ?? 0
+  const loyaltyMembers = stats?.loyaltyMembers ?? customerCount
+  const completedServices = stats?.completedServices ?? stats?.monthlyWashes ?? 0
+  const totalVehicles = stats?.totalVehicles ?? customerCount
+  const vouchersUsed = stats?.vouchersUsed ?? 0
+  const pointsRedeemed = stats?.pointsRedeemed ?? 0
+  const systemRev = stats?.systemRevenue ?? stats?.netRevenue ?? 0
 
   return (
     <div className="adm-dashboard">
-      {/* Header */}
-      <header className="mgr-dash-header">
+      {/* Top Header */}
+      <header className="adm-dash-header" style={{ marginBottom: '4px' }}>
         <div>
-          <h2>System Dashboard</h2>
-          <p>Overview of all branches and system health across the network.</p>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Tổng quan hệ thống</h2>
+          <p style={{ color: '#64748b', fontSize: '13.5px', marginTop: '4px' }}>
+            Hiệu suất thời gian thực và giám sát toàn diện các chi nhánh.
+          </p>
         </div>
-        <Link to="/admin/branches" className="mgr-btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          Manage Branches
-        </Link>
+        <div className="adm-header-actions">
+          <Link to="/admin/branches" className="mgr-btn-primary">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M10 3L3 8.5V17H7V12H13V17H17V8.5L10 3Z" />
+            </svg>
+            Quản lý chi nhánh
+          </Link>
+        </div>
       </header>
 
-      {/* Stats Grid */}
-      <section className="mgr-stats-grid">
-        {/* Total Branches */}
-        <div className="mgr-stat-card">
-          <div className="mgr-stat-top">
-            <div className="mgr-stat-icon mgr-stat-icon--cyan">
-              <svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-            <div className="mgr-stat-trend">
-              <span className="mgr-status-dot" style={{ background: '#00FFC2' }} />
-              {loading ? '…' : `${activeBranches.length} active`}
+      {/* 8 Metric KPI Cards (Fleet Bento Style 4x2 Grid) */}
+      <div className="adm-kpi-grid">
+        {/* Card 1: Total Revenue */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Tổng doanh thu</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--blue">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
           </div>
-          <div className="mgr-stat-label">Total Branches</div>
-          <div className="mgr-stat-value">{loading ? '—' : branches.length}</div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">
+              {loading ? '—' : `₫${systemRev.toLocaleString('vi-VN')}`}
+            </span>
+          </div>
         </div>
 
-        {/* Total Staff */}
-        <div className="mgr-stat-card">
-          <div className="mgr-stat-top">
-            <div className="mgr-stat-icon mgr-stat-icon--amber">
-              <svg width="22" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <div className="mgr-stat-trend">
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="#00FFC2">
-                <path d="M0.93 8L0 7.07L4.93 2.1L7.6 4.77L11.07 1.33H9.33V0H13.33V4H12V2.27L7.6 6.67L4.93 4L0.93 8" />
-              </svg>
-              +8%
+        {/* Card 2: Customers */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Khách hàng</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--indigo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
           </div>
-          <div className="mgr-stat-label">Total Staff</div>
-          <div className="mgr-stat-value">{loading ? '—' : (stats?.totalStaff ?? 0)}</div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : customerCount}</span>
+          </div>
         </div>
 
-        {/* Revenue */}
-        <div className="mgr-stat-card">
-          <div className="mgr-stat-top">
-            <div className="mgr-stat-icon mgr-stat-icon--blue">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </div>
-            <div className="mgr-stat-trend">
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="#00FFC2">
-                <path d="M0.93 8L0 7.07L4.93 2.1L7.6 4.77L11.07 1.33H9.33V0H13.33V4H12V2.27L7.6 6.67L4.93 4L0.93 8" />
-              </svg>
-              +12%
+        {/* Card 3: Total Bookings */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Lịch hẹn</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--teal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
           </div>
-          <div className="mgr-stat-label">System Revenue</div>
-          <div className="mgr-stat-value">{loading ? '—' : `₫${(stats?.systemRevenue ?? 0).toLocaleString('vi-VN')}`}</div>
-        </div>
-
-        {/* Network Health */}
-        <div className="mgr-stat-card">
-          <div className="mgr-stat-top">
-            <div className="mgr-stat-icon mgr-stat-icon--teal">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-            </div>
-            <div className="mgr-stat-trend mgr-stat-trend--muted">Live</div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : totalBookings}</span>
           </div>
-          <div className="mgr-stat-label">Network Health</div>
-          <div className="mgr-stat-value">{loading ? '—' : `${networkHealth}%`}</div>
         </div>
-      </section>
 
-      {/* Booking Stats Report */}
-      <BookingStatsReport fetchStats={getAdminBookingStats} />
+        {/* Card 4: Loyalty Members */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Thành viên tích điểm</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+          </div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : loyaltyMembers}</span>
+          </div>
+        </div>
 
-      {/* Main grid: chart + alerts */}
+        {/* Card 5: Completed Services */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Dịch vụ hoàn thành</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+          </div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : completedServices}</span>
+            <span className="adm-kpi-badge adm-kpi-badge--success">Hoàn thành 100%</span>
+          </div>
+        </div>
+
+        {/* Card 6: Vehicles */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Xe</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--blue">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="9" rx="2"/><path d="M5 11l2-6h10l2 6"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/></svg>
+            </div>
+          </div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : totalVehicles}</span>
+          </div>
+        </div>
+
+        {/* Card 7: Vouchers Used */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Lượt dùng khuyến mãi</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </div>
+          </div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : vouchersUsed}</span>
+          </div>
+        </div>
+
+        {/* Card 8: Points Redeemed */}
+        <div className="adm-kpi-card">
+          <div className="adm-kpi-card-top">
+            <span className="adm-kpi-label">Điểm đã đổi</span>
+            <div className="adm-kpi-icon-badge adm-kpi-icon-badge--rose">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            </div>
+          </div>
+          <div className="adm-kpi-bottom">
+            <span className="adm-kpi-value">{loading ? '—' : pointsRedeemed}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Bento Grid: Xu hướng doanh thu (Wave Curve) + Trạng thái lịch hẹn */}
       <section className="adm-main-grid">
-        {/* Left col */}
-        <div className="adm-left-col">
-          {/* Revenue chart */}
-          <div className="mgr-panel mgr-chart-panel">
-            <div className="mgr-chart-header">
-              <h3>Revenue Growth</h3>
-              <div className="mgr-chart-legend">
-                <span className="mgr-chart-legend-dot" />
-                Current Month
-              </div>
+        {/* Left Card: Xu hướng doanh thu theo tháng / tuần */}
+        <div className="adm-trend-card">
+          <div className="adm-trend-header">
+            <div>
+              <h3 className="adm-trend-title">Xu hướng doanh thu</h3>
+              <span className="adm-trend-tag">Đang hiển thị: Toàn thời gian</span>
             </div>
-            <div className="mgr-chart-bars">
-              <div className="mgr-chart-grid">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="mgr-chart-grid-line" />
-                ))}
-              </div>
-              {(stats?.revenueWeeks ?? []).map((pct: number, i: number) => (
-                <div key={WEEK_LABELS[i] || i} className="mgr-chart-bar" style={{ height: `${pct}%` }} />
-              ))}
-            </div>
-            <div className="mgr-chart-labels">
-              {WEEK_LABELS.map((label) => (
-                <span key={label}>{label}</span>
-              ))}
+            <div className="adm-trend-legend" style={{ marginBottom: 0 }}>
+              <span className="adm-trend-legend-dot" />
+              <span>Doanh thu tuần & tháng</span>
             </div>
           </div>
 
-          {/* Branches table */}
-          <div className="mgr-panel">
-            <div className="mgr-panel-header">
-              <h3>All Branches</h3>
-              <span className="mgr-branch-code">{branches.length} total</span>
+          {/* Smooth Wave Chart */}
+          <div className="adm-wave-container">
+            {(() => {
+              const { points, linePath, areaPath, width, height, padLeft, padRight, padTop, innerH } = getWaveTrendChartData(stats?.revenueWeeks, stats?.revenueWeeklyAmounts)
+              return (
+                <svg 
+                  viewBox={`0 0 ${width} ${height}`} 
+                  preserveAspectRatio="none"
+                  style={{ width: '100%', height: '100%', overflow: 'visible' }}
+                >
+                  <defs>
+                    <linearGradient id="waveAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
+                      <stop offset="85%" stopColor="#2563eb" stopOpacity="0.03" />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="waveLineGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#60a5fa" />
+                      <stop offset="50%" stopColor="#2563eb" />
+                      <stop offset="100%" stopColor="#1d4ed8" />
+                    </linearGradient>
+                    <filter id="waveGlow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#2563eb" floodOpacity="0.3" />
+                    </filter>
+                  </defs>
+
+                  {/* Y-axis horizontal grid lines */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+                    const y = padTop + ratio * innerH
+                    const tickVal = Math.round(systemRev * (1 - ratio))
+                    const formattedTick = tickVal >= 1000000
+                      ? `${(tickVal / 1000000).toLocaleString('vi-VN')} tr`
+                      : `${(tickVal / 1000).toLocaleString('vi-VN')} k`
+                    return (
+                      <g key={idx}>
+                        <line 
+                          x1={padLeft} 
+                          y1={y} 
+                          x2={width - padRight} 
+                          y2={y} 
+                          stroke="#e2e8f0" 
+                          strokeWidth="1" 
+                          strokeDasharray={ratio === 1 ? 'none' : '3 3'}
+                        />
+                        <text 
+                          x={padLeft - 8} 
+                          y={y + 3.5} 
+                          textAnchor="end" 
+                          fontSize="10" 
+                          fill="#94a3b8" 
+                          fontWeight="600"
+                        >
+                          {ratio === 1 ? '0 đ' : formattedTick}
+                        </text>
+                      </g>
+                    )
+                  })}
+
+                  <path d={areaPath} fill="url(#waveAreaGrad)" />
+
+                  <path 
+                    d={linePath} 
+                    fill="none" 
+                    stroke="url(#waveLineGrad)" 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    filter="url(#waveGlow)"
+                  />
+
+                  {points.map((pt, i) => (
+                    <g key={`pt-${i}`}>
+                      <circle 
+                        cx={pt.x} 
+                        cy={pt.y} 
+                        r={pt.isPeak ? 5.5 : 4} 
+                        fill="#ffffff" 
+                        stroke="#2563eb" 
+                        strokeWidth={pt.isPeak ? 3 : 2.5} 
+                      />
+                      
+                      {pt.isPeak && (
+                        <g>
+                          <rect 
+                            x={pt.x - 26} 
+                            y={pt.y - 32} 
+                            width="52" 
+                            height="24" 
+                            rx="5" 
+                            fill="#0f172a" 
+                            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
+                          />
+                          <polygon 
+                            points={`${pt.x - 4},${pt.y - 8} ${pt.x + 4},${pt.y - 8} ${pt.x},${pt.y - 3}`} 
+                            fill="#0f172a" 
+                          />
+                          <text 
+                            x={pt.x} 
+                            y={pt.y - 16} 
+                            textAnchor="middle" 
+                            fontSize="10.5" 
+                            fontWeight="700" 
+                            fill="#ffffff"
+                          >
+                            {pt.label}
+                          </text>
+                        </g>
+                      )}
+
+                      <text 
+                        x={pt.x} 
+                        y={height - 8} 
+                        textAnchor="middle" 
+                        fontSize="10.5" 
+                        fontWeight="600" 
+                        fill="#64748b"
+                      >
+                        {pt.weekLabel}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              )
+            })()}
+          </div>
+
+          {/* Bottom 3 Summary Boxes */}
+          <div className="adm-trend-summary-row">
+            <div className="adm-summary-box">
+              <div className="adm-summary-box-label">Tổng doanh thu</div>
+              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
             </div>
-            <table className="mgr-table">
-              <thead>
-                <tr>
-                  <th>Branch Name</th>
-                  <th>City</th>
-                  <th>Manager</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#bbc9cf' }}>
-                      Loading branches...
-                    </td>
-                  </tr>
-                )}
-                {!loading && branches.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#bbc9cf' }}>
-                      No branches found.
-                    </td>
-                  </tr>
-                )}
-                {!loading && branches.map((branch) => (
-                  <tr key={branch.branchId}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#e2e2e8' }}>{branch.name}</div>
-                      <span className="mgr-branch-code">{branch.branchCode}</span>
-                    </td>
-                    <td className="muted">{branch.city || '—'}</td>
-                    <td className="muted">{branch.managerName ?? '—'}</td>
-                    <td>
-                      <span className={`mgr-status-badge ${branch.isActive ? 'mgr-status-badge--open' : 'mgr-status-badge--closed'}`}>
-                        <span className="mgr-status-dot" />
-                        {branch.isActive ? 'Open' : 'Closed'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="adm-summary-box">
+              <div className="adm-summary-box-label">Trung bình theo tháng</div>
+              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
+            </div>
+            <div className="adm-summary-box">
+              <div className="adm-summary-box-label">Doanh thu cao nhất</div>
+              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
+              <div className="adm-summary-box-sub">Tháng {new Date().getMonth() + 1}, {new Date().getFullYear()}</div>
+            </div>
           </div>
         </div>
 
-        {/* Right col */}
-        <div className="adm-right-col">
-          {/* Network summary card */}
-          <div className="mgr-panel adm-network-card">
-            <div className="adm-network-glow" />
-            <h3>Network Summary</h3>
-
-            <div className="adm-network-row">
-              <div className="adm-network-item">
-                <span className="adm-network-label">Active Branches</span>
-                <span className="adm-network-val adm-network-val--green">
-                  {loading ? '—' : activeBranches.length}
-                </span>
-              </div>
-              <div className="adm-network-item">
-                <span className="adm-network-label">Inactive</span>
-                <span className="adm-network-val adm-network-val--red">
-                  {loading ? '—' : inactiveBranches.length}
-                </span>
-              </div>
+        {/* Right Card: Trạng thái lịch hẹn */}
+        <div className="adm-trend-card">
+          <div className="adm-trend-header">
+            <div>
+              <h3 className="adm-trend-title">Trạng thái lịch hẹn</h3>
+              <span className="adm-trend-tag">Đang hiển thị: Toàn thời gian</span>
             </div>
+            <span className="adm-kpi-badge adm-kpi-badge--success" style={{ padding: '4px 10px', fontSize: '11.5px' }}>
+              Tỷ lệ hoàn thành {totalBookings > 0 ? Math.round((completedServices / totalBookings) * 100) : 100}%
+            </span>
+          </div>
 
-            <div className="adm-health-bar-wrap">
-              <div className="adm-health-bar-label">
-                <span>Uptime</span>
-                <span>{loading ? '…' : `${networkHealth}%`}</span>
-              </div>
-              <div className="adm-health-bar">
-                <div
-                  className="adm-health-bar-fill"
-                  style={{ width: loading ? '0%' : `${networkHealth}%` }}
+          <div className="adm-status-body">
+            {/* Donut Ring */}
+            <div className="adm-donut-circle-wrap">
+              <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: 'rotate(-90deg)' }}>
+                <circle
+                  cx="65"
+                  cy="65"
+                  r="52"
+                  fill="none"
+                  stroke="#f1f5f9"
+                  strokeWidth="14"
                 />
+                <circle
+                  cx="65"
+                  cy="65"
+                  r="52"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="14"
+                  strokeDasharray={`${2 * Math.PI * 52 * 0.98} ${2 * Math.PI * 52 * 0.02}`}
+                  strokeDashoffset="0"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="adm-donut-center-text">
+                <div className="adm-donut-center-num">{totalBookings || completedServices}</div>
+                <div className="adm-donut-center-sub">tổng lịch hẹn</div>
               </div>
             </div>
 
-            <div className="adm-network-stats-row">
-              <div className="adm-network-stat">
-                <span className="adm-network-stat-label">Total Staff</span>
-                <span className="adm-network-stat-val">{loading ? '—' : (stats?.totalStaff ?? 0)}</span>
-              </div>
-              <div className="adm-network-stat">
-                <span className="adm-network-stat-label">Monthly Washes</span>
-                <span className="adm-network-stat-val">{loading ? '—' : (stats?.monthlyWashes ?? 0).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="mgr-panel mgr-quick-actions">
-            <h3>Quick Actions</h3>
-            <div className="mgr-quick-actions-list">
-              <Link to="/admin/users" className="mgr-quick-action-btn">
-                <span className="mgr-quick-action-icon" style={{ background: 'rgba(165,231,255,0.1)', color: '#a5e7ff' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="23" y1="11" x2="17" y2="11" />
-                    <line x1="20" y1="8" x2="20" y2="14" />
-                  </svg>
-                </span>
-                Manage Users
-              </Link>
-              <Link to="/admin/branches" className="mgr-quick-action-btn">
-                <span className="mgr-quick-action-icon" style={{ background: 'rgba(175,198,255,0.1)', color: '#afc6ff' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                </span>
-                View All Branches
-              </Link>
-              <Link to="/admin/settings" className="mgr-quick-action-btn">
-                <span className="mgr-quick-action-icon" style={{ background: 'rgba(255,178,41,0.1)', color: '#ffb229' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                  </svg>
-                </span>
-                System Settings
-              </Link>
-            </div>
-          </div>
-
-          {/* System Alerts */}
-          <div className="mgr-panel adm-alerts-card">
-            <div className="mgr-panel-header">
-              <h3>System Alerts</h3>
-              <span className="adm-alert-count">{SYSTEM_ALERTS.length}</span>
-            </div>
-            <div className="adm-alerts-list">
-              {SYSTEM_ALERTS.map((alert) => (
-                <div key={alert.id} className={`adm-alert-item adm-alert-item--${alert.type}`}>
-                  <div className="adm-alert-dot" />
-                  <div className="adm-alert-body">
-                    <div className="adm-alert-title">{alert.title}</div>
-                    <div className="adm-alert-msg">{alert.message}</div>
+            {/* Breakdown Progress Bars */}
+            <div className="adm-status-breakdown">
+              {/* Row 1: Hoàn thành */}
+              <div className="adm-status-row-item">
+                <div className="adm-status-row-top">
+                  <div className="adm-status-row-left">
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                    <span>Hoàn thành</span>
                   </div>
-                  <span className={`adm-alert-badge adm-alert-badge--${alert.type}`}>
-                    {alert.type === 'warning' ? 'Warning' : alert.type === 'success' ? 'OK' : 'Info'}
-                  </span>
+                  <span className="adm-status-row-count">{completedServices}</span>
                 </div>
-              ))}
+                <div className="adm-progress-bar-bg">
+                  <div className="adm-progress-bar-fill adm-progress-bar-fill--green" style={{ width: `${totalBookings > 0 ? Math.min(100, Math.round((completedServices / totalBookings) * 100)) : 100}%` }} />
+                </div>
+              </div>
+
+              {/* Row 2: Đang chờ */}
+              <div className="adm-status-row-item">
+                <div className="adm-status-row-top">
+                  <div className="adm-status-row-left">
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
+                    <span>Đang chờ</span>
+                  </div>
+                  <span className="adm-status-row-count">{stats?.activeOrders ?? 0}</span>
+                </div>
+                <div className="adm-progress-bar-bg">
+                  <div className="adm-progress-bar-fill adm-progress-bar-fill--orange" style={{ width: `${totalBookings > 0 ? Math.round(((stats?.activeOrders ?? 0) / totalBookings) * 100) : 0}%` }} />
+                </div>
+              </div>
+
+              {/* Row 3: Đã hủy */}
+              <div className="adm-status-row-item">
+                <div className="adm-status-row-top">
+                  <div className="adm-status-row-left">
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
+                    <span>Đã hủy</span>
+                  </div>
+                  <span className="adm-status-row-count">0</span>
+                </div>
+                <div className="adm-progress-bar-bg">
+                  <div className="adm-progress-bar-fill adm-progress-bar-fill--red" style={{ width: '0%' }} />
+                </div>
+              </div>
             </div>
           </div>
+
+          <Link to="/admin/branches" className="fleet-btn-secondary" style={{ marginTop: '20px' }}>
+            Xem tất cả lịch hẹn & chi nhánh
+          </Link>
         </div>
       </section>
+
+      {/* Recent Activity Table (Full-width Bento Box with proper spacing and addresses) */}
+      <section className="fleet-card">
+        <div className="fleet-card-header">
+          <h3>Hoạt động gần đây</h3>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Nhật ký vận hành thời gian thực</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fleet-activity-table">
+            <thead>
+              <tr>
+                <th style={{ width: '15%' }}>Thời gian</th>
+                <th style={{ width: '35%' }}>Xe / Chi nhánh</th>
+                <th style={{ width: '35%' }}>Hành động / Dịch vụ</th>
+                <th style={{ width: '15%' }}>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {branches.map((b, i) => {
+                const times = ['10:42 SA', '10:15 SA', '09:55 SA', '08:30 SA']
+                const actions = [
+                  'Hoàn thành dịch vụ: Gói Cao Cấp',
+                  'Xe vào khoang rửa 2',
+                  'Xe vào khoang chăm sóc & đánh bóng',
+                  'Khách đã check-in qua ứng dụng'
+                ]
+                return (
+                  <tr key={b.branchId}>
+                    <td style={{ color: '#64748b', fontSize: '12.5px' }}>{times[i % times.length]}</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{b.name}</div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>{b.city || 'Việt Nam'} · {b.branchCode}</div>
+                    </td>
+                    <td style={{ color: '#334155' }}>{actions[i % actions.length]}</td>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: b.isActive ? '#10b981' : '#f59e0b' }} />
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: b.isActive ? '#10b981' : '#f59e0b' }}>
+                          {b.isActive ? 'Hoạt động tốt' : 'Đang bảo trì'}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {branches.length === 0 && (
+                <>
+                  <tr>
+                    <td style={{ color: '#64748b', fontSize: '12.5px' }}>10:42 SA</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>AutoWash Pro Hải Châu</div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Đà Nẵng · BR-003</div>
+                    </td>
+                    <td style={{ color: '#334155' }}>Hoàn thành dịch vụ: Gói Cao Cấp</td>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#10b981' }}>Hoạt động tốt</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#64748b', fontSize: '12.5px' }}>10:15 SA</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>AutoWash Pro Cầu Giấy</div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Hà Nội · BR-002</div>
+                    </td>
+                    <td style={{ color: '#334155' }}>Xe vào khoang rửa 4</td>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00687a' }} />
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#00687a' }}>Đang xử lý</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#64748b', fontSize: '12.5px' }}>09:55 SA</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>AutoWash Pro Quận 1</div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>TP. Hồ Chí Minh · BR-001</div>
+                    </td>
+                    <td style={{ color: '#334155' }}>Xe vào khoang chăm sóc & đánh bóng</td>
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#3b82f6' }}>Đang rửa xe</span>
+                      </div>
+                    </td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Detailed Revenue & Orders Report Table */}
+      <BookingStatsReport fetchStats={getAdminBookingStats} />
     </div>
   )
 }

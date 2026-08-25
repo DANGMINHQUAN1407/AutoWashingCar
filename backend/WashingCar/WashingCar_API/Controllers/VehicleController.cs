@@ -34,10 +34,12 @@ namespace WashingCar_API.Controllers
         /// <summary>Danh sách xe của chính mình.</summary>
         /// <remarks>Gọi: VehicleService.GetMyVehiclesAsync → IVehicleRepository.GetByUserIdAsync.</remarks>
         [HttpGet]
-        public async Task<IActionResult> GetMyVehicles()
+        public async Task<IActionResult> GetMyVehicles(
+            [FromQuery] VehicleQuery query,
+            CancellationToken ct)
         {
-            var vehicles = await _vehicleService.GetMyVehiclesAsync(CurrentUserId);
-            return Success(vehicles);
+            var vehicles = await _vehicleService.GetMyVehiclesAsync(CurrentUserId, query, ct);
+            return Paged(vehicles);
         }
 
         /// <summary>Chi tiết một xe của chính mình, kèm URL ảnh chính.</summary>

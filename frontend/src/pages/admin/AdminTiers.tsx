@@ -355,7 +355,7 @@ export default function AdminTiers() {
       {/* Page Header */}
       <div className="dash-header">
         <div>
-          <h2>Membership Tiers Management</h2>
+          <h2>Quản lý hạng thành viên</h2>
           <p>Cấu hình các hạng thành viên khách hàng và quyền lợi tương ứng theo mức tích lũy.</p>
         </div>
         <button
@@ -366,7 +366,7 @@ export default function AdminTiers() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Create New Tier
+          Thêm hạng mới
         </button>
       </div>
 
@@ -410,19 +410,19 @@ export default function AdminTiers() {
                       <h3>{t.tierName}</h3>
                     </div>
                     <span className={`badge tier-badge ${t.isActive ? 'badge-success' : 'badge-danger'}`}>
-                      {t.isActive ? 'Active' : 'Inactive'}
+                      {t.isActive ? 'Hoạt động' : 'Tạm dừng'}
                     </span>
                   </div>
 
                   <div className="tier-body">
                     <div className="tier-stat-item">
-                      <span className="tier-stat-label">Min Points</span>
+                      <span className="tier-stat-label">Điểm tối thiểu</span>
                       <span className="tier-stat-value">
-                        {t.minPoints.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>pts</span>
+                        {t.minPoints.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>điểm</span>
                       </span>
                     </div>
                     <div className="tier-stat-item">
-                      <span className="tier-stat-label">Earn Rate</span>
+                      <span className="tier-stat-label">Hệ số tích điểm</span>
                       <span className="tier-stat-value tier-stat-value-highlight">
                         x{t.earnRate}
                       </span>
@@ -461,7 +461,7 @@ export default function AdminTiers() {
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
-                        Edit
+                        Sửa
                       </button>
                     </div>
                   </div>
@@ -531,7 +531,7 @@ export default function AdminTiers() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  Add Benefit
+                  Thêm quyền lợi
                 </button>
               </div>
 
@@ -545,7 +545,7 @@ export default function AdminTiers() {
                 <div className="empty-state-premium" style={{ background: 'transparent' }}>
                   <div className="empty-state-icon-premium">🎁</div>
                   <h3>Chưa có quyền lợi chi tiết</h3>
-                  <p>Hạng này chưa được gán bất kỳ quyền lợi cụ thể nào. Nhấp vào "Add Benefit" để thiết lập.</p>
+                  <p>Hạng này chưa được gán bất kỳ quyền lợi cụ thể nào. Nhấp vào "Thêm quyền lợi" để thiết lập.</p>
                 </div>
               ) : (
                 <div className="benefits-list">
@@ -655,7 +655,10 @@ export default function AdminTiers() {
                   required
                   placeholder="Ví dụ: Đồng, Bạc, Vàng, Kim cương..."
                   value={tierForm.tierName}
-                  onChange={e => setTierForm(prev => ({ ...prev, tierName: e.target.value }))}
+                  onChange={e => {
+                    setTierForm(prev => ({ ...prev, tierName: e.target.value }))
+                    setTierFormError(null)
+                  }}
                 />
               </div>
 
@@ -669,8 +672,12 @@ export default function AdminTiers() {
                     className="form-input"
                     required
                     placeholder="Ví dụ: 500"
-                    value={tierForm.minPoints}
-                    onChange={e => setTierForm(prev => ({ ...prev, minPoints: parseInt(e.target.value) || 0 }))}
+                    value={tierForm.minPoints || ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
+                      setTierForm(prev => ({ ...prev, minPoints: val }))
+                      setTierFormError(null)
+                    }}
                   />
                 </div>
 
@@ -684,8 +691,12 @@ export default function AdminTiers() {
                     className="form-input"
                     required
                     placeholder="Ví dụ: 1.2"
-                    value={tierForm.earnRate}
-                    onChange={e => setTierForm(prev => ({ ...prev, earnRate: parseFloat(e.target.value) || 0.0 }))}
+                    value={tierForm.earnRate || ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0.0
+                      setTierForm(prev => ({ ...prev, earnRate: val }))
+                      setTierFormError(null)
+                    }}
                   />
                   <span className="benefit-help-text" style={{ marginTop: '4px', display: 'block', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
                     Hệ số nhân điểm thưởng (ví dụ: 1.0 là mặc định, 1.2 là tích điểm nhanh hơn 20%). Tránh nhập dạng phần trăm 100.

@@ -16,12 +16,12 @@ export function formatLicensePlateInput(value: string, vehicleType: number) {
 }
 
 export function licensePlatePlaceholder(vehicleType: number) {
-  return vehicleType === MOTORBIKE ? 'VD: 59A1-12345' : 'VD: 51F-12345'
+  return vehicleType === MOTORBIKE ? 'Ex: 59A1-12345' : 'Ex: 51F-12345'
 }
 
 export function getLicensePlateError(value: string, vehicleType: number) {
   const compact = compactLicensePlate(value)
-  if (!compact) return 'Vui lòng nhập biển số xe.'
+  if (!compact) return 'Please enter a license plate.'
 
   const valid = vehicleType === MOTORBIKE
     ? /^\d{2}[A-Z]\d{1,2}\d{4,5}$/.test(compact)

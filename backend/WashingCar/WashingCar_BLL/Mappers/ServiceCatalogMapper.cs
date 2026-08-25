@@ -6,27 +6,45 @@ namespace WashingCar_BLL.Mappers;
 
 public static class ServiceCatalogMapper
 {
-    public static ServiceCatalogDto ToDto(this ServiceCatalogItem s) => new()
+    public static ServiceCatalogDto ToDto(
+        this ServiceCatalogItem s,
+        VehicleType? vehicleType = null,
+        Guid? engineCatalogId = null)
     {
-        ServiceCatalogItemId = s.ServiceCatalogItemId,
-        ServiceName = s.ServiceName,
-        Description = s.Description,
-        BasePrice = s.BasePrice,
-        DurationMinutes = s.DurationMinutes,
-        ServicePackageType = s.ServicePackageType,
-        ServicePackageTypeName = Enum.IsDefined(typeof(ServicePackageType), s.ServicePackageType)
-            ? ((ServicePackageType)s.ServicePackageType).ToString()
-            : "Unknown",
-        ServiceNodeType = s.ServiceNodeType,
-        ServiceNodeTypeName = Enum.IsDefined(typeof(ServiceNodeType), s.ServiceNodeType)
-            ? ((ServiceNodeType)s.ServiceNodeType).ToString()
-            : "Unknown",
-        ParentServiceCatalogItemId = s.ParentServiceCatalogItemId,
-        SelectionMode = s.SelectionMode,
-        IsBookable = s.ServiceNodeType == (byte)ServiceNodeType.Leaf,
-        IsActive = s.IsActive,
-        CreatedAtUtc = s.CreatedAtUtc,
-    };
+        var applicablePricing = vehicleType.HasValue
+            ? s.ServiceVehiclePricings
+                .Where(p => p.IsActive
+                    && p.VehicleType == vehicleType.Value
+                    && (p.EngineCatalogId == null || p.EngineCatalogId == engineCatalogId)
+                    && (p.EngineCatalogId == null || p.EngineCatalog?.IsActive == true))
+                .OrderBy(p => p.EngineCatalogId == engineCatalogId ? 0 : 1)
+                .FirstOrDefault()
+            : null;
+
+        return new ServiceCatalogDto
+        {
+            ServiceCatalogItemId = s.ServiceCatalogItemId,
+            ServiceName = s.ServiceName,
+            Description = s.Description,
+            BasePrice = s.BasePrice,
+            DurationMinutes = s.DurationMinutes,
+            ApplicablePrice = applicablePricing?.UnitPrice,
+            ApplicableDurationMinutes = applicablePricing?.DurationMinutes,
+            ServicePackageType = s.ServicePackageType,
+            ServicePackageTypeName = Enum.IsDefined(typeof(ServicePackageType), s.ServicePackageType)
+                ? ((ServicePackageType)s.ServicePackageType).ToString()
+                : "Unknown",
+            ServiceNodeType = s.ServiceNodeType,
+            ServiceNodeTypeName = Enum.IsDefined(typeof(ServiceNodeType), s.ServiceNodeType)
+                ? ((ServiceNodeType)s.ServiceNodeType).ToString()
+                : "Unknown",
+            ParentServiceCatalogItemId = s.ParentServiceCatalogItemId,
+            SelectionMode = s.SelectionMode,
+            IsBookable = s.ServiceNodeType == (byte)ServiceNodeType.Leaf,
+            IsActive = s.IsActive,
+            CreatedAtUtc = s.CreatedAtUtc,
+        };
+    }
 
     public static ServiceCatalogTreeDto ToTreeDto(this ServiceCatalogItem s) => new()
     {

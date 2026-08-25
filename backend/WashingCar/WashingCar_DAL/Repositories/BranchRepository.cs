@@ -3,6 +3,7 @@ using WashingCar_Common.Enum;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
+using WashingCar_Domain.DTOs.Common;
 
 namespace WashingCar_DAL.Repositories;
 
@@ -74,20 +75,42 @@ public class BranchRepository(WashingCarDbContext db) : IBranchRepository
     public async Task AddAsync(Branch branch, CancellationToken ct = default)
         => await _db.Branches.AddAsync(branch, ct);
 
-    public async Task<List<User>> GetStaffAsync(Guid branchId, CancellationToken ct = default)
-        => await _db.Users
+    public async Task<(List<User> Items, int TotalCount)> GetStaffAsync(
+        Guid branchId, PaginationQuery query, CancellationToken ct = default)
+    {
+        var staff = _db.Users
             .AsNoTracking()
-            .Where(u => u.BranchId == branchId && u.Role == UserRole.Staff && !u.IsDeleted)
+            .Where(u => u.BranchId == branchId && u.Role == UserRole.Staff && !u.IsDeleted);
+
+        var totalCount = await staff.CountAsync(ct);
+        var items = await staff
             .OrderBy(u => u.FullName)
+            .ThenBy(u => u.UserId)
+            .Skip(query.Skip)
+            .Take(query.PageSize)
             .ToListAsync(ct);
 
-    public async Task<List<BranchService>> GetServicesAsync(Guid branchId, CancellationToken ct = default)
-        => await _db.BranchServices
+        return (items, totalCount);
+    }
+
+    public async Task<(List<BranchService> Items, int TotalCount)> GetServicesAsync(
+        Guid branchId, PaginationQuery query, CancellationToken ct = default)
+    {
+        var services = _db.BranchServices
             .AsNoTracking()
-            .Where(bs => bs.BranchId == branchId)
+            .Where(bs => bs.BranchId == branchId);
+
+        var totalCount = await services.CountAsync(ct);
+        var items = await services
             .Include(bs => bs.ServiceCatalogItem)
             .OrderBy(bs => bs.ServiceCatalogItem.ServiceName)
+            .ThenBy(bs => bs.ServiceCatalogItemId)
+            .Skip(query.Skip)
+            .Take(query.PageSize)
             .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
 
     public async Task<BranchService?> GetBranchServiceAsync(Guid branchId, Guid serviceId, CancellationToken ct = default)
         => await _db.BranchServices

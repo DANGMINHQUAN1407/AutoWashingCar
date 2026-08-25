@@ -15,4 +15,6 @@ public class VehicleEngineCatalog
     public byte[] RowVersion { get; set; } = null!;
 
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<ServiceVehiclePricing> ServiceVehiclePricings { get; set; } = new List<ServiceVehiclePricing>();
 }

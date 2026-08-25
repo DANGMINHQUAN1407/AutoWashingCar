@@ -22,12 +22,14 @@ public class PaymentService(
     IPaymentRepository        paymentRepo,
     IBookingRepository        bookingRepo,
     IBookingService           bookingService,
+    IUserRepository           userRepo,
     IOptions<VnPaySettings>   vnPayOptions,
     IOptions<PaymentSettings> paymentOptions,
     ILogger<PaymentService>   logger) : IPaymentService
 {
     private readonly VnPaySettings   _vnpay   = vnPayOptions.Value;
     private readonly PaymentSettings _payment = paymentOptions.Value;
+    private readonly IUserRepository _userRepo = userRepo;
 
     // ─── Deposit / Full online (VNPay) ───────────────────────────────────────
 
@@ -52,8 +54,11 @@ public class PaymentService(
         if (booking.BookingStatus != BookingStatus.Pending)
             throw AppException.BadRequest(ValidationMessage.Payment.OnlyPayWhenPending);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var alreadyPaid = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         if (alreadyPaid > 0)
@@ -158,11 +163,16 @@ public class PaymentService(
         var booking = await bookingRepo.GetDetailAsync(request.BookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
+        await EnsurePrivilegedActorBookingScopeAsync(staffId, booking.BranchId, ct);
+
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCreateQrForClosed);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;
@@ -216,11 +226,16 @@ public class PaymentService(
         var booking = await bookingRepo.GetTrackedByIdAsync(request.BookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
+        await EnsurePrivilegedActorBookingScopeAsync(staffId, booking.BranchId, ct);
+
         if (booking.BookingStatus is BookingStatus.Closed or BookingStatus.Cancelled or BookingStatus.NoShow)
             throw AppException.BadRequest(ValidationMessage.Payment.CannotCollectForClosed);
 
-        if ((await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct)).Count > 0)
-            throw AppException.Conflict(ValidationMessage.Payment.PendingPaymentExists);
+        var pendingPayments = await paymentRepo.GetTrackedPendingPaymentsAsync(booking.BookingId, ct);
+        foreach (var p in pendingPayments)
+        {
+            p.PaymentStatus = PaymentStatus.Cancelled;
+        }
 
         var paid      = await paymentRepo.GetCompletedAmountAsync(booking.BookingId, ct);
         var remaining = booking.BookingFinalAmount - paid;
@@ -275,12 +290,24 @@ public class PaymentService(
 
     /// <remarks>Gọi: IPaymentRepository.GetDetailAsync.</remarks>
     public async Task<PaymentDto> GetByIdAsync(
-        Guid currentUserId, bool isPrivileged, Guid paymentId, CancellationToken ct = default)
+        Guid actorId, Guid paymentId, CancellationToken ct = default)
     {
+        var actor = await _userRepo.GetByIdAsync(actorId)
+            ?? throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenView);
+
         var payment = await paymentRepo.GetDetailAsync(paymentId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Payment.NotFound);
 
-        if (!isPrivileged && payment.Booking?.UserId != currentUserId)
+        var booking = payment.Booking
+            ?? throw AppException.NotFound(ValidationMessage.Payment.NotFound);
+
+        var canView = actor.Role == UserRole.Admin
+            || (actor.Role == UserRole.Customer && booking.UserId == actorId)
+            || (actor.Role is UserRole.Staff or UserRole.Manager
+                && actor.BranchId.HasValue
+                && actor.BranchId.Value == booking.BranchId);
+
+        if (!canView)
             throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenView);
 
         return payment.ToDto();
@@ -290,15 +317,26 @@ public class PaymentService(
     public async Task<PagedResult<PaymentListItemDto>> GetMyPaymentsAsync(
         Guid userId, PaymentQuery query, CancellationToken ct = default)
     {
-        var (items, total) = await paymentRepo.GetPagedAsync(query, userId, ct);
+        var (items, total) = await paymentRepo.GetPagedAsync(
+            query, userId, branchId: null, ct: ct);
         return ToPaged(items, total, query);
     }
 
-    /// <remarks>Gọi: IPaymentRepository.GetPagedAsync(ownerUserId: null).</remarks>
+    /// <remarks>Gọi: IPaymentRepository.GetPagedAsync với branchId của Staff/Manager hoặc null cho Admin.</remarks>
     public async Task<PagedResult<PaymentListItemDto>> GetPaymentsAsync(
-        PaymentQuery query, CancellationToken ct = default)
+        Guid actorId, PaymentQuery query, CancellationToken ct = default)
     {
-        var (items, total) = await paymentRepo.GetPagedAsync(query, null, ct);
+        var actor = await _userRepo.GetByIdAsync(actorId)
+            ?? throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenView);
+
+        if (actor.Role is not (UserRole.Admin or UserRole.Manager or UserRole.Staff))
+            throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenView);
+
+        var branchId = actor.Role == UserRole.Admin ? (Guid?)null : actor.BranchId;
+        if (actor.Role != UserRole.Admin && !branchId.HasValue)
+            throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenView);
+
+        var (items, total) = await paymentRepo.GetPagedAsync(query, null, branchId, ct);
         return ToPaged(items, total, query);
     }
 
@@ -387,6 +425,22 @@ public class PaymentService(
     {
         try { await bookingService.CloseAsync(bookingId, ct); }
         catch (AppException ex) { logger.LogWarning("Bỏ qua đóng booking {Id}: {Message}", bookingId, ex.Message); }
+    }
+
+    private async Task EnsurePrivilegedActorBookingScopeAsync(
+        Guid actorId, Guid bookingBranchId, CancellationToken ct)
+    {
+        var actor = await _userRepo.GetByIdAsync(actorId)
+            ?? throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenPay);
+
+        if (actor.Role == UserRole.Admin)
+            return;
+
+        if (actor.Role is not (UserRole.Staff or UserRole.Manager)
+            || actor.BranchId != bookingBranchId)
+        {
+            throw AppException.Forbidden(ValidationMessage.Payment.ForbiddenPay);
+        }
     }
 
     private async Task<string> GenerateUniqueTxnRefAsync(CancellationToken ct)

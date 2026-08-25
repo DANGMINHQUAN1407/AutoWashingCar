@@ -11,7 +11,7 @@
   flex-direction: column;
 }
 
-/* ─── Top Navigation (BMW M: 64px black bar) ─────────────── */
+/* ─── Top Navigation (Dark Navy — matches portal topbar) ─────────────── */
 .navbar {
   position: fixed;
   top: 0;
@@ -19,8 +19,8 @@
   right: 0;
   z-index: 100;
   height: var(--nav-h);
-  background: var(--color-bg-card); /* #1a1a1a */
-  border-bottom: 3px solid #0040a1; /* border-m-deep-blue */
+  background: #0f2942;
+  border-bottom: 3px solid #2563eb;
 }
 
 .navbar-inner {
@@ -52,15 +52,14 @@
 .navbar-logo-text {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
-  color: var(--color-heading);
-  letter-spacing: 0;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .navbar-logo-text span {
-  color: var(--color-heading);
-  /* BMW M: no gradient text — just white */
+  color: #60a5fa;
   background: none;
   -webkit-background-clip: unset;
   -webkit-text-fill-color: unset;
@@ -77,11 +76,11 @@
 
 .nav-link {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-  padding: 6px 12px;
-  border-radius: 0px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 6px 14px;
+  border-radius: 6px;
   text-decoration: none;
   transition: all 0.15s ease;
   position: relative;
@@ -89,35 +88,69 @@
 }
 
 .nav-link:hover {
-  color: #000000 !important;
-  background: #ffffff;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Active nav: white text + 2px M-red bottom underline */
+/* Active nav: white text + blue pill */
 .nav-link.active {
-  color: var(--color-heading) !important;
-  background: transparent;
+  color: #ffffff !important;
+  background: rgba(37, 99, 235, 0.35);
   border: none;
   font-weight: 700;
 }
 
 .nav-link.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  right: 12px;
-  height: 2px;
-  background: #e22718; /* M red active underline */
+  display: none;
 }
 
 /* Navbar Actions */
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-left: 16px;
   flex-shrink: 0;
+}
+
+.navbar-actions .btn {
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.5px !important;
+  height: 38px !important;
+  padding: 0 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.navbar-actions .btn-ghost {
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(4px);
+}
+
+.navbar-actions .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-actions .btn-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+}
+
+.navbar-actions .btn-primary:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5) !important;
+  transform: translateY(-1px);
 }
 
 /* Nav theme toggle */
@@ -151,7 +184,7 @@
   display: block;
   width: 22px;
   height: 2px;
-  background: var(--color-heading);
+  background: #ffffff;
   border-radius: 0;
   transition: all var(--t-fast) var(--ease);
 }
