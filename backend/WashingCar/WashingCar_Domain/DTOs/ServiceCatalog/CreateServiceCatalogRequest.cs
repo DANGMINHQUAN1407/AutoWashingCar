@@ -21,6 +21,10 @@ public class CreateServiceCatalogRequest
     [Range(1, 3)]
     public byte ServicePackageType { get; set; } = 1;
 
+    /// <summary>1=Motorbike (Xe máy), 2=Car (Xe hơi/Ô tô), 3=Truck (Xe tải), null=All/Universal.</summary>
+    [Range(1, 3)]
+    public byte? VehicleType { get; set; }
+
     /// <summary>1=Group, 2=Leaf. Defaults to Leaf for backward compatibility.</summary>
     [Range(1, 2)]
     public byte ServiceNodeType { get; set; } = 2;

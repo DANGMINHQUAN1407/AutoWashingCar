@@ -379,8 +379,9 @@ export async function getMyBranch(): Promise<Branch> {
 }
 
 
-export async function getBranchServices(branchId: string): Promise<BranchService[]> {
-  const res = await fetchWithAuth(`/api/branches/${branchId}/services`)
+export async function getBranchServices(branchId: string, params?: { pageSize?: number }): Promise<BranchService[]> {
+  const pageSize = params?.pageSize ?? 100
+  const res = await fetchWithAuth(`/api/branches/${branchId}/services?pageSize=${pageSize}`)
   const items = unwrapPagedItems<Record<string, unknown>>(res)
   return items.map(normalizeBranchService)
 }
@@ -639,6 +640,8 @@ export type ServiceCatalogItem = {
   applicablePrice?: number | null
   durationMinutes: number
   applicableDurationMinutes?: number | null
+  vehicleType?: number | null
+  vehicleTypeName?: string
   servicePackageType?: number
   servicePackageTypeName?: string
   serviceNodeType?: number
@@ -646,6 +649,12 @@ export type ServiceCatalogItem = {
 }
 
 export function normalizeServiceCatalogItem(s: any): ServiceCatalogItem {
+  const vType = s?.vehicleType ?? s?.VehicleType ?? null
+  const vTypeName = s?.vehicleTypeName ?? s?.VehicleTypeName ?? (
+    vType === 1 ? 'Xe máy' :
+    vType === 2 ? 'Ô tô' :
+    vType === 3 ? 'Xe tải' : 'Tất cả loại xe'
+  )
   return {
     serviceCatalogItemId: s?.serviceCatalogItemId ?? s?.ServiceCatalogItemId ?? s?.id ?? s?.Id ?? '',
     name: s?.name ?? s?.Name ?? s?.serviceName ?? s?.ServiceName ?? '',
@@ -655,6 +664,8 @@ export function normalizeServiceCatalogItem(s: any): ServiceCatalogItem {
     applicablePrice: s?.applicablePrice ?? s?.ApplicablePrice ?? null,
     durationMinutes: s?.durationMinutes ?? s?.DurationMinutes ?? 0,
     applicableDurationMinutes: s?.applicableDurationMinutes ?? s?.ApplicableDurationMinutes ?? null,
+    vehicleType: vType !== null && vType !== undefined ? Number(vType) : null,
+    vehicleTypeName: vTypeName,
     servicePackageType: s?.servicePackageType ?? s?.ServicePackageType ?? 1,
     servicePackageTypeName: s?.servicePackageTypeName ?? s?.ServicePackageTypeName ?? '',
     serviceNodeType: s?.serviceNodeType ?? s?.ServiceNodeType ?? 2,
@@ -711,6 +722,7 @@ export async function createServiceCatalog(data: {
   Description?: string
   BasePrice: number
   DurationMinutes: number
+  VehicleType?: number | null
 }): Promise<ServiceCatalogItem> {
   const payload = await fetchWithAuth('/api/service-catalog', {
     method: 'POST',
@@ -726,6 +738,7 @@ export async function updateServiceCatalog(id: string, data: {
   Description?: string
   BasePrice: number
   DurationMinutes: number
+  VehicleType?: number | null
 }): Promise<ServiceCatalogItem> {
   const payload = await fetchWithAuth(`/api/service-catalog/${id}`, {
     method: 'PUT',

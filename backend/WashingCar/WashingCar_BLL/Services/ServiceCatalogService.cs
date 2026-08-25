@@ -75,12 +75,18 @@ public class ServiceCatalogService : IServiceCatalogService
             request.DurationMinutes);
         await ValidateParentAsync(request.ParentServiceCatalogItemId, request.ServiceNodeType, null);
 
+        if (request.ServiceNodeType == (byte)ServiceNodeType.Leaf)
+        {
+            ValidateBasePriceByVehicleType(request.VehicleType, request.BasePrice, request.ServicePackageType);
+        }
+
         var item = new ServiceCatalogItem
         {
             ServiceName = request.ServiceName.Trim(),
             Description = request.Description,
             BasePrice = request.BasePrice,
             DurationMinutes = request.DurationMinutes,
+            VehicleType = request.VehicleType,
             ServicePackageType = request.ServicePackageType,
             ServiceNodeType = request.ServiceNodeType,
             ParentServiceCatalogItemId = request.ParentServiceCatalogItemId,
@@ -141,6 +147,13 @@ public class ServiceCatalogService : IServiceCatalogService
         ValidateNodeFields(nodeType, selectionMode, request.BasePrice, request.DurationMinutes);
         await ValidateParentAsync(parentId, nodeType, id);
 
+        var vehicleType = request.VehicleType.HasValue ? request.VehicleType : item.VehicleType;
+        var packageType = request.ServicePackageType ?? item.ServicePackageType;
+        if (nodeType == (byte)ServiceNodeType.Leaf)
+        {
+            ValidateBasePriceByVehicleType(vehicleType, request.BasePrice, packageType);
+        }
+
         if (item.ServiceNodeType == (byte)ServiceNodeType.Group
             && nodeType == (byte)ServiceNodeType.Leaf
             && await _repo.HasChildrenAsync(id))
@@ -152,6 +165,7 @@ public class ServiceCatalogService : IServiceCatalogService
         item.Description = request.Description;
         item.BasePrice = request.BasePrice;
         item.DurationMinutes = request.DurationMinutes;
+        item.VehicleType = vehicleType;
         item.ServicePackageType = request.ServicePackageType ?? item.ServicePackageType;
         item.ServiceNodeType = nodeType;
         item.ParentServiceCatalogItemId = parentId;
@@ -223,6 +237,59 @@ public class ServiceCatalogService : IServiceCatalogService
             throw AppException.BadRequest(ValidationMessage.ServiceCatalog.InvalidSelectionMode);
         if (basePrice <= 0 || durationMinutes <= 0)
             throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupCannotBeBooked);
+    }
+
+    private static void ValidateBasePriceByVehicleType(byte? vehicleType, decimal basePrice, byte? packageType = null)
+    {
+        if (basePrice <= 0)
+            throw AppException.BadRequest("Giá niêm yết phải lớn hơn 0đ.");
+
+        if (packageType == (byte)ServicePackageType.AddOn)
+        {
+            switch (vehicleType)
+            {
+                case (byte)VehicleType.Motorbike:
+                    if (basePrice < 10_000 || basePrice > 60_000)
+                        throw AppException.BadRequest("Giá dịch vụ con cho Xe máy phải từ 10.000đ đến 60.000đ.");
+                    break;
+                case (byte)VehicleType.Car:
+                    if (basePrice < 30_000 || basePrice > 120_000)
+                        throw AppException.BadRequest("Giá dịch vụ con cho Xe hơi / Ô tô phải từ 30.000đ đến 120.000đ.");
+                    break;
+                case (byte)VehicleType.Truck:
+                    if (basePrice < 50_000 || basePrice > 200_000)
+                        throw AppException.BadRequest("Giá dịch vụ con cho Xe tải phải từ 50.000đ đến 200.000đ.");
+                    break;
+                default:
+                    if (basePrice < 10_000 || basePrice > 200_000)
+                        throw AppException.BadRequest("Giá dịch vụ con phải từ 10.000đ đến 200.000đ.");
+                    break;
+            }
+            return;
+        }
+
+        switch (vehicleType)
+        {
+            case (byte)VehicleType.Motorbike: // 1 - Xe máy
+                if (basePrice < 30_000 || basePrice > 100_000)
+                    throw AppException.BadRequest("Giá dịch vụ cho Xe máy phải nằm trong khoảng từ 30.000đ đến 100.000đ.");
+                break;
+
+            case (byte)VehicleType.Car: // 2 - Ô tô / Xe hơi
+                if (basePrice < 100_000 || basePrice > 300_000)
+                    throw AppException.BadRequest("Giá dịch vụ cho Xe hơi / Ô tô phải nằm trong khoảng từ 100.000đ đến 300.000đ.");
+                break;
+
+            case (byte)VehicleType.Truck: // 3 - Xe tải
+                if (basePrice < 300_000 || basePrice > 500_000)
+                    throw AppException.BadRequest("Giá dịch vụ cho Xe tải phải nằm trong khoảng từ 300.000đ đến 500.000đ.");
+                break;
+
+            default: // null / Chưa chọn loại xe
+                if (basePrice < 10_000 || basePrice > 500_000)
+                    throw AppException.BadRequest("Vui lòng chọn loại xe phù hợp (Xe máy: 30.000đ - 100.000đ, Xe hơi: 100.000đ - 300.000đ, Xe tải: 300.000đ - 500.000đ).");
+                break;
+        }
     }
 
     private static bool IsLeaf(ServiceCatalogItem item)

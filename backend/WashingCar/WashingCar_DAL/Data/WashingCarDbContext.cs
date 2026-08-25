@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -463,6 +463,9 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.ServicePackageType)
                 .HasColumnType("tinyint")
                 .HasDefaultValue((byte)ServicePackageType.Standard);
+            entity.Property(e => e.VehicleType)
+                .HasColumnType("tinyint")
+                .IsRequired(false);
             entity.Property(e => e.ServiceNodeType)
                 .HasColumnType("tinyint")
                 .HasDefaultValue((byte)ServiceNodeType.Leaf);

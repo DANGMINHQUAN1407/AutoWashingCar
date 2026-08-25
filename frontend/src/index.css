@@ -610,9 +610,15 @@ input.error {
 /* ─── Input wrapper (for password toggle etc.) ──────────── */
 .input-wrapper {
   position: relative;
+  width: 100%;
+  display: block;
 }
 
-.input-wrapper .form-input {
+.input-wrapper .form-input,
+.input-wrapper input[type="password"],
+.input-wrapper input[type="text"] {
+  width: 100% !important;
+  box-sizing: border-box;
   padding-right: 44px;
 }
 

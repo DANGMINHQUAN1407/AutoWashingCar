@@ -11,6 +11,8 @@ public class ServiceCatalogDto
     /// <summary>Giá/thời lượng đã resolve theo query VehicleType + EngineCatalogId.</summary>
     public decimal? ApplicablePrice { get; set; }
     public short? ApplicableDurationMinutes { get; set; }
+    public byte?   VehicleType          { get; set; }
+    public string? VehicleTypeName      { get; set; }
     public byte    ServicePackageType   { get; set; }
     public string  ServicePackageTypeName { get; set; } = null!;
     public byte    ServiceNodeType      { get; set; }

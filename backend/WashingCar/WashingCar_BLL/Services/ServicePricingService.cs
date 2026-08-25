@@ -32,9 +32,23 @@ public class ServicePricingService(
             engineCatalogId,
             ct);
 
-        return pricing is null
-            ? null
-            : ToResolution(pricing);
+        if (pricing is not null)
+            return ToResolution(pricing);
+
+        var service = await serviceCatalogRepo.GetByIdAsync(serviceCatalogItemId);
+        if (service is not null && service.IsActive && (service.VehicleType == vehicleType || service.VehicleType == null))
+        {
+            return new ServicePricingResolution
+            {
+                ServiceCatalogItemId = service.ServiceCatalogItemId,
+                VehicleType = (VehicleType)vehicleType,
+                UnitPrice = service.BasePrice,
+                DurationMinutes = (short)service.DurationMinutes,
+                IsEngineSpecific = false
+            };
+        }
+
+        return null;
     }
 
     public async Task<IReadOnlyList<ServicePricingDto>> GetForServiceAsync(

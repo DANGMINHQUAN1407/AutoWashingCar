@@ -19,8 +19,8 @@ export default function ConfirmModal({
   isOpen,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText = 'Xác nhận',
+  cancelText = 'Hủy bỏ',
   variant = 'danger',
   isLoading = false,
   onConfirm,
@@ -127,7 +127,7 @@ export default function ConfirmModal({
             disabled={isLoading}
             showArrow={false}
           >
-            {isLoading ? 'Processing...' : confirmText}
+            {isLoading ? 'Đang xử lý...' : confirmText}
           </AnimatedButton>
         </div>
       </div>

@@ -322,6 +322,25 @@
   gap: 20px;
 }
 
+.auth-form .form-group {
+  width: 100%;
+}
+
+.auth-form .form-input,
+.auth-form .input-wrapper,
+.auth-form .input-wrapper .form-input {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.auth-form .form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
 /* Form slide animations */
 @keyframes slideInLeft {
   from { opacity: 0; transform: translateX(-12px); }
