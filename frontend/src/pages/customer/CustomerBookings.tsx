@@ -156,6 +156,11 @@ export default function CustomerBookings() {
   const [selectedDate, setSelectedDate] = useState<string>(() => getCached('selectedDate', getLocalDateString()));
   const [selectedSlotId, setSelectedSlotId] = useState<string>(() => getCached('selectedSlotId', ''));
 
+  // Service filtering & pagination in Wizard Step 3
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [addonPage, setAddonPage] = useState(1);
+  const ADDON_PAGE_SIZE = 6;
+
   // Dynamic pricing & booking output
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
@@ -372,6 +377,16 @@ export default function CustomerBookings() {
       setEngineCatalogs(engineRes.items || []);
       setBodyStyleCatalogs(bodyStyleRes.items || []);
 
+      // Auto select first branch if available and no valid cached branch is selected
+      if (branchRes?.items && branchRes.items.length > 0) {
+        const cachedBranch = sessionStorage.getItem('booking_wizard_selectedBranchId');
+        const parsedBranch = cachedBranch ? JSON.parse(cachedBranch) : '';
+        const existsBranch = branchRes.items.some((b: any) => b.branchId === parsedBranch);
+        if (!parsedBranch || !existsBranch) {
+          setSelectedBranchId(branchRes.items[0].branchId);
+        }
+      }
+
       // Auto select first vehicle if available and no valid cached vehicle is selected
       if (vehicleRes && vehicleRes.length > 0) {
         const firstId = vehicleRes[0].VehicleId || vehicleRes[0].vehicleId;
@@ -384,7 +399,7 @@ export default function CustomerBookings() {
       }
       return branchRes.items || [];
     } catch (err) {
-      setErrorMsg(extractErrorMessage(err, 'Failed to load branch or vehicle information.'));
+      console.error('Failed to load branch or vehicle information:', err);
       return [];
     } finally {
       setBranchesLoading(false);
@@ -423,6 +438,7 @@ export default function CustomerBookings() {
     setRedeemPoints(0);
     setCustomRedeemInput('');
     setRedeemError(null);
+    setErrorMsg(null);
     initWizardData();
   };
 
@@ -449,6 +465,7 @@ export default function CustomerBookings() {
       setRedeemPoints(0);
       setCustomRedeemInput('');
       setRedeemError(null);
+      setErrorMsg(null);
       initWizardData().then(async fetchedBranches => {
         if (queryBranchId) {
           setSelectedBranchId(queryBranchId);
@@ -468,7 +485,7 @@ export default function CustomerBookings() {
     }
   }, []);
 
-  // Load branch services when branch changes
+  // Load branch services when branch or vehicle changes
   useEffect(() => {
     if (!selectedBranchId) {
       setServices([]);
@@ -476,29 +493,49 @@ export default function CustomerBookings() {
     }
     const fetchServices = async () => {
       try {
-        const items = await api.getBranchServices(selectedBranchId);
-        const activeServices = items.filter(s => s.isActive) || [];
-        setServices(activeServices);
+        const currentVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+        const vType = currentVeh ? (currentVeh.VehicleType ?? currentVeh.vehicleType) : undefined;
+        const eCatId = currentVeh ? (currentVeh.EngineCatalogId ?? currentVeh.engineCatalogId ?? undefined) : undefined;
 
-        // Preselect service from query parameters if available
-        const params = new URLSearchParams(window.location.search);
-        const preselectedServiceId = params.get('serviceId');
-        if (preselectedServiceId) {
-          const hasService = activeServices.some(s => s.serviceId === preselectedServiceId);
-          if (hasService) {
-            setSelectedServiceIds([preselectedServiceId]);
-          } else {
-            setSelectedServiceIds([]);
-          }
+        // Fetch catalog tailored to branch and vehicle type + engine pricing
+        const catalogRes = await api.getServiceCatalog({
+          branchId: selectedBranchId,
+          vehicleType: vType,
+          engineCatalogId: eCatId,
+          isActive: true,
+          pageSize: 100,
+        });
+
+        if (catalogRes?.items && catalogRes.items.length > 0) {
+          const mappedServices: BranchService[] = catalogRes.items.map(item => ({
+            branchServiceId: item.serviceCatalogItemId || '',
+            branchId: selectedBranchId,
+            serviceId: item.serviceCatalogItemId || '',
+            serviceName: item.serviceName || item.name || '',
+            description: item.description || '',
+            basePrice: (item.applicablePrice != null ? item.applicablePrice : item.basePrice) || 0,
+            durationMinutes: (item.applicableDurationMinutes != null ? item.applicableDurationMinutes : item.durationMinutes) || 0,
+            servicePackageType: item.servicePackageType || 1,
+            isActive: item.isActive ?? true,
+          }));
+          setServices(mappedServices);
+
+          // Keep previously selected services if still available
+          setSelectedServiceIds(prev => prev.filter(id => mappedServices.some(s => s.serviceId === id)));
         } else {
-          setSelectedServiceIds([]);
+          // Fallback to getBranchServices if needed
+          const items = await api.getBranchServices(selectedBranchId);
+          const activeServices = items.filter(s => s.isActive) || [];
+          setServices(activeServices);
+          setSelectedServiceIds(prev => prev.filter(id => activeServices.some(s => s.serviceId === id)));
         }
       } catch (err) {
-        setErrorMsg(extractErrorMessage(err, 'Failed to load branch services.'));
+        console.error('Failed to load branch services:', err);
+        setServices([]);
       }
     };
     fetchServices();
-  }, [selectedBranchId]);
+  }, [selectedBranchId, selectedVehicleId, vehicles]);
 
   // Load slots when branch or date changes
   useEffect(() => {
@@ -571,6 +608,7 @@ export default function CustomerBookings() {
       try {
         const payload: any = {
           SlotInventoryId: selectedSlotId,
+          VehicleId: selectedVehicleId || undefined,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
           RedeemMode: redeemMode,
           RedeemPoints: redeemPoints,
@@ -593,6 +631,7 @@ export default function CustomerBookings() {
   }, [
     wizardStep,
     selectedSlotId,
+    selectedVehicleId,
     selectedServiceIds,
     selectedUserVoucherId,
     selectedVoucherCode,
@@ -861,6 +900,7 @@ export default function CustomerBookings() {
     try {
       const testQuote = await api.getBookingQuote({
         SlotInventoryId: selectedSlotId,
+        VehicleId: selectedVehicleId || undefined,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         VoucherCode: code,
         RedeemMode: redeemMode,
@@ -1534,17 +1574,127 @@ export default function CustomerBookings() {
           {wizardStep === 3 && (
             <div>
               <h3>Step 3: Services & Appointment Time</h3>
-              <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+              <p style={{ color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 Please select the services you need and choose an available time slot.
               </p>
+
+              {/* Vehicle & Pricing Info Banner */}
+              {(() => {
+                const currentVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+                const currentPlate = currentVeh?.LicensePlate || currentVeh?.licensePlate || '';
+                const currentBrand = currentVeh?.BrandCatalogName || currentVeh?.brandCatalogName || currentVeh?.Brand || currentVeh?.brand || '';
+                const currentType = currentVeh?.VehicleType ?? currentVeh?.vehicleType ?? 2;
+                const currentImg = currentVeh?.PrimaryImageUrl || currentVeh?.primaryImageUrl || '';
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--color-surface-alt, rgba(255,255,255,0.04))',
+                      border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                      borderRadius: '12px',
+                      padding: '12px 18px',
+                      marginBottom: '22px',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      {currentImg ? (
+                        <img
+                          src={currentImg}
+                          alt={currentPlate}
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.6rem',
+                            border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {currentType === 1 ? '🏍️' : currentType === 3 ? '🚚' : '🚗'}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'var(--color-heading)', fontSize: '0.95rem' }}>
+                          Bảng giá áp dụng cho: {getVehicleLabel(currentType)} {currentPlate ? `[${currentPlate}]` : ''}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                          {currentBrand ? `${currentBrand} · ` : ''}Đơn giá và thời lượng dịch vụ đã tự động tối ưu hóa cho loại phương tiện này.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setWizardStep(2)}
+                      style={{ fontSize: '0.82rem', padding: '6px 12px' }}
+                    >
+                      🔄 Đổi xe khác
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* Service Search Bar */}
+              <div style={{ marginBottom: '18px' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="🔍 Tìm kiếm nhanh dịch vụ (ví dụ: rửa bọt tuyết, tẩy ố, dưỡng bóng, xông tinh dầu...)"
+                  value={serviceSearchQuery}
+                  onChange={e => {
+                    setServiceSearchQuery(e.target.value);
+                    setAddonPage(1);
+                  }}
+                  style={{ width: '100%', fontSize: '0.9rem', padding: '10px 14px' }}
+                />
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
                 {/* Services list (Left) */}
                 <div>
                   {(() => {
-                    const mainPackages = services.filter(s => (s.servicePackageType ?? 1) !== 2);
-                    const addOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
-                    const selectedMain = mainPackages.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const query = serviceSearchQuery.trim().toLowerCase();
+                    const allMain = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const allAddOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+
+                    const mainPackages = allMain.filter(s =>
+                      !query ||
+                      s.serviceName.toLowerCase().includes(query) ||
+                      (s.description && s.description.toLowerCase().includes(query))
+                    );
+
+                    const filteredAddOns = allAddOns.filter(s =>
+                      !query ||
+                      s.serviceName.toLowerCase().includes(query) ||
+                      (s.description && s.description.toLowerCase().includes(query))
+                    );
+
+                    const totalAddonPages = Math.max(1, Math.ceil(filteredAddOns.length / ADDON_PAGE_SIZE));
+                    const paginatedAddOns = filteredAddOns.slice(
+                      (addonPage - 1) * ADDON_PAGE_SIZE,
+                      addonPage * ADDON_PAGE_SIZE
+                    );
+
+                    const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
                     const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
                     const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
                     const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
@@ -1555,7 +1705,7 @@ export default function CustomerBookings() {
                         // Premium loai tru moi add-on; Standard giu lai add-on dang chon
                         const keptAddOns = (svc.servicePackageType ?? 1) === 3
                           ? []
-                          : prev.filter(id => addOns.some(a => a.serviceId === id));
+                          : prev.filter(id => allAddOns.some(a => a.serviceId === id));
                         return [svc.serviceId, ...keptAddOns];
                       });
                     };
@@ -1571,18 +1721,14 @@ export default function CustomerBookings() {
 
                     return (
                       <>
-                        <h4
-                          style={{
-                            borderBottom: '1px solid var(--color-border-dim)',
-                            paddingBottom: '8px',
-                            marginBottom: '12px',
-                          }}
-                        >
-                          Gói Dịch Vụ Chính
-                        </h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px' }}>
+                          <h4 style={{ margin: 0 }}>Gói Dịch Vụ Chính</h4>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>({mainPackages.length} gói)</span>
+                        </div>
+
                         {mainPackages.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Chi nhánh này chưa có gói dịch vụ chính nào.
+                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào.'}
                           </p>
                         ) : (
                           <div className="wizard-service-list">
@@ -1605,6 +1751,11 @@ export default function CustomerBookings() {
                                       )}
                                     </h5>
                                     <p>⏱️ Thời gian: {s.durationMinutes} phút</p>
+                                    {s.description && (
+                                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                        {s.description}
+                                      </p>
+                                    )}
                                   </div>
                                   <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
                                 </div>
@@ -1613,48 +1764,60 @@ export default function CustomerBookings() {
                           </div>
                         )}
 
-                        <h4
-                          style={{
-                            borderBottom: '1px solid var(--color-border-dim)',
-                            paddingBottom: '8px',
-                            margin: '24px 0 12px',
-                          }}
-                        >
-                          Dịch Vụ Bổ Sung
-                        </h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px' }}>
+                          <h4 style={{ margin: 0 }}>Dịch Vụ Bổ Sung (Add-ons)</h4>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>({filteredAddOns.length} dịch vụ)</span>
+                        </div>
+
                         {isPremiumSelected ? (
                           <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
                             Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
                           </div>
-                        ) : addOns.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Chi nhánh này chưa có dịch vụ bổ sung nào.
+                        ) : filteredAddOns.length === 0 ? (
+                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            {query ? 'Không tìm thấy dịch vụ bổ sung phù hợp từ khóa.' : 'Chi nhánh này chưa có dịch vụ bổ sung nào.'}
                           </p>
                         ) : (
-                          <div className="wizard-service-list">
-                            {addOns.map(s => {
-                              const isSelected = selectedServiceIds.includes(s.serviceId);
-                              return (
-                                <div
-                                  key={s.serviceId}
-                                  className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
-                                  style={!selectedMain ? { opacity: 0.55 } : undefined}
-                                  onClick={() => selectedMain && toggleAddOn(s)}
-                                >
-                                  <div className="wizard-service-checkbox" />
-                                  <div className="wizard-service-info">
-                                    <h5>{s.serviceName}</h5>
-                                    <p>⏱️ +{s.durationMinutes} phút</p>
+                          <>
+                            <div className="wizard-service-list">
+                              {paginatedAddOns.map(s => {
+                                const isSelected = selectedServiceIds.includes(s.serviceId);
+                                return (
+                                  <div
+                                    key={s.serviceId}
+                                    className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
+                                    style={!selectedMain ? { opacity: 0.55 } : undefined}
+                                    onClick={() => selectedMain && toggleAddOn(s)}
+                                  >
+                                    <div className="wizard-service-checkbox" />
+                                    <div className="wizard-service-info">
+                                      <h5>{s.serviceName}</h5>
+                                      <p>⏱️ +{s.durationMinutes} phút</p>
+                                    </div>
+                                    <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
                                   </div>
-                                  <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Add-ons Pagination */}
+                            {filteredAddOns.length > ADDON_PAGE_SIZE && (
+                              <div style={{ marginTop: '16px' }}>
+                                <Pagination
+                                  currentPage={addonPage}
+                                  totalPages={totalAddonPages}
+                                  totalCount={filteredAddOns.length}
+                                  itemName="dịch vụ bổ sung"
+                                  onPageChange={setAddonPage}
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
-                        {!selectedMain && addOns.length > 0 && !isPremiumSelected && (
+
+                        {!selectedMain && allAddOns.length > 0 && !isPremiumSelected && (
                           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
-                            Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
+                            💡 Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
                           </p>
                         )}
 
@@ -1888,19 +2051,36 @@ export default function CustomerBookings() {
                           fontSize: '0.8rem',
                           textTransform: 'uppercase',
                           color: 'var(--color-text-muted)',
-                          marginBottom: '2px',
+                          marginBottom: '4px',
                         }}
                       >
                         Vehicle
                       </p>
-                      <p style={{ fontWeight: 600 }}>
-                        🚘{' '}
-                        {vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId)
-                          ?.LicensePlate ||
-                          vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId)
-                            ?.licensePlate ||
-                          'Selected Vehicle'}
-                      </p>
+                      {(() => {
+                        const curVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+                        const curImg = curVeh?.PrimaryImageUrl || curVeh?.primaryImageUrl || '';
+                        const curPlate = curVeh?.LicensePlate || curVeh?.licensePlate || 'Selected Vehicle';
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {curImg ? (
+                              <img
+                                src={curImg}
+                                alt={curPlate}
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  objectFit: 'cover',
+                                  border: '1px solid var(--color-border-dim)',
+                                }}
+                              />
+                            ) : (
+                              <span>🚘</span>
+                            )}
+                            <span style={{ fontWeight: 600 }}>{curPlate}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
