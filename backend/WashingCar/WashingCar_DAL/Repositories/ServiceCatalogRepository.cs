@@ -43,12 +43,16 @@ public class ServiceCatalogRepository(WashingCarDbContext db) : IServiceCatalogR
             var vehicleType = (byte)query.VehicleType.Value;
             q = q.Where(x =>
                 x.ServiceNodeType == (byte)ServiceNodeType.Leaf
-                && x.ServiceVehiclePricings.Any(p =>
-                    p.IsActive
-                    && (byte)p.VehicleType == vehicleType
-                    && (query.EngineCatalogId == null
-                        || p.EngineCatalogId == null
-                        || (p.EngineCatalogId == query.EngineCatalogId && p.EngineCatalog!.IsActive))));
+                && (
+                    x.VehicleType == vehicleType 
+                    || x.VehicleType == null
+                    || x.ServiceVehiclePricings.Any(p =>
+                        p.IsActive
+                        && (byte)p.VehicleType == vehicleType
+                        && (query.EngineCatalogId == null
+                            || p.EngineCatalogId == null
+                            || (p.EngineCatalogId == query.EngineCatalogId && p.EngineCatalog!.IsActive)))
+                ));
         }
 
         var totalCount = await q.CountAsync();

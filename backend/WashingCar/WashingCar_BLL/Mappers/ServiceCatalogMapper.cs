@@ -6,6 +6,14 @@ namespace WashingCar_BLL.Mappers;
 
 public static class ServiceCatalogMapper
 {
+    public static string GetVehicleTypeName(byte? vehicleType) => vehicleType switch
+    {
+        1 => "Xe máy",
+        2 => "Ô tô",
+        3 => "Xe tải",
+        _ => "Tất cả loại xe"
+    };
+
     public static ServiceCatalogDto ToDto(
         this ServiceCatalogItem s,
         VehicleType? vehicleType = null,
@@ -27,9 +35,10 @@ public static class ServiceCatalogMapper
             ServiceName = s.ServiceName,
             Description = s.Description,
             BasePrice = s.BasePrice,
-            DurationMinutes = s.DurationMinutes,
-            ApplicablePrice = applicablePricing?.UnitPrice,
-            ApplicableDurationMinutes = applicablePricing?.DurationMinutes,
+            ApplicablePrice = s.VehicleType.HasValue ? s.BasePrice : (applicablePricing?.UnitPrice ?? s.BasePrice),
+            ApplicableDurationMinutes = s.VehicleType.HasValue ? s.DurationMinutes : (applicablePricing?.DurationMinutes ?? s.DurationMinutes),
+            VehicleType = s.VehicleType,
+            VehicleTypeName = GetVehicleTypeName(s.VehicleType),
             ServicePackageType = s.ServicePackageType,
             ServicePackageTypeName = Enum.IsDefined(typeof(ServicePackageType), s.ServicePackageType)
                 ? ((ServicePackageType)s.ServicePackageType).ToString()
@@ -53,6 +62,8 @@ public static class ServiceCatalogMapper
         Description = s.Description,
         BasePrice = s.BasePrice,
         DurationMinutes = s.DurationMinutes,
+        VehicleType = s.VehicleType,
+        VehicleTypeName = GetVehicleTypeName(s.VehicleType),
         ServicePackageType = s.ServicePackageType,
         ServicePackageTypeName = Enum.IsDefined(typeof(ServicePackageType), s.ServicePackageType)
             ? ((ServicePackageType)s.ServicePackageType).ToString()

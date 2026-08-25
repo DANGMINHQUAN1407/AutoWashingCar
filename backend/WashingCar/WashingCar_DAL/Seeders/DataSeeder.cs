@@ -316,33 +316,10 @@ public static class DataSeeder
             .Where(s => s.IsActive && s.ServiceNodeType == (byte)ServiceNodeType.Leaf)
             .ToListAsync();
 
-        var engines = (await db.VehicleEngineCatalogs
-            .Where(e => e.IsActive)
-            .ToListAsync())
-            .ToDictionary(e => e.Code, StringComparer.OrdinalIgnoreCase);
-
         foreach (var service in services)
         {
-            // BasePrice cũ được xem là giá chuẩn cho ô tô trong lần backfill đầu tiên.
-            await EnsurePricingRuleAsync(db, service, VehicleType.Motorbike, null,
-                ScalePrice(service.BasePrice, 0.60m), ScaleDuration(service.DurationMinutes, 0.75m));
-            await EnsurePricingRuleAsync(db, service, VehicleType.Car, null,
-                service.BasePrice, service.DurationMinutes);
-            await EnsurePricingRuleAsync(db, service, VehicleType.Truck, null,
-                ScalePrice(service.BasePrice, 1.50m), ScaleDuration(service.DurationMinutes, 1.50m));
-
-            // Engine override minh bạch cho ô tô điện/hybrid; các engine khác fallback về giá mặc định của loại xe.
-            if (engines.TryGetValue("ELECTRIC", out var electric))
-            {
-                await EnsurePricingRuleAsync(db, service, VehicleType.Car, electric.VehicleEngineCatalogId,
-                    ScalePrice(service.BasePrice, 1.10m), ScaleDuration(service.DurationMinutes, 1.10m));
-            }
-
-            if (engines.TryGetValue("HYBRID", out var hybrid))
-            {
-                await EnsurePricingRuleAsync(db, service, VehicleType.Car, hybrid.VehicleEngineCatalogId,
-                    ScalePrice(service.BasePrice, 1.05m), ScaleDuration(service.DurationMinutes, 1.05m));
-            }
+            var targetVehicleType = service.VehicleType.HasValue ? (VehicleType)service.VehicleType.Value : VehicleType.Car;
+            await EnsurePricingRuleAsync(db, service, targetVehicleType, null, service.BasePrice, service.DurationMinutes);
         }
 
         await db.SaveChangesAsync();
