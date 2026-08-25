@@ -16,6 +16,8 @@ public class DashboardStatsDto
     public int TotalServices { get; set; }
     public int ActiveServices { get; set; }
     public int ActiveOrders { get; set; }
+    public int PendingOrders { get; set; }
+    public int CancelledOrders { get; set; }
     public List<int> RevenueWeeks { get; set; } = new();
     public List<decimal> RevenueWeeklyAmounts { get; set; } = new();
     public decimal CurrentMonthRevenue { get; set; }
@@ -29,9 +31,8 @@ public class DashboardStatsDto
     public int VouchersUsed { get; set; }
     public int PointsRedeemed { get; set; }
 
-    // Channel breakdown & conversion
-    public int OnlinePct { get; set; } = 55;
-    public int WalkInPct { get; set; } = 30;
-    public int VipPct { get; set; } = 15;
-    public int ConversionRate { get; set; } = 70;
+    // Channel breakdown & conversion — tính toán thực tế từ DB
+    public int OnlinePct { get; set; }
+    public int WalkInPct { get; set; }
+    public int ConversionRate { get; set; }
 }

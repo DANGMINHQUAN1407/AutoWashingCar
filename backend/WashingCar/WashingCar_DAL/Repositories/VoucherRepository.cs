@@ -147,11 +147,14 @@ public class VoucherRepository(WashingCarDbContext db) : IVoucherRepository
         {
             if (query.VoucherStatus.Value == 1) // Chưa sử dụng (Active / Unused)
             {
-                q = q.Where(uv => uv.VoucherStatus == 1 && uv.ExpiredAtUtc > now);
+                q = q.Where(uv => uv.VoucherStatus == 1 
+                                  && (uv.ExpiredAtUtc == null || uv.ExpiredAtUtc > now) 
+                                  && uv.Voucher.EndUtc > now);
             }
             else if (query.VoucherStatus.Value == 3) // Đã hết hạn (Expired)
             {
-                q = q.Where(uv => uv.VoucherStatus == 3 || (uv.VoucherStatus == 1 && uv.ExpiredAtUtc <= now));
+                q = q.Where(uv => uv.VoucherStatus == 3 
+                                  || (uv.VoucherStatus == 1 && ((uv.ExpiredAtUtc != null && uv.ExpiredAtUtc <= now) || uv.Voucher.EndUtc <= now)));
             }
             else
             {

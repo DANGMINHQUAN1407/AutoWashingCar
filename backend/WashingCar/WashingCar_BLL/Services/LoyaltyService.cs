@@ -403,7 +403,7 @@ public class LoyaltyService : ILoyaltyService
             LoyaltyAccountId = account.LoyaltyAccountId,
             UserId = userId,
             BookingId = bookingId,
-            EntryType = LoyaltyEntryType.Expire,
+            EntryType = LoyaltyEntryType.Adjust,
             Points = points,
             BalanceAfter = account.CurrentPoints,
             Description = $"Hoàn {points} điểm: {reason}",

@@ -1533,6 +1533,7 @@ public class BookingService(
             throw AppException.BadRequest(ValidationMessage.Booking.MustChooseOrCreateVehicle);
 
         var plate = LicensePlatePolicy.Normalize(request.NewVehicle.LicensePlate, request.NewVehicle.VehicleType);
+        LicensePlatePolicy.ValidateManufactureYear(plate, request.NewVehicle.ManufactureYear);
         if (await vehicleRepo.ExistsLicensePlateAsync(plate))
             throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
 
