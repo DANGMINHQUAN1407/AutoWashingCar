@@ -261,16 +261,10 @@ public class BookingService(
         {
             await bookingRepo.SaveChangesAsync(ct);
 
-            // Redeem trong cùng transaction với booking để expiry không chạy giữa hai side effect.
+            // Redeem trong cùng transaction với booking. Nếu trừ điểm thất bại,
+            // transaction phải rollback cả booking/slot/voucher thay vì commit booking không đủ dữ liệu loyalty.
             if (redeemPoints > 0)
-            {
-                try { await loyaltyService.RedeemForBookingAsync(userId, redeemPoints, booking.BookingId, ct); }
-                catch (Exception ex)
-                {
-                    booking.RedeemedPoints = 0;
-                    logger.LogWarning(ex, "Trừ điểm loyalty cho booking {Code} thất bại", code);
-                }
-            }
+                await loyaltyService.RedeemForBookingAsync(userId, redeemPoints, booking.BookingId, ct);
 
             await transaction.CommitAsync(ct);
         }
@@ -427,16 +421,10 @@ public class BookingService(
         {
             await bookingRepo.SaveChangesAsync(ct);
 
-            // Redeem trong cùng transaction với booking để expiry không chạy giữa hai side effect.
+            // Redeem trong cùng transaction với booking. Nếu trừ điểm thất bại,
+            // transaction phải rollback cả booking/slot/voucher thay vì commit booking không đủ dữ liệu loyalty.
             if (redeemPoints > 0)
-            {
-                try { await loyaltyService.RedeemForBookingAsync(customer.UserId, redeemPoints, booking.BookingId, ct); }
-                catch (Exception ex)
-                {
-                    booking.RedeemedPoints = 0;
-                    logger.LogWarning(ex, "Trừ điểm loyalty cho walk-in booking {Code} thất bại", code);
-                }
-            }
+                await loyaltyService.RedeemForBookingAsync(customer.UserId, redeemPoints, booking.BookingId, ct);
 
             await transaction.CommitAsync(ct);
         }
@@ -795,27 +783,24 @@ public class BookingService(
     /// </remarks>
     public async Task<BookingDto> CloseAsync(Guid bookingId, CancellationToken ct = default)
     {
+        await using var transaction = await bookingRepo.BeginTransactionAsync(ct);
+        await bookingRepo.AcquireBookingLockAsync(bookingId, ct);
+
         var booking = await bookingRepo.GetTrackedByIdAsync(bookingId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Booking.NotFound);
 
         if (booking.BookingStatus != BookingStatus.Completed)
             throw AppException.BadRequest(ValidationMessage.Booking.OnlyCloseWhenCompleted);
 
-        // Tích điểm loyalty (best-effort): không chặn việc đóng đơn nếu loyalty lỗi
-        // Bonus +30% điểm nếu khách thanh toán 100% giá trị đơn trong 1 lần (PaymentType.FullPayment), không qua cọc
-        try
-        {
-            var isFullPayment = await paymentRepo.HasCompletedFullPaymentAsync(booking.BookingId, ct);
-            booking.EarnedPoints = await loyaltyService.EarnFromBookingAsync(
-                booking.UserId, booking.BookingFinalAmount, booking.BookingId, isFullPayment, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Tích điểm loyalty cho booking {Code} thất bại", booking.BookingCode);
-        }
+        // Tích điểm và đóng booking trong cùng transaction. Nếu loyalty lỗi,
+        // không được commit booking Closed nhưng thiếu ledger/điểm thưởng.
+        var isFullPayment = await paymentRepo.HasCompletedFullPaymentAsync(booking.BookingId, ct);
+        booking.EarnedPoints = await loyaltyService.EarnFromBookingAsync(
+            booking.UserId, booking.BookingFinalAmount, booking.BookingId, isFullPayment, ct);
 
         booking.BookingStatus = BookingStatus.Closed;
         await bookingRepo.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         logger.LogInformation("Booking {Code} closed", booking.BookingCode);
         return booking.ToDto();
@@ -924,6 +909,16 @@ public class BookingService(
 
         if (refundRemaining > 0)
             throw AppException.BadRequest(ValidationMessage.Payment.RefundAmountInvalid);
+
+        if (booking.RedeemedPoints > 0)
+        {
+            await loyaltyService.ReleaseRedeemedPointsForBookingAsync(
+                booking.UserId,
+                booking.BookingId,
+                "booking bị khách hủy trước khi sử dụng dịch vụ",
+                ct);
+            booking.RedeemedPoints = 0;
+        }
 
         booking.BookingStatus = BookingStatus.Cancelled;
         await bookingRepo.SaveChangesAsync(ct);
@@ -1070,7 +1065,10 @@ public class BookingService(
                 if (booking.RedeemedPoints > 0)
                 {
                     await loyaltyService.ReleaseRedeemedPointsForBookingAsync(
-                        booking.UserId, booking.BookingId, ct);
+                        booking.UserId,
+                        booking.BookingId,
+                        "booking Pending hết hạn thanh toán",
+                        ct);
                     booking.RedeemedPoints = 0;
                 }
 

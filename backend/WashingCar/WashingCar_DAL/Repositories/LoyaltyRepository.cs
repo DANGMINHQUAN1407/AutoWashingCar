@@ -54,6 +54,11 @@ public class LoyaltyRepository(WashingCarDbContext db) : ILoyaltyRepository
         => await _db.LoyaltyLedgerEntries
             .AnyAsync(e => e.BookingId == bookingId && e.EntryType == LoyaltyEntryType.Earn, ct);
 
+    public async Task<bool> HasLedgerEntryForBookingAsync(
+        Guid bookingId, byte entryType, CancellationToken ct)
+        => await _db.LoyaltyLedgerEntries
+            .AnyAsync(e => e.BookingId == bookingId && e.EntryType == entryType, ct);
+
     public async Task<int> GetRedeemedPointsForBookingAsync(Guid bookingId, CancellationToken ct)
     {
         var netRedeemed = await _db.LoyaltyLedgerEntries

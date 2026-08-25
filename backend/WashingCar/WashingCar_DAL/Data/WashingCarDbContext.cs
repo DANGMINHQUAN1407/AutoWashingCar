@@ -325,6 +325,12 @@ public partial class WashingCarDbContext : DbContext
 
             entity.HasIndex(e => e.BookingId, "IX_LLE_BookingId").HasFilter("([BookingId] IS NOT NULL)");
 
+            // Một booking chỉ có tối đa một Earn, một Redeem và một Expire ledger.
+            // Adjust không thuộc index vì có thể là nhiều lần điều chỉnh và thường không gắn BookingId.
+            entity.HasIndex(e => new { e.BookingId, e.EntryType }, "UQ_LLE_Booking_EntryType")
+                .IsUnique()
+                .HasFilter("([BookingId] IS NOT NULL AND [EntryType] IN (1, 2, 3))");
+
             entity.HasIndex(e => new { e.LoyaltyAccountId, e.CreatedAtUtc }, "IX_LLE_LoyaltyAccount_Created").IsDescending(false, true);
 
             entity.HasIndex(e => e.UserId, "IX_LLE_UserId");
