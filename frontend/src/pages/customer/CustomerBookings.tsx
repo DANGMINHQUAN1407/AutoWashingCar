@@ -1815,11 +1815,9 @@ export default function CustomerBookings() {
                                           fontWeight: 600,
                                           padding: '3px 8px',
                                           borderRadius: '20px',
-                                          background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' :
-                                                     s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                          color: s.vehicleType === 1 ? '#2563eb' :
-                                                 s.vehicleType === 2 ? '#059669' : '#d97706',
-                                          border: '1px solid currentColor'
+                                          background: '#f1f5f9',
+                                          color: '#334155',
+                                          border: '1px solid #cbd5e1'
                                         }}>
                                           {s.vehicleType === 1 ? '🏍️ XE MÁY' : s.vehicleType === 2 ? '🚗 Ô TÔ' : '🚚 XE TẢI'}
                                         </span>
@@ -1836,7 +1834,15 @@ export default function CustomerBookings() {
                                         ⏱️ {s.durationMinutes} phút
                                       </span>
                                       {(s.servicePackageType ?? 1) === 3 && (
-                                        <span className="badge badge-warning" style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '20px' }}>
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '3px 8px',
+                                          borderRadius: '20px',
+                                          background: 'rgba(2, 132, 199, 0.08)',
+                                          color: '#0284c7',
+                                          border: '1px solid rgba(2, 132, 199, 0.2)'
+                                        }}>
                                           Trọn gói
                                         </span>
                                       )}
@@ -2049,7 +2055,7 @@ export default function CustomerBookings() {
                                   <span style={{ fontSize: '0.95rem', fontWeight: 700, textDecoration: isDisable ? 'line-through' : 'none' }}>
                                     {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
                                   </span>
-                                  <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#16a34a', fontWeight: 500 }}>
+                                  <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#64748b', fontWeight: 500 }}>
                                     {isPast
                                       ? 'Đã qua'
                                       : isFull
