@@ -42,18 +42,13 @@ export function getLicensePlateError(value: string, vehicleType: number, manufac
   if (!valid) return LICENSE_PLATE_ERROR
 
   // Cross-check: Biển 4 số chỉ được cấp cho xe sản xuất từ 2010 trở về trước
-  const matchNum = compact.match(/\d+$/)
-  const numDigits = matchNum ? matchNum[0].length : 0
-  const isFourDigits = numDigits === 4
-  const isFiveDigits = numDigits >= 5
+  const seriesEnd = getSeriesEnd(compact, vehicleType)
+  const numberPart = compact.slice(seriesEnd)
+  const isFourDigits = numberPart.length === 4
   const yearNum = manufactureYear ? Number(manufactureYear) : null
 
   if (isFourDigits && yearNum && yearNum > 2010) {
     return `Biển số 4 số chỉ áp dụng cho xe sản xuất từ năm 2010 trở về trước. Xe sản xuất năm ${yearNum} bắt buộc dùng biển 5 số (Ví dụ: 59A1-123.45 hoặc 51F-123.45).`
-  }
-
-  if (isFiveDigits && yearNum && yearNum <= 2010) {
-    return `Biển số 5 số chỉ áp dụng cho xe sản xuất từ năm 2011 trở lên. Xe sản xuất năm ${yearNum} dùng biển 4 số (Ví dụ: 59A2-3456 hoặc 51F1234).`
   }
 
   return null
