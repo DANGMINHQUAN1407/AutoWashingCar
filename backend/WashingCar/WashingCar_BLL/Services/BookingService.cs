@@ -11,6 +11,7 @@ using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
 using WashingCar_Domain.DTOs;
 using WashingCar_Domain.DTOs.Booking;
+using WashingCar_Domain.DTOs.Vehicle;
 
 namespace WashingCar_BLL.Services;
 
@@ -1105,8 +1106,11 @@ public class BookingService(
         if (user is null || user.Role != UserRole.Customer)
             return null;
 
-        var vehicles = await vehicleRepo.GetByUserIdAsync(user.UserId);
-        return user.ToCustomerLookupDto(vehicles);
+        var vehiclesPage = await vehicleRepo.GetByUserIdAsync(
+            user.UserId,
+            new VehicleQuery { PageSize = 100 },
+            ct);
+        return user.ToCustomerLookupDto(vehiclesPage.Items);
     }
 
     /// <summary>Đăng ký khách vãng lai (guest, không mật khẩu). Nếu SĐT đã tồn tại thì trả về khách cũ.</summary>
@@ -1127,8 +1131,11 @@ public class BookingService(
                     throw AppException.Conflict(ValidationMessage.Common.PhoneInUse);
 
                 logger.LogInformation("Walk-in dùng lại khách cũ {UserId} theo SĐT", existing.UserId);
-                var existingVehicles = await vehicleRepo.GetByUserIdAsync(existing.UserId);
-                return existing.ToCustomerLookupDto(existingVehicles);
+                var existingVehiclesPage = await vehicleRepo.GetByUserIdAsync(
+                    existing.UserId,
+                    new VehicleQuery { PageSize = 100 },
+                    ct);
+                return existing.ToCustomerLookupDto(existingVehiclesPage.Items);
             }
         }
 

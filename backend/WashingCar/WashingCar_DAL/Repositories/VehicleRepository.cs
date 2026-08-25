@@ -5,6 +5,7 @@ using WashingCar_Common.Exceptions;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
+using WashingCar_Domain.DTOs.Vehicle;
 
 namespace WashingCar_DAL.Repositories
 {
@@ -60,17 +61,26 @@ namespace WashingCar_DAL.Repositories
                         && !vehicle.IsDeleted);
         }
 
-        public async Task<List<Vehicle>> GetByUserIdAsync(Guid userId)
+        public async Task<(List<Vehicle> Items, int TotalCount)> GetByUserIdAsync(
+            Guid userId, VehicleQuery query, CancellationToken ct = default)
         {
-            return await _context.Vehicles
+            var vehicles = _context.Vehicles
                 .AsNoTracking()
+                .Where(vehicle => vehicle.UserId == userId && !vehicle.IsDeleted);
+
+            var totalCount = await vehicles.CountAsync(ct);
+            var items = await vehicles
                 .Include(vehicle => vehicle.VehicleImages)
                 .Include(vehicle => vehicle.EngineCatalog)
                 .Include(vehicle => vehicle.BodyStyleCatalog)
                 .Include(vehicle => vehicle.BrandCatalog)
-                .Where(vehicle => vehicle.UserId == userId && !vehicle.IsDeleted)
                 .OrderBy(vehicle => vehicle.CreatedAtUtc)
-                .ToListAsync();
+                .ThenBy(vehicle => vehicle.VehicleId)
+                .Skip(query.Skip)
+                .Take(query.PageSize)
+                .ToListAsync(ct);
+
+            return (items, totalCount);
         }
 
         public async Task UpdateAsync(Vehicle vehicle)
