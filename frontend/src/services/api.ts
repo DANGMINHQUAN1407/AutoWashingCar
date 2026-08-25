@@ -589,9 +589,9 @@ export async function deleteBranch(id: string): Promise<any> {
 }
 
 export async function getBranchStaff(branchId: string): Promise<UserDto[]> {
-  const res = await fetchWithAuth(`/api/branches/${branchId}/staff`)
-  const items = res?.data ?? res?.Data ?? res ?? []
-  return (Array.isArray(items) ? items : []).map((u: any) => ({
+  const res = await fetchWithAuth(`/api/branches/${branchId}/staff?PageSize=100`)
+  const items = unwrapPagedItems<any>(res)
+  return items.map((u: any) => ({
     userId: u.userId ?? u.UserId ?? u.id ?? u.Id,
     fullName: u.fullName ?? u.FullName ?? u.name ?? u.Name,
     email: u.email ?? u.Email,
