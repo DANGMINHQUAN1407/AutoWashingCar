@@ -570,6 +570,8 @@ export default function CustomerBookings() {
       setErrorMsg(null);
       try {
         const payload: any = {
+          // Backend cần VehicleId để áp bảng giá theo loại xe
+          VehicleId: selectedVehicleId,
           SlotInventoryId: selectedSlotId,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
           RedeemMode: redeemMode,
@@ -860,6 +862,7 @@ export default function CustomerBookings() {
     setVoucherError(null);
     try {
       const testQuote = await api.getBookingQuote({
+        VehicleId: selectedVehicleId,
         SlotInventoryId: selectedSlotId,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         VoucherCode: code,
