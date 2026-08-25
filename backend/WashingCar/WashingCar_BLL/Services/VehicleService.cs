@@ -63,6 +63,7 @@ namespace WashingCar_BLL.Services
         public async Task<VehicleDto> CreateAsync(Guid userId, CreateVehicleRequest request)
         {
             var plate = LicensePlatePolicy.Normalize(request.LicensePlate, request.VehicleType);
+            LicensePlatePolicy.ValidateManufactureYear(plate, request.ManufactureYear);
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);
@@ -100,6 +101,7 @@ namespace WashingCar_BLL.Services
             ?? throw AppException.NotFound(ValidationMessage.Vehicle.NotFound);
 
             var plate = LicensePlatePolicy.Normalize(request.LicensePlate, request.VehicleType);
+            LicensePlatePolicy.ValidateManufactureYear(plate, request.ManufactureYear);
 
             if (await _vehicleRepo.ExistsLicensePlateAsync(plate, excludeId: vehicleId))
                 throw AppException.Conflict(ValidationMessage.Vehicle.LicensePlateExists);

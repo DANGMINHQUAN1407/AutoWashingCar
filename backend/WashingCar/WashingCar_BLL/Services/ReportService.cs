@@ -62,11 +62,21 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             .Where(l => l.Points < 0)
             .SumAsync(l => (int?)Math.Abs(l.Points), ct) ?? 0;
 
+        var activeStatuses = new byte[] { BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.CheckedIn, BookingStatus.InProgress };
+        var cancelledStatuses = new byte[] { BookingStatus.Cancelled, BookingStatus.NoShow };
+
+        var activeOrders = await db.Bookings.AsNoTracking()
+            .CountAsync(b => activeStatuses.Contains(b.BookingStatus), ct);
+
+        var pendingOrders = await db.Bookings.AsNoTracking()
+            .CountAsync(b => b.BookingStatus == BookingStatus.Pending || b.BookingStatus == BookingStatus.Confirmed, ct);
+
+        var cancelledOrders = await db.Bookings.AsNoTracking()
+            .CountAsync(b => cancelledStatuses.Contains(b.BookingStatus), ct);
+
         var onlineCount = await db.Bookings.AsNoTracking().CountAsync(b => b.BookingType == BookingType.Online, ct);
-        var walkInCount = await db.Bookings.AsNoTracking().CountAsync(b => b.BookingType == BookingType.WalkIn, ct);
-        var onlinePct = totalBookings > 0 ? (int)Math.Round((double)onlineCount / totalBookings * 100) : 55;
-        var walkInPct = totalBookings > 0 ? (int)Math.Round((double)walkInCount / totalBookings * 100) : 30;
-        var vipPct = Math.Max(0, 100 - (onlinePct + walkInPct));
+        var onlinePct = totalBookings > 0 ? (int)Math.Round((double)onlineCount / totalBookings * 100) : 0;
+        var walkInPct = 100 - onlinePct;
         var conversionRate = totalBookings > 0 ? (int)Math.Round((double)completedServices / totalBookings * 100) : 100;
 
         return new DashboardStatsDto
@@ -89,13 +99,15 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             TotalBookings = totalBookings,
             LoyaltyMembers = loyaltyMembers,
             CompletedServices = completedServices,
+            ActiveOrders = activeOrders,
+            PendingOrders = pendingOrders,
+            CancelledOrders = cancelledOrders,
             TotalVehicles = totalVehicles,
             VouchersUsed = vouchersUsed,
             PointsRedeemed = pointsRedeemed,
 
             OnlinePct = onlinePct,
             WalkInPct = walkInPct,
-            VipPct = vipPct,
             ConversionRate = conversionRate
         };
     }
@@ -115,6 +127,23 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             .CountAsync(b => b.BranchId == branch.BranchId && activeStatuses.Contains(b.BookingStatus), ct);
         var revenueData = await GetWeeklyNetRevenueDataAsync(branch.BranchId, ct);
 
+        // Tính tỷ lệ kênh đặt lịch thực tế theo chi nhánh
+        var totalBranchBookings = await db.Bookings.AsNoTracking()
+            .CountAsync(b => b.BranchId == branch.BranchId, ct);
+        var onlineBranchCount = await db.Bookings.AsNoTracking()
+            .CountAsync(b => b.BranchId == branch.BranchId && b.BookingType == BookingType.Online, ct);
+        var branchOnlinePct = totalBranchBookings > 0
+            ? (int)Math.Round((double)onlineBranchCount / totalBranchBookings * 100)
+            : 0;
+
+        // ConversionRate = % đơn hoàn thành so với tổng đơn của chi nhánh
+        var completedStatuses = new byte[] { BookingStatus.Completed, BookingStatus.Closed };
+        var completedBranchCount = await db.Bookings.AsNoTracking()
+            .CountAsync(b => b.BranchId == branch.BranchId && completedStatuses.Contains(b.BookingStatus), ct);
+        var branchConversionRate = totalBranchBookings > 0
+            ? (int)Math.Round((double)completedBranchCount / totalBranchBookings * 100)
+            : 100;
+
         return new DashboardStatsDto
         {
             TotalServices = services.Count,
@@ -127,7 +156,12 @@ public class ReportService(WashingCarDbContext db, IBookingRepository bookingRep
             ActiveOrders = activeOrders,
             RevenueWeeks = revenueData.Percentages,
             RevenueWeeklyAmounts = revenueData.Amounts,
-            CurrentMonthRevenue = revenueData.CurrentMonthRevenue
+            CurrentMonthRevenue = revenueData.CurrentMonthRevenue,
+            TotalBookings = totalBranchBookings,
+            CompletedServices = completedBranchCount,
+            OnlinePct = branchOnlinePct,
+            WalkInPct = 100 - branchOnlinePct,
+            ConversionRate = branchConversionRate
         };
     }
 

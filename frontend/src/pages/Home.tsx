@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api, { type ServiceCatalogItem } from '../services/api'
-import { type Branch, type BranchService } from '../types/branch'
+import { type Branch } from '../types/branch'
 import AnimatedButton from '../components/AnimatedButton'
+import Pagination from '../components/Pagination'
 import './Home.css'
 
 // Map Imports (Leaflet & React-Leaflet)
@@ -38,55 +39,57 @@ const steps = [
   { stepNum: 2, title: 'Phun bọt tuyết hoạt tính' },
   { stepNum: 3, title: 'Chổi quét mềm vi sợi' },
   { stepNum: 4, title: 'Phủ sáp bóng bảo vệ' },
-  { stepNum: 5, title: 'Sấy khô tự động' }
+  { stepNum: 5, title: 'Sấy khô tự động tốc độ cao' },
 ]
 
-
-/* ── Component ── */
-interface DisplayService {
+type DisplayService = {
   id: string
   name: string
   description?: string
   basePrice: number
   durationMinutes: number
   isActive: boolean
+  vehicleType?: number | null
 }
 
 export default function Home() {
-  const [apiServices, setApiServices] = useState<ServiceCatalogItem[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('')
-  const [branchServices, setBranchServices] = useState<BranchService[]>([])
-  const [loadingServices, setLoadingServices] = useState(true)
   const [loadingBranches, setLoadingBranches] = useState(true)
-
-  // Map Center & Zoom States
-  const defaultCenter: [number, number] = [10.776, 106.701]
-  const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter)
-  const [mapZoom, setMapZoom] = useState<number>(12)
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('')
+  const [apiServices, setApiServices] = useState<ServiceCatalogItem[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
 
   const selectedBranch = branches.find(b => b.branchId === selectedBranchId)
 
-  // Update map center and zoom level based on selection
+  // Vehicle type filter for services: null (Tất cả), 2 (Ô tô), 1 (Xe máy), 3 (Xe tải)
+  const [selectedVehicleType, setSelectedVehicleType] = useState<number | null>(null)
+  const [servicePage, setServicePage] = useState<number>(1)
+  const SERVICE_PAGE_SIZE = 6
+
+  // Default coordinate: Center of Ho Chi Minh City
+  const defaultCenter: [number, number] = [10.7769, 106.7009]
+  const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter)
+  const [mapZoom, setMapZoom] = useState<number>(12)
+
+  // Update map coordinates dynamically
   useEffect(() => {
-    if (selectedBranch && selectedBranch.latitude && selectedBranch.longitude) {
-      setMapCenter([Number(selectedBranch.latitude), Number(selectedBranch.longitude)])
-      setMapZoom(16)
+    if (selectedBranchId) {
+      const selected = branches.find(b => b.branchId === selectedBranchId)
+      if (selected && selected.latitude && selected.longitude) {
+        setMapCenter([Number(selected.latitude), Number(selected.longitude)])
+        setMapZoom(15)
+      }
     } else {
-      const validBranches = branches.filter(
-        b => b.latitude && b.longitude && !isNaN(Number(b.latitude)) && !isNaN(Number(b.longitude))
-      )
+      const validBranches = branches.filter(b => b.latitude && b.longitude && !isNaN(Number(b.latitude)) && !isNaN(Number(b.longitude)))
       if (validBranches.length > 0) {
         const avgLat = validBranches.reduce((sum, b) => sum + Number(b.latitude), 0) / validBranches.length
         const avgLng = validBranches.reduce((sum, b) => sum + Number(b.longitude), 0) / validBranches.length
         setMapCenter([avgLat, avgLng])
         setMapZoom(12)
-      } else {
-        setMapCenter(defaultCenter)
-        setMapZoom(12)
       }
     }
   }, [selectedBranchId, branches])
+
   // Promo Vouchers states
   const [promoVouchers, setPromoVouchers] = useState<any[]>([])
   const [loadingVouchers, setLoadingVouchers] = useState<boolean>(true)
@@ -94,7 +97,6 @@ export default function Home() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
   // Real stats & reviews states
-  // Real stats state
   const [systemStats, setSystemStats] = useState({ averageRating: 4.9, totalBookings: 12000 })
 
   useEffect(() => {
@@ -108,12 +110,6 @@ export default function Home() {
       .then(res => setBranches(res.items || []))
       .catch(err => console.error('Failed to load branches', err))
       .finally(() => setLoadingBranches(false))
-
-    // Fetch full service catalog
-    api.getServiceCatalog({ isActive: true, pageSize: 100 })
-      .then(res => setApiServices(res.items || []))
-      .catch(err => console.error('Failed to load services', err))
-      .finally(() => setLoadingServices(false))
 
     // Fetch active approved vouchers for home page banner promotion
     api.getVouchers({ approvalStatus: 2, pageSize: 10, isActive: true })
@@ -150,17 +146,20 @@ export default function Home() {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
+  // Load services whenever branch or vehicleType filter changes
   useEffect(() => {
-    if (!selectedBranchId) {
-      setBranchServices([])
-    } else {
-      setLoadingServices(true)
-      api.getBranchServices(selectedBranchId)
-        .then(res => setBranchServices(res || []))
-        .catch(err => console.error('Failed to load branch services', err))
-        .finally(() => setLoadingServices(false))
-    }
-  }, [selectedBranchId])
+    setLoadingServices(true)
+    setServicePage(1)
+    api.getServiceCatalog({
+      isActive: true,
+      branchId: selectedBranchId || undefined,
+      vehicleType: selectedVehicleType || undefined,
+      pageSize: 100
+    })
+      .then(res => setApiServices(res.items || []))
+      .catch(err => console.error('Failed to load services', err))
+      .finally(() => setLoadingServices(false))
+  }, [selectedBranchId, selectedVehicleType])
 
   // Fetch stats based on selected branch
   useEffect(() => {
@@ -169,25 +168,18 @@ export default function Home() {
       .catch(err => console.error('Failed to load stats', err))
   }, [selectedBranchId])
 
-  const displayServices: DisplayService[] = selectedBranchId
-    ? branchServices
-      .filter(bs => bs.isActive)
-      .map(bs => ({
-        id: bs.branchServiceId,
-        name: bs.serviceName,
-        description: apiServices.find(s => s.serviceCatalogItemId === bs.serviceId)?.description ?? 'Dịch vụ rửa xe tự động chuyên nghiệp.',
-        basePrice: bs.basePrice,
-        durationMinutes: bs.durationMinutes,
-        isActive: bs.isActive,
-      }))
-    : apiServices.slice(0, 6).map(svc => ({
-      id: svc.serviceCatalogItemId,
-      name: svc.name,
-      description: svc.description,
-      basePrice: svc.basePrice,
-      durationMinutes: svc.durationMinutes,
-      isActive: svc.isActive,
-    }))
+  const displayServices: DisplayService[] = apiServices.map(svc => ({
+    id: svc.serviceCatalogItemId,
+    name: svc.serviceName || svc.name,
+    description: svc.description,
+    basePrice: svc.applicablePrice != null ? svc.applicablePrice : svc.basePrice,
+    durationMinutes: svc.applicableDurationMinutes != null ? svc.applicableDurationMinutes : svc.durationMinutes,
+    isActive: svc.isActive,
+  }))
+
+  const totalServicePages = Math.max(1, Math.ceil(displayServices.length / SERVICE_PAGE_SIZE))
+  const paginatedServices = displayServices.slice((servicePage - 1) * SERVICE_PAGE_SIZE, servicePage * SERVICE_PAGE_SIZE)
+
   return (
     <div className="home">
       {/* ── Background Bubbles ── */}
@@ -524,17 +516,49 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Vehicle Category Tabs */}
+          <div className="service-vehicle-tabs-wrap animate-fade-in" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'center' }}>
+            <div className="service-vehicle-tabs" style={{ display: 'inline-flex', gap: '8px', background: '#f1f5f9', padding: '6px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              {[
+                { label: 'Tất cả loại xe', value: null },
+                { label: '🚗 Ô tô', value: 2 },
+                { label: '🏍️ Xe máy', value: 1 },
+                { label: '🚚 Xe tải', value: 3 },
+              ].map(tab => (
+                <button
+                  key={String(tab.value)}
+                  type="button"
+                  onClick={() => setSelectedVehicleType(tab.value)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: selectedVehicleType === tab.value ? '#2563eb' : 'transparent',
+                    color: selectedVehicleType === tab.value ? '#ffffff' : '#64748b',
+                    boxShadow: selectedVehicleType === tab.value ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="services-grid">
             {loadingServices ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                 Đang tải danh sách dịch vụ...
               </div>
-            ) : displayServices.length === 0 ? (
+            ) : paginatedServices.length === 0 ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                Hiện tại chưa có dịch vụ nào tại chi nhánh này.
+                Hiện tại chưa có dịch vụ nào phù hợp với bộ lọc đã chọn.
               </div>
             ) : (
-              displayServices.map((svc) => {
+              paginatedServices.map((svc) => {
                 return (
                   <div
                     key={svc.id}
@@ -584,6 +608,19 @@ export default function Home() {
               })
             )}
           </div>
+
+          {/* Services Pagination */}
+          {!loadingServices && displayServices.length > SERVICE_PAGE_SIZE && (
+            <div style={{ marginTop: '32px' }}>
+              <Pagination
+                currentPage={servicePage}
+                totalPages={totalServicePages}
+                totalCount={displayServices.length}
+                itemName="dịch vụ"
+                onPageChange={setServicePage}
+              />
+            </div>
+          )}
         </div>
       </section>
 

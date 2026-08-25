@@ -11,7 +11,7 @@
   flex-direction: column;
 }
 
-/* ─── Top Navigation (Dark Navy — matches portal topbar) ─────────────── */
+/* ─── Top Navigation (Modern Light — Crisp & Synchronized) ─────────────── */
 .navbar {
   position: fixed;
   top: 0;
@@ -19,8 +19,12 @@
   right: 0;
   z-index: 100;
   height: var(--nav-h);
-  background: #0f2942;
-  border-bottom: 3px solid #2563eb;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
 .navbar-inner {
@@ -53,20 +57,20 @@
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .navbar-logo-text span {
-  color: #60a5fa;
+  color: #2563eb;
   background: none;
   -webkit-background-clip: unset;
   -webkit-text-fill-color: unset;
   background-clip: unset;
 }
 
-/* Nav Links (BMW M: nav-link token — 14px/400/0.5px tracking) */
+/* Nav Links */
 .navbar-nav {
   display: flex;
   align-items: center;
@@ -78,9 +82,9 @@
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 6px 14px;
-  border-radius: 6px;
+  color: #475569;
+  padding: 7px 14px;
+  border-radius: 8px;
   text-decoration: none;
   transition: all 0.15s ease;
   position: relative;
@@ -88,15 +92,15 @@
 }
 
 .nav-link:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.12);
+  color: #1e40af !important;
+  background: #f1f5f9;
 }
 
-/* Active nav: white text + blue pill */
+/* Active nav: royal blue text + subtle pill */
 .nav-link.active {
-  color: #ffffff !important;
-  background: rgba(37, 99, 235, 0.35);
-  border: none;
+  color: #2563eb !important;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
   font-weight: 700;
 }
 
@@ -114,7 +118,7 @@
 }
 
 .navbar-actions .btn {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   font-weight: 700 !important;
   font-size: 13px !important;
   letter-spacing: 0.5px !important;
@@ -126,30 +130,30 @@
 }
 
 .navbar-actions .btn-ghost {
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(4px);
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
 .navbar-actions .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.22) !important;
-  border-color: #ffffff !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 .navbar-actions .btn-primary {
   background: #2563eb !important;
   color: #ffffff !important;
   border: 1px solid #2563eb !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
 }
 
 .navbar-actions .btn-primary:hover {
   background: #1d4ed8 !important;
   border-color: #1d4ed8 !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
   transform: translateY(-1px);
 }
 
@@ -184,8 +188,8 @@
   display: block;
   width: 22px;
   height: 2px;
-  background: #ffffff;
-  border-radius: 0;
+  background: #0f172a;
+  border-radius: 1px;
   transition: all var(--t-fast) var(--ease);
 }
 

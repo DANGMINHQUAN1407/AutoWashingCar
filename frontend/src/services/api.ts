@@ -257,9 +257,13 @@ export async function getMe() {
   return inner;
 }
 
-export async function getMyVehicles(): Promise<Vehicle[]> {
-  const res = await fetchWithAuth('/api/vehicles', { method: 'GET' });
-  return Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
+export async function getMyVehicles(params?: { page?: number; pageSize?: number }): Promise<Vehicle[]> {
+  const search = new URLSearchParams()
+  if (params?.page) search.set('Page', String(params.page))
+  if (params?.pageSize) search.set('PageSize', String(params.pageSize))
+  const qs = search.toString()
+  const res = await fetchWithAuth(`/api/vehicles${qs ? `?${qs}` : ''}`, { method: 'GET' });
+  return unwrapPagedItems<Vehicle>(res);
 }
 
 export async function createVehicle(data: CreateVehicleRequest): Promise<Vehicle> {
@@ -377,8 +381,8 @@ export async function getMyBranch(): Promise<Branch> {
 
 export async function getBranchServices(branchId: string): Promise<BranchService[]> {
   const res = await fetchWithAuth(`/api/branches/${branchId}/services`)
-  const items = unwrapData<Record<string, unknown>[]>(res) ?? []
-  return (Array.isArray(items) ? items : []).map(normalizeBranchService)
+  const items = unwrapPagedItems<Record<string, unknown>>(res)
+  return items.map(normalizeBranchService)
 }
 
 export async function resetPassword(data: { Token: string, NewPassword: string }) {
@@ -524,14 +528,6 @@ export type UpdateBranchRequest = {
   IsActive?: boolean
 }
 
-export type ServiceCatalogItem = {
-  serviceCatalogItemId: string
-  name: string
-  description?: string
-  basePrice: number
-  durationMinutes: number
-  isActive: boolean
-}
 
 export type ServiceCatalogPageResult = {
   items: ServiceCatalogItem[]
@@ -590,7 +586,9 @@ export async function deleteBranch(id: string): Promise<any> {
 
 export async function getBranchStaff(branchId: string): Promise<UserDto[]> {
   const res = await fetchWithAuth(`/api/branches/${branchId}/staff`)
-  const items = res?.data ?? res?.Data ?? res ?? []
+  // API trả về PagedResult: { data: { items: [...], totalCount: N, ... } }
+  const paged = res?.data ?? res?.Data ?? res ?? {}
+  const items = paged?.items ?? paged?.Items ?? (Array.isArray(paged) ? paged : [])
   return (Array.isArray(items) ? items : []).map((u: any) => ({
     userId: u.userId ?? u.UserId ?? u.id ?? u.Id,
     fullName: u.fullName ?? u.FullName ?? u.name ?? u.Name,
@@ -631,13 +629,35 @@ export async function removeBranchService(branchId: string, serviceId: string): 
 }
 
 
+export type ServiceCatalogItem = {
+  serviceCatalogItemId: string
+  id?: string
+  name: string
+  serviceName?: string
+  description?: string
+  basePrice: number
+  applicablePrice?: number | null
+  durationMinutes: number
+  applicableDurationMinutes?: number | null
+  servicePackageType?: number
+  servicePackageTypeName?: string
+  serviceNodeType?: number
+  isActive: boolean
+}
+
 export function normalizeServiceCatalogItem(s: any): ServiceCatalogItem {
   return {
     serviceCatalogItemId: s?.serviceCatalogItemId ?? s?.ServiceCatalogItemId ?? s?.id ?? s?.Id ?? '',
     name: s?.name ?? s?.Name ?? s?.serviceName ?? s?.ServiceName ?? '',
+    serviceName: s?.serviceName ?? s?.ServiceName ?? s?.name ?? s?.Name ?? '',
     description: s?.description ?? s?.Description ?? '',
     basePrice: s?.basePrice ?? s?.BasePrice ?? 0,
+    applicablePrice: s?.applicablePrice ?? s?.ApplicablePrice ?? null,
     durationMinutes: s?.durationMinutes ?? s?.DurationMinutes ?? 0,
+    applicableDurationMinutes: s?.applicableDurationMinutes ?? s?.ApplicableDurationMinutes ?? null,
+    servicePackageType: s?.servicePackageType ?? s?.ServicePackageType ?? 1,
+    servicePackageTypeName: s?.servicePackageTypeName ?? s?.ServicePackageTypeName ?? '',
+    serviceNodeType: s?.serviceNodeType ?? s?.ServiceNodeType ?? 2,
     isActive: s?.isActive ?? s?.IsActive ?? false,
   }
 }
@@ -647,12 +667,18 @@ export async function getServiceCatalog(params?: {
   pageSize?: number
   isActive?: boolean
   search?: string
+  vehicleType?: number
+  engineCatalogId?: string
+  branchId?: string
 }): Promise<ServiceCatalogPageResult> {
   const searchParams = new URLSearchParams()
   if (params?.page) searchParams.set('Page', String(params.page))
   if (params?.pageSize) searchParams.set('PageSize', String(params.pageSize))
   if (params?.isActive !== undefined) searchParams.set('IsActive', String(params.isActive))
   if (params?.search) searchParams.set('Search', params.search)
+  if (params?.vehicleType) searchParams.set('VehicleType', String(params.vehicleType))
+  if (params?.engineCatalogId) searchParams.set('EngineCatalogId', params.engineCatalogId)
+  if (params?.branchId) searchParams.set('BranchId', params.branchId)
   
   const qs = searchParams.toString()
   const res = await fetchWithAuth(`/api/service-catalog${qs ? `?${qs}` : ''}`)
@@ -1899,6 +1925,177 @@ export async function deactivateVehicleBrand(id: string): Promise<any> {
   return fetchWithAuth(`/api/vehicle-catalogs/brands/${id}/deactivate`, { method: 'POST' })
 }
 
+// ==========================================
+// Service Vehicle Pricing
+// ==========================================
+export type ServiceVehiclePricingDto = {
+  serviceVehiclePricingId: string
+  serviceCatalogItemId: string
+  vehicleType: number
+  engineCatalogId?: string
+  engineCatalogName?: string
+  unitPrice: number
+  durationMinutes: number
+  isActive: boolean
+  createdAtUtc: string
+  updatedAtUtc?: string
+}
+
+export type CreateServicePricingRequest = {
+  ServiceCatalogItemId: string
+  VehicleType: number
+  EngineCatalogId?: string
+  UnitPrice: number
+  DurationMinutes: number
+}
+
+export type UpdateServicePricingRequest = {
+  UnitPrice?: number
+  DurationMinutes?: number
+  IsActive?: boolean
+}
+
+export async function getServicePricingRules(serviceId: string, includeInactive = false): Promise<ServiceVehiclePricingDto[]> {
+  const res = await fetchWithAuth(`/api/service-catalog/${serviceId}/pricing?includeInactive=${includeInactive}`)
+  const data = unwrapData<ServiceVehiclePricingDto[]>(res)
+  return data || []
+}
+
+export async function createServicePricingRule(data: CreateServicePricingRequest): Promise<ServiceVehiclePricingDto> {
+  const payload = await fetchWithAuth('/api/service-catalog/pricing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function updateServicePricingRule(pricingId: string, data: UpdateServicePricingRequest): Promise<ServiceVehiclePricingDto> {
+  const payload = await fetchWithAuth(`/api/service-catalog/pricing/${pricingId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function activateServicePricingRule(pricingId: string): Promise<any> {
+  return fetchWithAuth(`/api/service-catalog/pricing/${pricingId}/activate`, { method: 'POST' })
+}
+
+export async function deactivateServicePricingRule(pricingId: string): Promise<any> {
+  return fetchWithAuth(`/api/service-catalog/pricing/${pricingId}/deactivate`, { method: 'POST' })
+}
+
+// ==========================================
+// Vehicle Transfer Requests
+// ==========================================
+export type VehicleTransferRequestDto = {
+  vehicleTransferRequestId: string
+  vehicleId: string
+  licensePlate: string
+  vehicleType: number
+  status: number
+  fromUserId?: string
+  fromUserName?: string
+  toUserId: string
+  toUserName?: string
+  reason?: string
+  reviewNote?: string
+  reviewedByUserId?: string
+  reviewedByName?: string
+  createdAtUtc: string
+  reviewedAtUtc?: string
+}
+
+export type VehicleOwnershipHistoryDto = {
+  vehicleOwnershipHistoryId: string
+  vehicleId: string
+  licensePlate: string
+  userId: string
+  userName: string
+  ownedFromUtc: string
+  ownedToUtc?: string
+  vehicleTransferRequestId?: string
+  createdAtUtc: string
+}
+
+export async function createVehicleTransfer(data: {
+  LicensePlate: string
+  VehicleType: number
+  Reason?: string
+}): Promise<VehicleTransferRequestDto> {
+  const payload = await fetchWithAuth('/api/vehicle-transfers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function getMyVehicleTransfers(params?: {
+  status?: number
+  page?: number
+  pageSize?: number
+}): Promise<{ items: VehicleTransferRequestDto[]; totalCount: number }> {
+  const qs = new URLSearchParams()
+  if (params?.status !== undefined) qs.set('Status', String(params.status))
+  if (params?.page) qs.set('Page', String(params.page))
+  if (params?.pageSize) qs.set('PageSize', String(params.pageSize))
+  const res = await fetchWithAuth(`/api/vehicle-transfers/mine${qs.toString() ? `?${qs.toString()}` : ''}`)
+  const data = unwrapData<{ items?: any[]; Items?: any[]; totalCount?: number; TotalCount?: number }>(res)
+  const items = data?.items ?? data?.Items ?? unwrapPagedItems(res)
+  const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
+  return { items, totalCount }
+}
+
+export async function cancelVehicleTransfer(id: string): Promise<VehicleTransferRequestDto> {
+  const payload = await fetchWithAuth(`/api/vehicle-transfers/${id}/cancel`, { method: 'POST' })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function getAdminVehicleTransfers(params?: {
+  status?: number
+  licensePlate?: string
+  page?: number
+  pageSize?: number
+}): Promise<{ items: VehicleTransferRequestDto[]; totalCount: number }> {
+  const qs = new URLSearchParams()
+  if (params?.status !== undefined) qs.set('Status', String(params.status))
+  if (params?.licensePlate) qs.set('LicensePlate', params.licensePlate)
+  if (params?.page) qs.set('Page', String(params.page))
+  if (params?.pageSize) qs.set('PageSize', String(params.pageSize))
+  const res = await fetchWithAuth(`/api/vehicle-transfers/admin${qs.toString() ? `?${qs.toString()}` : ''}`)
+  const data = unwrapData<{ items?: any[]; Items?: any[]; totalCount?: number; TotalCount?: number }>(res)
+  const items = data?.items ?? data?.Items ?? unwrapPagedItems(res)
+  const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
+  return { items, totalCount }
+}
+
+export async function approveVehicleTransfer(id: string, reviewNote?: string): Promise<VehicleTransferRequestDto> {
+  const payload = await fetchWithAuth(`/api/vehicle-transfers/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ReviewNote: reviewNote }),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function rejectVehicleTransfer(id: string, reviewNote?: string): Promise<VehicleTransferRequestDto> {
+  const payload = await fetchWithAuth(`/api/vehicle-transfers/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ReviewNote: reviewNote }),
+  })
+  return payload?.data ?? payload?.Data ?? payload
+}
+
+export async function getVehicleOwnershipHistory(vehicleId: string): Promise<VehicleOwnershipHistoryDto[]> {
+  const res = await fetchWithAuth(`/api/vehicle-transfers/vehicles/${vehicleId}/history`)
+  const data = unwrapData<VehicleOwnershipHistoryDto[]>(res)
+  return data || []
+}
+
 export default {
   getHealth, login, register, googleLogin, logout, getMe, setAuthToken,
   forgotPassword, resetPassword, claimGuestAccount,
@@ -1908,6 +2105,8 @@ export default {
   getUsers, activateUser, deactivateUser, deleteUser, createStaff, updateUser,
   createBranch, updateBranch, assignBranchServices, assignManager, removeManager,
   getServiceCatalog, createServiceCatalog, updateServiceCatalog, activateServiceCatalog, deactivateServiceCatalog,
+  getServicePricingRules, createServicePricingRule, updateServicePricingRule, activateServicePricingRule, deactivateServicePricingRule,
+  createVehicleTransfer, getMyVehicleTransfers, cancelVehicleTransfer, getAdminVehicleTransfers, approveVehicleTransfer, rejectVehicleTransfer, getVehicleOwnershipHistory,
   deleteBranch, getBranchStaff, assignBranchStaff, removeBranchStaff, toggleBranchService, removeBranchService,
   getSlots, getSlotById, createSlot, generateSlots, updateSlot, deleteSlot, getAvailableSlots,
   getMyLoyalty, getMyLoyaltyHistory, getUserLoyalty, getUserLoyaltyHistory, adjustPoints, getActiveTiers, lookupCustomerByPhone,
