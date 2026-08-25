@@ -22,6 +22,13 @@ namespace WashingCar_DAL.Repositories
             try
             {
                 await _context.Vehicles.AddAsync(vehicle);
+                await _context.VehicleOwnershipHistories.AddAsync(new VehicleOwnershipHistory
+                {
+                    Vehicle = vehicle,
+                    UserId = vehicle.UserId,
+                    OwnedFromUtc = vehicle.CreatedAtUtc,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
                 await _context.SaveChangesAsync();
                 return vehicle;
             }

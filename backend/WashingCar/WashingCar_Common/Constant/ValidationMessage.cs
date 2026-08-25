@@ -244,6 +244,23 @@ public static class ValidationMessage
         public const string LicensePlateExists  = "Biển số xe đã tồn tại";
     }
 
+    public static class VehicleTransfer
+    {
+        public const string VehicleNotFound = "Không tìm thấy xe hoặc xe không thuộc tài khoản hiện tại";
+        public const string TargetUserNotFound = "Không tìm thấy chủ xe mới";
+        public const string TargetMustBeCustomer = "Chủ xe mới phải là tài khoản Customer đang hoạt động";
+        public const string CannotTransferToSelf = "Chủ xe mới phải khác chủ xe hiện tại";
+        public const string PendingRequestExists = "Xe đang có yêu cầu chuyển nhượng chờ xử lý";
+        public const string RequestNotFound = "Không tìm thấy yêu cầu chuyển nhượng";
+        public const string RequestNotPending = "Yêu cầu chuyển nhượng không còn ở trạng thái chờ duyệt";
+        public const string OnlyAdminCanReview = "Chỉ Admin được phê duyệt hoặc từ chối chuyển nhượng xe";
+        public const string VehicleHasBlockingBookings = "Không thể chuyển nhượng khi xe còn booking đang xử lý";
+        public const string CurrentOwnershipNotFound = "Không tìm thấy bản ghi chủ sở hữu hiện tại";
+        public const string TargetInactive = "Tài khoản chủ xe mới đã bị vô hiệu hóa hoặc xóa";
+        public const string NoteRequiredForReject = "Vui lòng nhập lý do từ chối yêu cầu chuyển nhượng";
+        public const string CannotCancelNonPending = "Chỉ có thể hủy yêu cầu đang chờ duyệt";
+    }
+
     public static class Report
     {
         public const string InvalidGroupBy = "GroupBy chỉ nhận Day, Week hoặc Month";

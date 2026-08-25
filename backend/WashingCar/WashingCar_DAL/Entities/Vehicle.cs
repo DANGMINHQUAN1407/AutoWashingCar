@@ -43,6 +43,10 @@ public partial class Vehicle
 
     public virtual ICollection<VehicleImage> VehicleImages { get; set; } = new List<VehicleImage>();
 
+    public virtual ICollection<VehicleTransferRequest> VehicleTransferRequests { get; set; } = new List<VehicleTransferRequest>();
+
+    public virtual ICollection<VehicleOwnershipHistory> OwnershipHistories { get; set; } = new List<VehicleOwnershipHistory>();
+
     public virtual User? DeletedByUser { get; set; }
 
     public virtual User User { get; set; } = null!;
