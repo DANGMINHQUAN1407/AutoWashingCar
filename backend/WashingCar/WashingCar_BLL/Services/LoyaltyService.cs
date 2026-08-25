@@ -199,6 +199,9 @@ public class LoyaltyService : ILoyaltyService
     /// </remarks>
     public async Task<int> EarnFromBookingAsync(Guid userId, decimal bookingAmount, Guid bookingId, bool applyFullPaymentBonus = false, CancellationToken ct = default)
     {
+        // CloseAsync đã mở transaction; lock user phải được lấy trước khi kiểm tra idempotency.
+        await _repo.AcquireUserLockAsync(userId, ct);
+
         // Đã cộng điểm cho đơn này rồi → không cộng lần 2
         if (await _repo.HasEarnedForBookingAsync(bookingId, ct))
         {
@@ -246,6 +249,9 @@ public class LoyaltyService : ILoyaltyService
     /// </remarks>
     public async Task<int> EarnFromCancelledBookingAsync(Guid userId, decimal paidAmount, string bookingCode, Guid bookingId, CancellationToken ct = default)
     {
+        await using var transaction = await _repo.BeginTransactionAsync(ct);
+        await _repo.AcquireUserLockAsync(userId, ct);
+
         if (await _repo.HasEarnedForBookingAsync(bookingId, ct))
         {
             return 0;
@@ -273,8 +279,9 @@ public class LoyaltyService : ILoyaltyService
         };
 
         await _repo.AddLedgerEntryAsync(entry, ct);
+        await transaction.CommitAsync(ct);
 
-        // Gửi mail báo cộng điểm (best-effort)
+        // Gửi mail báo cộng điểm (best-effort), chỉ sau khi ledger đã commit.
         await TrySendPointsEarnedEmailAsync(userId, points, ct);
 
         return points;
@@ -318,6 +325,9 @@ public class LoyaltyService : ILoyaltyService
             throw AppException.BadRequest(ValidationMessage.Loyalty.AdjustPointsCannotBeZero);
         }
 
+        await using var transaction = await _repo.BeginTransactionAsync(ct);
+        await _repo.AcquireUserLockAsync(request.UserId, ct);
+
         // Check manager có branch không
         var branch = await _branchRepo.GetByManagerIdAsync(managerId, ct)
             ?? throw AppException.Forbidden(ValidationMessage.Loyalty.ManagerNoBranch);
@@ -355,6 +365,8 @@ public class LoyaltyService : ILoyaltyService
         await _repo.AddLedgerEntryAsync(entry, ct);
         await _repo.SaveChangesAsync(ct);
 
+        await transaction.CommitAsync(ct);
+
         account = await _repo.GetByUserIdAsync(request.UserId, ct);
         return await BuildLoyaltyAccountDto(account!, ct);
     }
@@ -369,8 +381,14 @@ public class LoyaltyService : ILoyaltyService
 
     /// <summary>Hoàn đúng số điểm đã ghi nhận trong ledger khi Pending booking tự hết hạn.</summary>
     public async Task<int> ReleaseRedeemedPointsForBookingAsync(
-        Guid userId, Guid bookingId, CancellationToken ct = default)
+        Guid userId, Guid bookingId, string reason, CancellationToken ct = default)
     {
+        // ExpirePendingBookingsAsync đã mở transaction; serialize với Redeem và các retry khác.
+        await _repo.AcquireUserLockAsync(userId, ct);
+
+        if (await _repo.HasLedgerEntryForBookingAsync(bookingId, LoyaltyEntryType.Expire, ct))
+            return 0;
+
         // Booking ghi RedeemedPoints trước khi gọi redeem best-effort,
         // nên đọc ledger thực tế thay vì tin riêng snapshot trên Booking.
         var points = await _repo.GetRedeemedPointsForBookingAsync(bookingId, ct);
@@ -388,7 +406,7 @@ public class LoyaltyService : ILoyaltyService
             EntryType = LoyaltyEntryType.Expire,
             Points = points,
             BalanceAfter = account.CurrentPoints,
-            Description = $"Hoàn {points} điểm do booking Pending hết hạn",
+            Description = $"Hoàn {points} điểm: {reason}",
         };
 
         // AddLedgerEntryAsync tự save; cùng DbContext transaction nên rollback đồng bộ.
@@ -401,6 +419,11 @@ public class LoyaltyService : ILoyaltyService
     public async Task<int> RedeemForBookingAsync(Guid userId, int points, Guid bookingId, CancellationToken ct = default)
     {
         if (points <= 0) return 0;
+
+        // Create/CreateWalkIn đã mở transaction và khóa user; gọi lại lock để contract service tự bảo vệ.
+        await _repo.AcquireUserLockAsync(userId, ct);
+        if (await _repo.HasLedgerEntryForBookingAsync(bookingId, LoyaltyEntryType.Redeem, ct))
+            return 0;
 
         var account = await _repo.GetByUserIdAsync(userId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Loyalty.AccountNotFound);

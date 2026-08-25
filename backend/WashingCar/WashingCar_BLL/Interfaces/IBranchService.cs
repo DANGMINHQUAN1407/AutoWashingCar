@@ -1,4 +1,5 @@
 using WashingCar_Domain.DTOs;
+using WashingCar_Domain.DTOs.Common;
 using WashingCar_Domain.DTOs.Branch;
 
 namespace WashingCar_BLL.Interfaces;
@@ -15,8 +16,9 @@ public interface IBranchService
     Task<BranchDto>              AssignManagerAsync(Guid branchId, Guid managerId, CancellationToken ct = default);
     Task<BranchDto>              RemoveManagerAsync(Guid branchId, CancellationToken ct = default);
 
-    Task<List<BranchStaffDto>> GetStaffAsync(
+    Task<PagedResult<BranchStaffDto>> GetStaffAsync(
         Guid branchId,
+        PaginationQuery query,
         Guid? managerId = null,
         CancellationToken ct = default);
 
@@ -30,8 +32,9 @@ public interface IBranchService
         Guid userId,
         CancellationToken ct = default);
 
-    Task<List<BranchServiceDto>> GetServicesAsync(
+    Task<PagedResult<BranchServiceDto>> GetServicesAsync(
         Guid branchId,
+        PaginationQuery query,
         CancellationToken ct = default);
 
     Task AssignServicesAsync(

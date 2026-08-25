@@ -7,6 +7,7 @@ using WashingCar_Common.Enum;
 using WashingCar_Common.Exceptions;
 using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
+using WashingCar_Domain.DTOs;
 using WashingCar_Domain.DTOs.Vehicle;
 
 namespace WashingCar_BLL.Services
@@ -35,10 +36,17 @@ namespace WashingCar_BLL.Services
 
         /// <summary>Danh sách xe (chưa xoá mềm) của khách đang đăng nhập.</summary>
         /// <remarks>Gọi: IVehicleRepository.GetByUserIdAsync.</remarks>
-        public async Task<List<VehicleDto>> GetMyVehiclesAsync(Guid userId)
+        public async Task<PagedResult<VehicleDto>> GetMyVehiclesAsync(
+            Guid userId, VehicleQuery query, CancellationToken ct = default)
         {
-            var vehicles = await _vehicleRepo.GetByUserIdAsync(userId);
-            return vehicles.Select(v => v.ToDto()).ToList();
+            var (vehicles, totalCount) = await _vehicleRepo.GetByUserIdAsync(userId, query, ct);
+            return new PagedResult<VehicleDto>
+            {
+                Items = vehicles.Select(v => v.ToDto()).ToList(),
+                TotalCount = totalCount,
+                PageNumber = query.Page,
+                PageSize = query.PageSize,
+            };
         }
 
         /// <summary>Data isolation ở tầng query: 404 (không phải 403) nếu xe thuộc user khác — tránh lộ "xe này tồn tại".</summary>

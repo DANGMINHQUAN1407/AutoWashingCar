@@ -37,7 +37,7 @@ public class ServiceCatalogService : IServiceCatalogService
 
         return new PagedResult<ServiceCatalogDto>
         {
-            Items = items.Select(s => s.ToDto()).ToList(),
+            Items = items.Select(s => s.ToDto(query.VehicleType, query.EngineCatalogId)).ToList(),
             TotalCount = totalCount,
             PageNumber = query.Page,
             PageSize = query.PageSize,

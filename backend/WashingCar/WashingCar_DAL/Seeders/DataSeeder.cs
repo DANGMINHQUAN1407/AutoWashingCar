@@ -25,10 +25,13 @@ public static class DataSeeder
         // --- BƯỚC 2: SEED GÓI DỊCH VỤ VÀ ADD-ON ---
         await SeedDefaultServicesAndAddOnsAsync(db);
 
-        // --- BƯỚC 3: SEED HẠNG THÀNH VIÊN VÀ QUYỀN LỢI ---
+        // --- BƯỚC 3: BACKFILL BẢNG GIÁ THEO LOẠI XE/ĐỘNG CƠ ---
+        await SeedServiceVehiclePricingAsync(db);
+
+        // --- BƯỚC 4: SEED HẠNG THÀNH VIÊN VÀ QUYỀN LỢI ---
         await SeedTiersAndBenefitsAsync(db);
 
-        // --- BƯỚC 4: TẠO TÀI KHOẢN SUPER ADMIN ---
+        // --- BƯỚC 5: TẠO TÀI KHOẢN SUPER ADMIN ---
         await SeedAdminAsync(db, configuration);
     }
 
@@ -306,6 +309,82 @@ public static class DataSeeder
 
         await db.SaveChangesAsync();
     }
+
+    private static async Task SeedServiceVehiclePricingAsync(WashingCarDbContext db)
+    {
+        var services = await db.ServiceCatalogItems
+            .Where(s => s.IsActive && s.ServiceNodeType == (byte)ServiceNodeType.Leaf)
+            .ToListAsync();
+
+        var engines = (await db.VehicleEngineCatalogs
+            .Where(e => e.IsActive)
+            .ToListAsync())
+            .ToDictionary(e => e.Code, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var service in services)
+        {
+            // BasePrice cũ được xem là giá chuẩn cho ô tô trong lần backfill đầu tiên.
+            await EnsurePricingRuleAsync(db, service, VehicleType.Motorbike, null,
+                ScalePrice(service.BasePrice, 0.60m), ScaleDuration(service.DurationMinutes, 0.75m));
+            await EnsurePricingRuleAsync(db, service, VehicleType.Car, null,
+                service.BasePrice, service.DurationMinutes);
+            await EnsurePricingRuleAsync(db, service, VehicleType.Truck, null,
+                ScalePrice(service.BasePrice, 1.50m), ScaleDuration(service.DurationMinutes, 1.50m));
+
+            // Engine override minh bạch cho ô tô điện/hybrid; các engine khác fallback về giá mặc định của loại xe.
+            if (engines.TryGetValue("ELECTRIC", out var electric))
+            {
+                await EnsurePricingRuleAsync(db, service, VehicleType.Car, electric.VehicleEngineCatalogId,
+                    ScalePrice(service.BasePrice, 1.10m), ScaleDuration(service.DurationMinutes, 1.10m));
+            }
+
+            if (engines.TryGetValue("HYBRID", out var hybrid))
+            {
+                await EnsurePricingRuleAsync(db, service, VehicleType.Car, hybrid.VehicleEngineCatalogId,
+                    ScalePrice(service.BasePrice, 1.05m), ScaleDuration(service.DurationMinutes, 1.05m));
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsurePricingRuleAsync(
+        WashingCarDbContext db,
+        ServiceCatalogItem service,
+        VehicleType vehicleType,
+        Guid? engineCatalogId,
+        decimal unitPrice,
+        short durationMinutes)
+    {
+        var exists = await db.ServiceVehiclePricings.AnyAsync(x =>
+            x.ServiceCatalogItemId == service.ServiceCatalogItemId
+            && x.VehicleType == vehicleType
+            && x.EngineCatalogId == engineCatalogId);
+
+        if (exists)
+            return;
+
+        await db.ServiceVehiclePricings.AddAsync(new ServiceVehiclePricing
+        {
+            ServiceVehiclePricingId = Guid.NewGuid(),
+            ServiceCatalogItemId = service.ServiceCatalogItemId,
+            VehicleType = vehicleType,
+            EngineCatalogId = engineCatalogId,
+            UnitPrice = unitPrice,
+            DurationMinutes = durationMinutes,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+    }
+
+    private static decimal ScalePrice(decimal value, decimal multiplier)
+        => Math.Max(1m, Math.Round(value * multiplier, 0, MidpointRounding.AwayFromZero));
+
+    private static short ScaleDuration(short value, decimal multiplier)
+        => (short)Math.Clamp(
+            Math.Round(value * multiplier, 0, MidpointRounding.AwayFromZero),
+            1,
+            short.MaxValue);
 
     private static async Task SeedAdminAsync(WashingCarDbContext db, IConfiguration configuration)
     {

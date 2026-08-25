@@ -37,5 +37,7 @@ public partial class ServiceCatalogItem
 
     public virtual ICollection<BranchService> BranchServices { get; set; } = new List<BranchService>();
 
+    public virtual ICollection<ServiceVehiclePricing> ServiceVehiclePricings { get; set; } = new List<ServiceVehiclePricing>();
+
     public virtual ICollection<BookingLine> BookingLines { get; set; } = new List<BookingLine>();
 }

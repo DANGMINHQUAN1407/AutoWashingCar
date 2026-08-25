@@ -39,9 +39,12 @@ public interface IPaymentRepository
     /// <summary>Booking có payment Completed loại FullPayment (thanh toán 100% 1 lần, không qua cọc) không — dùng để cộng bonus điểm loyalty.</summary>
     Task<bool> HasCompletedFullPaymentAsync(Guid bookingId, CancellationToken ct = default);
 
-    /// <summary>Danh sách payment lọc + phân trang. ownerUserId != null ⇒ chỉ payment của khách đó.</summary>
+    /// <summary>Danh sách payment lọc + phân trang. ownerUserId lọc theo khách; branchId lọc theo chi nhánh của actor privileged.</summary>
     Task<(List<Payment> Items, int TotalCount)> GetPagedAsync(
-        PaymentQuery query, Guid? ownerUserId, CancellationToken ct = default);
+        PaymentQuery query,
+        Guid? ownerUserId,
+        Guid? branchId = null,
+        CancellationToken ct = default);
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }

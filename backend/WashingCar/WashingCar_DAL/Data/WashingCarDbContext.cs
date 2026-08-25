@@ -40,6 +40,12 @@ public partial class WashingCarDbContext : DbContext
 
     public virtual DbSet<ServiceCatalogItem> ServiceCatalogItems { get; set; }
 
+    public virtual DbSet<ServiceVehiclePricing> ServiceVehiclePricings { get; set; }
+
+    public virtual DbSet<VehicleTransferRequest> VehicleTransferRequests { get; set; }
+
+    public virtual DbSet<VehicleOwnershipHistory> VehicleOwnershipHistories { get; set; }
+
     public virtual DbSet<SlotInventory> SlotInventories { get; set; }
 
     public virtual DbSet<TenderAllocation> TenderAllocations { get; set; }
@@ -319,6 +325,12 @@ public partial class WashingCarDbContext : DbContext
 
             entity.HasIndex(e => e.BookingId, "IX_LLE_BookingId").HasFilter("([BookingId] IS NOT NULL)");
 
+            // Một booking chỉ có tối đa một Earn, một Redeem và một Expire ledger.
+            // Adjust không thuộc index vì có thể là nhiều lần điều chỉnh và thường không gắn BookingId.
+            entity.HasIndex(e => new { e.BookingId, e.EntryType }, "UQ_LLE_Booking_EntryType")
+                .IsUnique()
+                .HasFilter("([BookingId] IS NOT NULL AND [EntryType] IN (1, 2, 3))");
+
             entity.HasIndex(e => new { e.LoyaltyAccountId, e.CreatedAtUtc }, "IX_LLE_LoyaltyAccount_Created").IsDescending(false, true);
 
             entity.HasIndex(e => e.UserId, "IX_LLE_UserId");
@@ -478,6 +490,59 @@ public partial class WashingCarDbContext : DbContext
                     "CK_ServiceCatalogItem_GroupBillingFields",
                     "([ServiceNodeType] = 1 AND [BasePrice] = 0 AND [DurationMinutes] = 0) OR [ServiceNodeType] = 2");
             });
+        });
+
+        modelBuilder.Entity<ServiceVehiclePricing>(entity =>
+        {
+            entity.ToTable("ServiceVehiclePricing", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_UnitPrice",
+                    "[UnitPrice] > 0");
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_DurationMinutes",
+                    "[DurationMinutes] > 0");
+                table.HasCheckConstraint(
+                    "CK_ServiceVehiclePricing_VehicleType",
+                    "[VehicleType] IN (1, 2, 3)");
+            });
+
+            entity.Property(e => e.ServiceVehiclePricingId)
+                .HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.VehicleType)
+                .HasColumnType("tinyint");
+            entity.Property(e => e.UnitPrice)
+                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DurationMinutes)
+                .HasColumnType("smallint");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(3);
+
+            entity.HasIndex(e => new { e.ServiceCatalogItemId, e.VehicleType, e.EngineCatalogId })
+                .HasDatabaseName("UX_ServiceVehiclePricing_ExactScope")
+                .IsUnique()
+                .HasFilter("[EngineCatalogId] IS NOT NULL");
+            entity.HasIndex(e => new { e.ServiceCatalogItemId, e.VehicleType })
+                .HasDatabaseName("UX_ServiceVehiclePricing_DefaultScope")
+                .IsUnique()
+                .HasFilter("[EngineCatalogId] IS NULL");
+
+            entity.HasOne(e => e.ServiceCatalogItem)
+                .WithMany(e => e.ServiceVehiclePricings)
+                .HasForeignKey(e => e.ServiceCatalogItemId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ServiceVehiclePricing_Service");
+
+            entity.HasOne(e => e.EngineCatalog)
+                .WithMany(e => e.ServiceVehiclePricings)
+                .HasForeignKey(e => e.EngineCatalogId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_ServiceVehiclePricing_EngineCatalog");
         });
 
         modelBuilder.Entity<SlotInventory>(entity =>
@@ -699,6 +764,87 @@ public partial class WashingCarDbContext : DbContext
             entity.Property(e => e.CreatedAtUtc).HasPrecision(3).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.UpdatedAtUtc).HasPrecision(3);
             entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<VehicleTransferRequest>(entity =>
+        {
+            entity.ToTable("VehicleTransferRequest", table =>
+            {
+                table.HasCheckConstraint("CK_VehicleTransferRequest_Status", "[Status] IN (1, 2, 3, 4)");
+                table.HasCheckConstraint("CK_VehicleTransferRequest_DifferentUsers", "[FromUserId] <> [ToUserId]");
+            });
+            entity.HasKey(e => e.VehicleTransferRequestId);
+            entity.HasIndex(e => e.VehicleId, "IX_VehicleTransferRequest_VehicleId");
+            entity.HasIndex(e => e.ToUserId, "IX_VehicleTransferRequest_ToUserId");
+            entity.HasIndex(e => new { e.Status, e.CreatedAtUtc }, "IX_VehicleTransferRequest_Status_CreatedAtUtc");
+            entity.HasIndex(e => e.VehicleId, "UX_VehicleTransferRequest_PendingVehicle")
+                .IsUnique()
+                .HasFilter("([Status]=(1))");
+            entity.Property(e => e.VehicleTransferRequestId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Status).HasDefaultValue((byte)VehicleTransferStatus.Pending);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.ReviewNote).HasMaxLength(500);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.ReviewedAtUtc).HasPrecision(3);
+            entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.VehicleTransferRequests)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VehicleTransferRequest_Vehicle");
+            entity.HasOne(d => d.FromUser).WithMany(p => p.VehicleTransferRequestsFrom)
+                .HasForeignKey(d => d.FromUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VehicleTransferRequest_FromUser");
+            entity.HasOne(d => d.ToUser).WithMany(p => p.VehicleTransferRequestsTo)
+                .HasForeignKey(d => d.ToUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VehicleTransferRequest_ToUser");
+            entity.HasOne(d => d.ReviewedByUser).WithMany(p => p.VehicleTransferRequestsReviewed)
+                .HasForeignKey(d => d.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_VehicleTransferRequest_ReviewedBy");
+        });
+
+        modelBuilder.Entity<VehicleOwnershipHistory>(entity =>
+        {
+            entity.ToTable("VehicleOwnershipHistory", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_VehicleOwnershipHistory_ValidPeriod",
+                    "[OwnedToUtc] IS NULL OR [OwnedToUtc] >= [OwnedFromUtc]");
+            });
+            entity.HasKey(e => e.VehicleOwnershipHistoryId);
+            entity.HasIndex(e => e.VehicleId, "IX_VehicleOwnershipHistory_VehicleId");
+            entity.HasIndex(e => e.UserId, "IX_VehicleOwnershipHistory_UserId");
+            entity.HasIndex(e => e.VehicleId, "UX_VehicleOwnershipHistory_Current")
+                .IsUnique()
+                .HasFilter("([OwnedToUtc] IS NULL)");
+            entity.Property(e => e.VehicleOwnershipHistoryId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.OwnedFromUtc).HasPrecision(3);
+            entity.Property(e => e.OwnedToUtc).HasPrecision(3);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(3)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.OwnershipHistories)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VehicleOwnershipHistory_Vehicle");
+            entity.HasOne(d => d.User).WithMany(p => p.VehicleOwnershipHistories)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_VehicleOwnershipHistory_User");
+            entity.HasOne(d => d.VehicleTransferRequest).WithMany(p => p.OwnershipHistories)
+                .HasForeignKey(d => d.VehicleTransferRequestId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_VehicleOwnershipHistory_TransferRequest");
+            entity.HasOne(d => d.RecordedByUser).WithMany(p => p.RecordedOwnershipHistories)
+                .HasForeignKey(d => d.RecordedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_VehicleOwnershipHistory_RecordedBy");
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

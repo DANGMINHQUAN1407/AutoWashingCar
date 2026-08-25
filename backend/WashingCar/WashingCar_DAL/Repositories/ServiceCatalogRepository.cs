@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WashingCar_DAL.Data;
 using WashingCar_DAL.Entities;
+using WashingCar_Common.Enum;
 using WashingCar_DAL.Interfaces;
 using WashingCar_Domain.DTOs.ServiceCatalog;
 
@@ -14,6 +15,13 @@ public class ServiceCatalogRepository(WashingCarDbContext db) : IServiceCatalogR
     {
         var q = _db.ServiceCatalogItems.AsNoTracking();
 
+        if (query.VehicleType.HasValue)
+        {
+            q = q
+                .Include(x => x.ServiceVehiclePricings)
+                .ThenInclude(p => p.EngineCatalog);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var s = query.Search.Trim();
@@ -23,6 +31,25 @@ public class ServiceCatalogRepository(WashingCarDbContext db) : IServiceCatalogR
 
         if (query.IsActive.HasValue)
             q = q.Where(x => x.IsActive == query.IsActive.Value);
+
+        if (query.BranchId.HasValue)
+        {
+            q = q.Where(x => x.BranchServices.Any(bs =>
+                bs.BranchId == query.BranchId.Value && bs.IsActive));
+        }
+
+        if (query.VehicleType.HasValue)
+        {
+            var vehicleType = (byte)query.VehicleType.Value;
+            q = q.Where(x =>
+                x.ServiceNodeType == (byte)ServiceNodeType.Leaf
+                && x.ServiceVehiclePricings.Any(p =>
+                    p.IsActive
+                    && (byte)p.VehicleType == vehicleType
+                    && (query.EngineCatalogId == null
+                        || p.EngineCatalogId == null
+                        || (p.EngineCatalogId == query.EngineCatalogId && p.EngineCatalog!.IsActive))));
+        }
 
         var totalCount = await q.CountAsync();
 

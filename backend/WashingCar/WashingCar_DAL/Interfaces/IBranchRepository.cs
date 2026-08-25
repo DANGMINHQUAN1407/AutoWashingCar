@@ -1,4 +1,6 @@
 using WashingCar_DAL.Entities;
+using WashingCar_Domain.DTOs.Common;
+using WashingCar_Domain.DTOs.Branch;
 
 namespace WashingCar_DAL.Interfaces;
 
@@ -17,9 +19,11 @@ public interface IBranchRepository
 
     Task AddAsync(Branch branch, CancellationToken ct = default);
 
-    Task<List<User>> GetStaffAsync(Guid branchId, CancellationToken ct = default);
+    Task<(List<User> Items, int TotalCount)> GetStaffAsync(
+        Guid branchId, PaginationQuery query, CancellationToken ct = default);
 
-    Task<List<BranchService>> GetServicesAsync(Guid branchId, CancellationToken ct = default);
+    Task<(List<BranchService> Items, int TotalCount)> GetServicesAsync(
+        Guid branchId, PaginationQuery query, CancellationToken ct = default);
 
     Task<BranchService?> GetBranchServiceAsync(Guid branchId, Guid serviceId, CancellationToken ct = default);
 

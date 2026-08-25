@@ -8,6 +8,7 @@ using WashingCar_DAL.Entities;
 using WashingCar_DAL.Interfaces;
 using WashingCar_Domain.DTOs;
 using WashingCar_Domain.DTOs.Branch;
+using WashingCar_Domain.DTOs.Common;
 using BranchServiceEntity = WashingCar_DAL.Entities.BranchService;
 
 namespace WashingCar_BLL.Services;
@@ -24,6 +25,7 @@ public class BranchService(
     IBranchRepository branchRepo,
     IUserRepository userRepo,
     IServiceCatalogRepository serviceCatalogRepo,
+    IServiceVehiclePricingRepository pricingRepo,
     ILogger<BranchService> logger) : IBranchService
 {
     private async Task<Branch> GetBranchForManagerScopeAsync(
@@ -204,15 +206,22 @@ public class BranchService(
 
     /// <summary>Danh sách nhân viên (Staff) thuộc 1 chi nhánh. Ném 404 nếu chi nhánh không tồn tại.</summary>
     /// <remarks>Gọi: IBranchRepository.GetByIdAsync + GetStaffAsync.</remarks>
-    public async Task<List<BranchStaffDto>> GetStaffAsync(
+    public async Task<PagedResult<BranchStaffDto>> GetStaffAsync(
         Guid branchId,
+        PaginationQuery query,
         Guid? managerId = null,
         CancellationToken ct = default)
     {
         await GetBranchForManagerScopeAsync(branchId, managerId, ct);
 
-        var staff = await branchRepo.GetStaffAsync(branchId, ct);
-        return staff.Select(u => u.ToStaffDto()).ToList();
+        var (staff, totalCount) = await branchRepo.GetStaffAsync(branchId, query, ct);
+        return new PagedResult<BranchStaffDto>
+        {
+            Items = staff.Select(u => u.ToStaffDto()).ToList(),
+            TotalCount = totalCount,
+            PageNumber = query.Page,
+            PageSize = query.PageSize,
+        };
     }
 
     /// <remarks>
@@ -263,13 +272,20 @@ public class BranchService(
 
     /// <summary>Danh sách dịch vụ mà 1 chi nhánh cung cấp (bảng BranchService). Đây là nguồn dữ liệu cho màn hình dịch vụ của Manager và cho khách khi đặt lịch tại chi nhánh.</summary>
     /// <remarks>Gọi: IBranchRepository.GetByIdAsync + GetServicesAsync.</remarks>
-    public async Task<List<BranchServiceDto>> GetServicesAsync(Guid branchId, CancellationToken ct = default)
+    public async Task<PagedResult<BranchServiceDto>> GetServicesAsync(
+        Guid branchId, PaginationQuery query, CancellationToken ct = default)
     {
         if (await branchRepo.GetByIdAsync(branchId, ct) is null)
             throw AppException.NotFound(ValidationMessage.Branch.NotFound);
 
-        var list = await branchRepo.GetServicesAsync(branchId, ct);
-        return list.Select(bs => bs.ToDto()).ToList();
+        var (services, totalCount) = await branchRepo.GetServicesAsync(branchId, query, ct);
+        return new PagedResult<BranchServiceDto>
+        {
+            Items = services.Select(bs => bs.ToDto()).ToList(),
+            TotalCount = totalCount,
+            PageNumber = query.Page,
+            PageSize = query.PageSize,
+        };
     }
 
     /// <summary>
@@ -295,6 +311,12 @@ public class BranchService(
                 ?? throw AppException.NotFound(ValidationMessage.ServiceCatalog.NotFound);
             if (catalogItem.ServiceNodeType == (byte)ServiceNodeType.Group)
                 throw AppException.BadRequest(ValidationMessage.ServiceCatalog.GroupCannotBeAssignedToBranch);
+            if (!catalogItem.IsActive)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.ServiceInactive);
+
+            var pricingRules = await pricingRepo.GetForServiceAsync(serviceId, includeInactive: false, ct: ct);
+            if (pricingRules.Count == 0)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.NoActiveRule);
 
             var existing = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct);
             if (existing is not null)
@@ -333,6 +355,18 @@ public class BranchService(
 
         var bs = await branchRepo.GetBranchServiceAsync(branchId, serviceId, ct)
             ?? throw AppException.NotFound(ValidationMessage.Branch.ServiceNotAssigned);
+
+        if (isActive)
+        {
+            var catalogItem = await serviceCatalogRepo.GetByIdAsync(serviceId)
+                ?? throw AppException.NotFound(ValidationMessage.ServiceCatalog.NotFound);
+            if (!catalogItem.IsActive)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.ServiceInactive);
+
+            var pricingRules = await pricingRepo.GetForServiceAsync(serviceId, includeInactive: false, ct: ct);
+            if (pricingRules.Count == 0)
+                throw AppException.BadRequest(ValidationMessage.ServicePricing.NoActiveRule);
+        }
 
         bs.IsActive = isActive;
         await branchRepo.SaveChangesAsync(ct);
