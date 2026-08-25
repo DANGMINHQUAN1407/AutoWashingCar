@@ -186,7 +186,7 @@ export default function StaffCustomers() {
         setGuestMode(true)
       }
     } catch {
-      setError('Customer lookup failed. Check your connection.')
+      setError('Tra cứu khách hàng thất bại. Vui lòng kiểm tra kết nối.')
     }
     setSearchDone(true)
     setSearching(false)
@@ -203,7 +203,7 @@ export default function StaffCustomers() {
       })
       applyCustomer(result as CustomerInfo)
     } catch (e: any) {
-      setError(e?.message || 'Failed to create guest account.')
+      setError(e?.message || 'Không thể tạo tài khoản khách vãng lai.')
     }
     setGuestRegistering(false)
   }
@@ -231,11 +231,11 @@ export default function StaffCustomers() {
   const total = services.filter(s => selected.has(s.serviceId)).reduce((sum, s) => sum + s.basePrice, 0)
 
   const handleConfirm = async () => {
-    if (!customer) { setError('Search for a customer first.'); return }
-    if (!slotId) { setError('Please select a time slot.'); return }
-    if (selected.size === 0) { setError('Please select at least one service.'); return }
-    if (!addNew && !selectedVehicleId) { setError('Please select or add a vehicle.'); return }
-    if (addNew && !newPlate.trim()) { setError('Enter the vehicle license plate.'); return }
+    if (!customer) { setError('Vui lòng tìm kiếm khách hàng trước.'); return }
+    if (!slotId) { setError('Vui lòng chọn một khung giờ.'); return }
+    if (selected.size === 0) { setError('Vui lòng chọn ít nhất một dịch vụ.'); return }
+    if (!addNew && !selectedVehicleId) { setError('Vui lòng chọn hoặc thêm phương tiện.'); return }
+    if (addNew && !newPlate.trim()) { setError('Vui lòng nhập biển số xe.'); return }
     if (addNew) {
       const plateError = getLicensePlateError(newPlate, newType)
       if (plateError) { setError(plateError); return }
@@ -252,7 +252,7 @@ export default function StaffCustomers() {
         NewVehicle: addNew ? { LicensePlate: formatLicensePlateInput(newPlate, newType), VehicleType: newType, Brand: newBrand || undefined, BrandCatalogId: newBrandCatalogId && newBrandCatalogId !== CUSTOM_BRAND_VALUE ? newBrandCatalogId : undefined } : undefined,
         VoucherCode: voucherCode.trim() || undefined,
       })
-      setSuccess(`Walk-in booking ${booking.bookingCode} created — vehicle added to queue!`)
+      setSuccess(`Đã tạo đơn khách trực tiếp ${booking.bookingCode} — xe đã được thêm vào hàng đợi!`)
       setCustomer(null)
       setPhone('')
       setSelected(new Set())
@@ -274,6 +274,10 @@ export default function StaffCustomers() {
     }
     setSubmitting(false)
   }
+
+  const effectiveVehicleType = addNew 
+    ? newType 
+    : (customer?.vehicles?.find(v => v.vehicleId === selectedVehicleId)?.vehicleType ?? newType ?? 2)
 
   return (
     <div className="portal-page">
@@ -521,7 +525,12 @@ export default function StaffCustomers() {
         {/* ── Right: Services + Slot + Footer ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div className="checkin-panel" style={{ borderTop: '4px solid var(--color-primary)' }}>
-            <div className="service-section-title" style={{ fontSize: '1.1rem' }}>Gói Dịch Vụ</div>
+            <div className="service-section-title" style={{ fontSize: '1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Gói Dịch Vụ</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                {effectiveVehicleType === 1 ? '🏍️ Xe máy' : effectiveVehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+              </span>
+            </div>
             {servicesLoading ? (
               <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Đang tải dịch vụ…</div>
             ) : services.length === 0 ? (
@@ -530,7 +539,9 @@ export default function StaffCustomers() {
               </div>
             ) : (
               <div className="service-grid">
-                {services.map(s => (
+                {services
+                  .filter(s => !s.vehicleType || s.vehicleType === effectiveVehicleType)
+                  .map(s => (
                   <div
                     key={s.serviceId}
                     className={`service-item ${selected.has(s.serviceId) ? 'selected' : ''}`}
@@ -544,7 +555,9 @@ export default function StaffCustomers() {
                         </svg>
                       )}
                     </div>
-                    <div className="service-item-name" style={{ fontSize: '0.9rem', fontWeight: 600 }}>{s.serviceName}</div>
+                    <div className="service-item-name" style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {s.serviceName}
+                    </div>
                     <div className="service-item-price" style={{ fontSize: '0.9rem' }}>
                       {s.basePrice.toLocaleString('vi-VN')}đ
                     </div>

@@ -35,7 +35,7 @@ export default function CustomerProfile() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!fullName.trim()) {
-      setProfileMessage({ text: 'Please enter your full name.', type: 'error' })
+      setProfileMessage({ text: 'Vui lòng nhập họ và tên của bạn.', type: 'error' })
       return
     }
 
@@ -69,10 +69,10 @@ export default function CustomerProfile() {
         }
       }
 
-      setProfileMessage({ text: 'Profile details updated successfully!', type: 'success' })
+      setProfileMessage({ text: 'Cập nhật thông tin cá nhân thành công!', type: 'success' })
     } catch (err: any) {
       console.error(err)
-      setProfileMessage({ text: extractErrorMessage(err, 'Failed to update profile information. Please try again.'), type: 'error' })
+      setProfileMessage({ text: extractErrorMessage(err, 'Không thể cập nhật thông tin cá nhân. Vui lòng thử lại.'), type: 'error' })
     } finally {
       setProfileLoading(false)
     }
@@ -81,17 +81,17 @@ export default function CustomerProfile() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setPasswordMessage({ text: 'Please fill in all password fields.', type: 'error' })
+      setPasswordMessage({ text: 'Vui lòng điền đầy đủ các trường mật khẩu.', type: 'error' })
       return
     }
 
     if (newPassword.length < 8) {
-      setPasswordMessage({ text: 'New password must be at least 8 characters long.', type: 'error' })
+      setPasswordMessage({ text: 'Mật khẩu mới phải có ít nhất 8 ký tự.', type: 'error' })
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ text: 'New password and confirm password do not match.', type: 'error' })
+      setPasswordMessage({ text: 'Mật khẩu mới và xác nhận lại mật khẩu không khớp.', type: 'error' })
       return
     }
 

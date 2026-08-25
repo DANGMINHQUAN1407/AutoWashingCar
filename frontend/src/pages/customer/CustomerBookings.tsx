@@ -507,17 +507,26 @@ export default function CustomerBookings() {
         });
 
         if (catalogRes?.items && catalogRes.items.length > 0) {
-          const mappedServices: BranchService[] = catalogRes.items.map(item => ({
-            branchServiceId: item.serviceCatalogItemId || '',
-            branchId: selectedBranchId,
-            serviceId: item.serviceCatalogItemId || '',
-            serviceName: item.serviceName || item.name || '',
-            description: item.description || '',
-            basePrice: (item.applicablePrice != null ? item.applicablePrice : item.basePrice) || 0,
-            durationMinutes: (item.applicableDurationMinutes != null ? item.applicableDurationMinutes : item.durationMinutes) || 0,
-            servicePackageType: item.servicePackageType || 1,
-            isActive: item.isActive ?? true,
-          }));
+          const mappedServices: BranchService[] = catalogRes.items
+            .filter(item => {
+              if (vType) {
+                return item.vehicleType === vType || item.vehicleType === null || item.vehicleType === undefined;
+              }
+              return true;
+            })
+            .map(item => ({
+              branchServiceId: item.serviceCatalogItemId || '',
+              branchId: selectedBranchId,
+              serviceId: item.serviceCatalogItemId || '',
+              serviceName: item.serviceName || item.name || '',
+              description: item.description || '',
+              basePrice: (item.applicablePrice != null && item.applicablePrice > 0 ? item.applicablePrice : item.basePrice) || 0,
+              durationMinutes: (item.applicableDurationMinutes != null && item.applicableDurationMinutes > 0 ? item.applicableDurationMinutes : item.durationMinutes) || 0,
+              vehicleType: item.vehicleType ?? undefined,
+              vehicleTypeName: item.vehicleTypeName,
+              servicePackageType: item.servicePackageType || 1,
+              isActive: item.isActive ?? true,
+            }));
           setServices(mappedServices);
 
           // Keep previously selected services if still available
@@ -525,7 +534,9 @@ export default function CustomerBookings() {
         } else {
           // Fallback to getBranchServices if needed
           const items = await api.getBranchServices(selectedBranchId);
-          const activeServices = items.filter(s => s.isActive) || [];
+          const activeServices = items
+            .filter(s => s.isActive)
+            .filter(s => !vType || s.vehicleType === vType || !s.vehicleType) || [];
           setServices(activeServices);
           setSelectedServiceIds(prev => prev.filter(id => activeServices.some(s => s.serviceId === id)));
         }
@@ -1176,25 +1187,25 @@ export default function CustomerBookings() {
                 className={`wizard-step-node ${wizardStep === 1 ? 'active' : ''} ${wizardStep > 1 ? 'completed' : ''}`}
               >
                 <div className="step-number">1</div>
-                <div className="step-label">Branch & Services</div>
+                <div className="step-label">Chọn chi nhánh</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 2 ? 'active' : ''} ${wizardStep > 2 ? 'completed' : ''}`}
               >
                 <div className="step-number">2</div>
-                <div className="step-label">Choose Vehicle</div>
+                <div className="step-label">Chọn phương tiện</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 3 ? 'active' : ''} ${wizardStep > 3 ? 'completed' : ''}`}
               >
                 <div className="step-number">3</div>
-                <div className="step-label">Choose Date & Time</div>
+                <div className="step-label">Chọn ngày &amp; giờ</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 4 ? 'active' : ''} ${wizardStep > 4 ? 'completed' : ''}`}
               >
                 <div className="step-number">4</div>
-                <div className="step-label">Confirm</div>
+                <div className="step-label">Báo giá &amp; Xác nhận</div>
               </div>
             </div>
           )}
@@ -1202,9 +1213,9 @@ export default function CustomerBookings() {
           {/* STEP 1: SELECT BRANCH & CHOOSE PRELIMINARY SERVICES */}
           {wizardStep === 1 && (
             <div>
-              <h3>Step 1: Select Branch</h3>
+              <h3>Bước 1: Chọn chi nhánh</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Please select the branch most convenient for you.
+                Vui lòng chọn chi nhánh thuận tiện nhất cho bạn.
               </p>
 
               {bookingLimitMessage && (
@@ -1223,9 +1234,9 @@ export default function CustomerBookings() {
               )}
 
               {branchesLoading ? (
-                <p>Loading branches...</p>
+                <p>Đang tải danh sách chi nhánh...</p>
               ) : branches.length === 0 ? (
-                <p>No active branches available. Please contact the shop to create or activate a branch.</p>
+                <p>Chưa có chi nhánh nào hoạt động. Vui lòng liên hệ trung tâm để được hỗ trợ.</p>
               ) : (
                 <div className="wizard-selection-grid">
                   {branches.map(b => (
@@ -1249,7 +1260,7 @@ export default function CustomerBookings() {
                             marginTop: '8px',
                           }}
                         >
-                          🕒 Hours: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
+                          🕒 Giờ hoạt động: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
                         </p>
                       )}
                     </div>
@@ -1259,7 +1270,7 @@ export default function CustomerBookings() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
                 <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')} showArrow={false}>
-                  ← Cancel
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1267,7 +1278,7 @@ export default function CustomerBookings() {
                   disabled={!selectedBranchId || !!bookingLimitMessage}
                   onClick={() => setWizardStep(2)}
                 >
-                  Next
+                  Tiếp tục →
                 </AnimatedButton>
               </div>
             </div>
@@ -1276,15 +1287,15 @@ export default function CustomerBookings() {
           {/* STEP 2: SELECT VEHICLE OR ADD VEHICLE */}
           {wizardStep === 2 && (
             <div>
-              <h3>Step 2: Choose Your Vehicle</h3>
+              <h3>Bước 2: Chọn phương tiện</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Select the vehicle you want to wash or register a new one below.
+                Chọn xe bạn muốn rửa hoặc đăng ký xe mới bên dưới.
               </p>
 
               <div className="wizard-selection-grid">
                 {vehicles.map(v => {
                   const plate = v.LicensePlate || v.licensePlate;
-                  const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Unknown Brand';
+                  const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Chưa rõ hãng';
                   const type = v.VehicleType ?? v.vehicleType ?? 2;
                   const id = v.VehicleId || v.vehicleId;
                   const imageUrl = v.PrimaryImageUrl || v.primaryImageUrl;
@@ -1357,7 +1368,7 @@ export default function CustomerBookings() {
                   >
                     <div className="quick-vehicle-btn-content">
                       <span style={{ fontSize: '1.8rem' }}>➕</span>
-                      <span>Register New Vehicle</span>
+                      <span>Đăng ký xe mới</span>
                     </div>
                   </div>
                 ) : (
@@ -1365,14 +1376,14 @@ export default function CustomerBookings() {
                     className="wizard-card-item"
                     style={{ border: '1px solid var(--color-primary)', cursor: 'default' }}
                   >
-                    <h4 style={{ marginBottom: '12px' }}>Quick Register</h4>
+                    <h4 style={{ marginBottom: '12px' }}>Đăng ký nhanh xe mới</h4>
                     <form
                       onSubmit={handleQuickVehicleSubmit}
                       style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
                     >
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          License Plate
+                          Biển số xe
                         </label>
                         <input
                           className="form-input"
@@ -1394,7 +1405,7 @@ export default function CustomerBookings() {
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Vehicle Type
+                          Loại phương tiện
                         </label>
                         <select
                           className="form-input"
@@ -1410,14 +1421,14 @@ export default function CustomerBookings() {
                             setQuickBodyStyleCatalogId('');
                           }}
                         >
-                          <option value={2}>Car</option>
-                          <option value={1}>Motorbike</option>
-                          <option value={3}>Truck (Xe tải / xe ba gác)</option>
+                          <option value={2}>Ô tô</option>
+                          <option value={1}>Xe máy</option>
+                          <option value={3}>Xe tải (Xe tải / xe ba gác)</option>
                         </select>
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Brand
+                          Hãng xe
                         </label>
                         <select
                           className="form-input"
@@ -1430,13 +1441,13 @@ export default function CustomerBookings() {
                             setQuickBrand(catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '');
                           }}
                         >
-                          <option value="">-- Select brand --</option>
+                          <option value="">-- Chọn hãng xe --</option>
                           {brandCatalogs
                             .filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(quickType))
                             .map(cat => (
                               <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
-                          <option value={CUSTOM_BRAND_VALUE}>Other / custom</option>
+                          <option value={CUSTOM_BRAND_VALUE}>Khác / Tùy chỉnh</option>
                         </select>
                         {quickBrandCatalogId === CUSTOM_BRAND_VALUE && (
                           <input
@@ -1444,14 +1455,14 @@ export default function CustomerBookings() {
                             style={{ padding: '6px 10px', fontSize: '0.9rem', marginTop: 8 }}
                             value={quickBrand}
                             onChange={e => setQuickBrand(e.target.value)}
-                            placeholder="Enter brand"
+                            placeholder="Nhập tên hãng xe"
                             maxLength={50}
                           />
                         )}
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Model (Dòng xe)
+                          Dòng xe (Model)
                         </label>
                         <input
                           className="form-input"
@@ -1538,7 +1549,7 @@ export default function CustomerBookings() {
                           style={{ flex: 1 }}
                           onClick={() => setShowQuickVehicle(false)}
                         >
-                          Cancel
+                          Hủy bỏ
                         </AnimatedButton>
                         <AnimatedButton
                           type="submit"
@@ -1546,7 +1557,7 @@ export default function CustomerBookings() {
                           style={{ flex: 1 }}
                           disabled={quickVehicleLoading}
                         >
-                          {quickVehicleLoading ? 'Creating...' : 'Save Vehicle'}
+                          {quickVehicleLoading ? 'Đang tạo...' : 'Lưu phương tiện'}
                         </AnimatedButton>
                       </div>
                     </form>
@@ -1556,7 +1567,7 @@ export default function CustomerBookings() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
                 <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(1)} showArrow={false}>
-                  ← Back
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1564,7 +1575,7 @@ export default function CustomerBookings() {
                   disabled={!selectedVehicleId}
                   onClick={() => setWizardStep(3)}
                 >
-                  Next
+                  Tiếp tục →
                 </AnimatedButton>
               </div>
             </div>
@@ -1573,9 +1584,9 @@ export default function CustomerBookings() {
           {/* STEP 3: SELECT SERVICES & DATE/TIME SLOT */}
           {wizardStep === 3 && (
             <div>
-              <h3>Step 3: Services & Appointment Time</h3>
+              <h3>Bước 3: Dịch vụ &amp; Giờ hẹn</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                Please select the services you need and choose an available time slot.
+                Vui lòng chọn các dịch vụ cần thực hiện và chọn khung giờ còn trống.
               </p>
 
               {/* Vehicle & Pricing Info Banner */}
@@ -1668,7 +1679,7 @@ export default function CustomerBookings() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: '28px', alignItems: 'start' }}>
                 {/* Services list (Left) */}
                 <div>
                   {(() => {
@@ -1719,8 +1730,37 @@ export default function CustomerBookings() {
                       );
                     };
 
+                    const currentVehicle = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+
                     return (
                       <>
+                        {currentVehicle && (
+                          <div style={{ 
+                            padding: '10px 14px', 
+                            background: 'var(--color-primary-dim, rgba(2, 132, 199, 0.08))', 
+                            border: '1px solid var(--color-border-dim)', 
+                            borderRadius: '8px', 
+                            marginBottom: '16px',
+                            fontSize: '0.88rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '8px'
+                          }}>
+                            <span>
+                              🚗 Phương tiện đang chọn: <strong>{currentVehicle.LicensePlate || currentVehicle.licensePlate}</strong> (
+                              {(currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 1 ? '🏍️ Xe máy' :
+                               (currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 2 ? '🚗 Ô tô / Xe hơi' :
+                               (currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 3 ? '🚚 Xe tải' : 'Phương tiện'}
+                              )
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                              ✨ Chỉ hiển thị dịch vụ phù hợp loại xe này
+                            </span>
+                          </div>
+                        )}
+
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px' }}>
                           <h4 style={{ margin: 0 }}>Gói Dịch Vụ Chính</h4>
                           <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>({mainPackages.length} gói)</span>
@@ -1728,7 +1768,7 @@ export default function CustomerBookings() {
 
                         {mainPackages.length === 0 ? (
                           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                            {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào.'}
+                            {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào phù hợp với loại xe của bạn.'}
                           </p>
                         ) : (
                           <div className="wizard-service-list">
@@ -1744,8 +1784,21 @@ export default function CustomerBookings() {
                                   <div className="wizard-service-info">
                                     <h5>
                                       {s.serviceName}
+                                      {s.vehicleType && (
+                                        <span className="badge" style={{ 
+                                          marginLeft: '6px', 
+                                          fontSize: '0.72rem',
+                                          background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' :
+                                                     s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                          color: s.vehicleType === 1 ? '#2563eb' :
+                                                 s.vehicleType === 2 ? '#059669' : '#d97706',
+                                          border: '1px solid currentColor'
+                                        }}>
+                                          {s.vehicleType === 1 ? '🏍️ Xe máy' : s.vehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+                                        </span>
+                                      )}
                                       {(s.servicePackageType ?? 1) === 3 && (
-                                        <span className="badge badge-warning" style={{ marginLeft: '8px' }}>
+                                        <span className="badge badge-warning" style={{ marginLeft: '6px' }}>
                                           Trọn gói
                                         </span>
                                       )}
@@ -1847,38 +1900,56 @@ export default function CustomerBookings() {
                 </div>
 
                 {/* Date & Time Slot selection (Right) */}
-                <div>
+                <div style={{
+                  background: 'var(--color-surface, #ffffff)',
+                  border: '1.5px solid var(--color-border-dim, #e2e8f0)',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  position: 'sticky',
+                  top: '20px'
+                }}>
                   <h4
                     style={{
-                      borderBottom: '1px solid var(--color-border-dim)',
-                      paddingBottom: '8px',
-                      marginBottom: '12px',
+                      borderBottom: '1px solid var(--color-border-dim, #e2e8f0)',
+                      paddingBottom: '10px',
+                      marginBottom: '14px',
+                      fontSize: '1.05rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}
                   >
-                    Appointment Schedule
+                    📅 Khung giờ hẹn
                   </h4>
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="form-label">Select Date</label>
+                  <div className="form-group" style={{ marginBottom: '18px' }}>
+                    <label className="form-label" style={{ fontWeight: 600, marginBottom: '6px' }}>Chọn ngày hẹn</label>
                     <input
                       type="date"
                       className="form-input"
                       value={selectedDate}
                       onChange={e => setSelectedDate(e.target.value)}
                       min={getLocalDateString()}
+                      style={{ width: '100%', fontSize: '0.95rem' }}
                     />
                   </div>
 
-                  <label className="form-label">Available Time Slots</label>
+                  <label className="form-label" style={{ fontWeight: 600, marginBottom: '8px', display: 'block' }}>Khung giờ còn trống</label>
                   {slots.length === 0 ? (
-                    <p
+                    <div
                       style={{
+                        padding: '16px',
+                        background: 'rgba(241, 245, 249, 0.6)',
+                        borderRadius: '10px',
+                        textAlign: 'center',
                         fontSize: '0.88rem',
                         color: 'var(--color-text-muted)',
                         marginTop: '8px',
                       }}
                     >
-                      No available time slots on this date. Please select another date.
-                    </p>
+                      Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                    </div>
                   ) : (
                     <div className="slots-time-grid">
                       {slots.map(slot => {
@@ -1897,10 +1968,10 @@ export default function CustomerBookings() {
                             </span>
                             <span className="slot-chip-meta">
                               {isPast
-                                ? 'Past'
+                                ? 'Đã qua'
                                 : isFull
-                                  ? 'Full'
-                                  : `${slot.availableCount} slots left`}
+                                  ? 'Đã đầy'
+                                  : `Còn ${slot.availableCount} chỗ`}
                             </span>
                           </div>
                         );
@@ -1920,7 +1991,7 @@ export default function CustomerBookings() {
                 }}
               >
                 <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
-                  ← Back
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1932,7 +2003,7 @@ export default function CustomerBookings() {
                   }
                   onClick={() => setWizardStep(4)}
                 >
-                  View Quote &amp; Confirm
+                  Xem báo giá &amp; Xác nhận →
                 </AnimatedButton>
               </div>
             </div>
@@ -1941,16 +2012,16 @@ export default function CustomerBookings() {
           {/* STEP 4: QUOTE PREVIEW & CONFIRM */}
           {wizardStep === 4 && (
             <div>
-              <h3>Step 4: Invoice & Confirmation</h3>
+              <h3>Bước 4: Báo giá &amp; Xác nhận</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Please review your booking details and confirm below.
+                Vui lòng kiểm tra lại thông tin chi tiết và xác nhận đặt lịch bên dưới.
               </p>
 
               {quoteLoading ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Loading invoice details...</p>
+                <p style={{ padding: '20px', textAlign: 'center' }}>Đang tính toán chi tiết báo giá...</p>
               ) : !quote ? (
                 <p className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>
-                  Failed to calculate quote. Please go back and try again.
+                  Không thể tính báo giá. Vui lòng quay lại và thử lại.
                 </p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -1963,7 +2034,7 @@ export default function CustomerBookings() {
                         marginBottom: '14px',
                       }}
                     >
-                      Invoice Summary
+                      Chi tiết hóa đơn
                     </h4>
                     <div className="quote-row">
                       <span>Tiền dịch vụ gốc</span>
@@ -2009,7 +2080,7 @@ export default function CustomerBookings() {
                         marginBottom: '4px',
                       }}
                     >
-                      Booking Summary
+                      Tóm tắt đặt lịch
                     </h4>
                     <div>
                       <p
@@ -2020,11 +2091,11 @@ export default function CustomerBookings() {
                           marginBottom: '2px',
                         }}
                       >
-                        Selected Branch
+                        Chi nhánh đã chọn
                       </p>
                       <p style={{ fontWeight: 600 }}>
                         {branches.find(b => b.branchId === selectedBranchId)?.name ||
-                          'Selected Branch'}
+                          'Chi nhánh đã chọn'}
                       </p>
                     </div>
                     <div>
@@ -2036,13 +2107,13 @@ export default function CustomerBookings() {
                           marginBottom: '2px',
                         }}
                       >
-                        Date & Time
+                        Ngày &amp; Giờ hẹn
                       </p>
                       <p style={{ fontWeight: 600 }}>
-                        {selectedDate} at{' '}
+                        {selectedDate} lúc{' '}
                         {slots
                           .find(s => s.slotInventoryId === selectedSlotId)
-                          ?.slotStartTime?.substring(0, 5) || 'Selected Time'}
+                          ?.slotStartTime?.substring(0, 5) || 'Chưa chọn giờ'}
                       </p>
                     </div>
                     <div>
@@ -2054,12 +2125,12 @@ export default function CustomerBookings() {
                           marginBottom: '4px',
                         }}
                       >
-                        Vehicle
+                        Phương tiện
                       </p>
                       {(() => {
                         const curVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
                         const curImg = curVeh?.PrimaryImageUrl || curVeh?.primaryImageUrl || '';
-                        const curPlate = curVeh?.LicensePlate || curVeh?.licensePlate || 'Selected Vehicle';
+                        const curPlate = curVeh?.LicensePlate || curVeh?.licensePlate || 'Xe đã chọn';
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {curImg ? (
@@ -2451,7 +2522,7 @@ export default function CustomerBookings() {
                 }}
               >
                 <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(3)} showArrow={false}>
-                  ← Back
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -2459,7 +2530,7 @@ export default function CustomerBookings() {
                   disabled={submitLoading || !quote}
                   onClick={handleConfirmBooking}
                 >
-                  {submitLoading ? 'Creating booking...' : 'Confirm & Book Now'}
+                  {submitLoading ? 'Đang tạo lịch hẹn...' : 'Xác nhận & Đặt lịch ngay'}
                 </AnimatedButton>
               </div>
             </div>
@@ -2469,9 +2540,9 @@ export default function CustomerBookings() {
           {wizardStep === 5 && newBooking && (
             <div className="booking-success-card">
               <div className="success-icon-wrap">✓</div>
-              <h2>Booking Successful!</h2>
+              <h2>Đặt lịch thành công!</h2>
               <p style={{ color: 'var(--color-text-muted)', maxWidth: '460px' }}>
-                Thank you for choosing AutoWashPro. Your booking has been received and confirmed.
+                Cảm ơn bạn đã lựa chọn AutoWashPro. Lịch hẹn của bạn đã được tiếp nhận và xử lý.
               </p>
 
               <div
@@ -2501,7 +2572,7 @@ export default function CustomerBookings() {
                     />
                   </div>
                   <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                    Check-in Code: <strong>{newBooking.bookingCode}</strong>
+                    Mã Check-in: <strong>{newBooking.bookingCode}</strong>
                   </span>
                 </div>
 
@@ -2523,17 +2594,17 @@ export default function CustomerBookings() {
                       paddingBottom: '6px',
                     }}
                   >
-                    Booking Summary
+                    Tóm tắt đặt lịch
                   </h4>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    📅 <strong>Date:</strong> {newBooking.slotDate}
+                    📅 <strong>Ngày:</strong> {newBooking.slotDate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    🕒 <strong>Time:</strong>{' '}
+                    🕒 <strong>Giờ:</strong>{' '}
                     {newBooking.slotStartTime ? newBooking.slotStartTime.substring(0, 5) : '00:00'}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    🚘 <strong>License Plate:</strong> {newBooking.licensePlate}
+                    🚘 <strong>Biển số xe:</strong> {newBooking.licensePlate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
                     💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking.bookingSubtotal)}
@@ -2552,7 +2623,7 @@ export default function CustomerBookings() {
                     <p
                       style={{ margin: '6px 0', fontSize: '0.9rem', color: 'var(--color-success)' }}
                     >
-                      🎁 <strong>Discount:</strong> -{formatVND(newBooking.bookingDiscountAmount)}
+                      🎁 <strong>Giảm giá:</strong> -{formatVND(newBooking.bookingDiscountAmount)}
                     </p>
                   )}
                   {newBooking.redeemedPoints > 0 && (
@@ -2571,7 +2642,7 @@ export default function CustomerBookings() {
                       marginTop: '6px',
                     }}
                   >
-                    💰 <strong>Total Amount:</strong> {formatVND(newBooking.bookingFinalAmount)}
+                    💰 <strong>Tổng tiền thanh toán:</strong> {formatVND(newBooking.bookingFinalAmount)}
                   </p>
                 </div>
               </div>
@@ -2588,7 +2659,7 @@ export default function CustomerBookings() {
                 }}
               >
                 <h4 style={{ color: 'var(--color-primary)', marginBottom: '8px' }}>
-                  💳 Online Deposit / Payment via VNPay
+                  💳 Đặt cọc / Thanh toán trực tuyến qua VNPay
                 </h4>
                 <p
                   style={{
@@ -2598,8 +2669,7 @@ export default function CustomerBookings() {
                     lineHeight: '1.4',
                   }}
                 >
-                  To guarantee your spot and speed up check-in, please choose to pay a 50% deposit
-                  online or pay the full 100% amount now via VNPay.
+                  Để đảm bảo giữ chỗ và làm thủ tục nhanh chóng khi đến chi nhánh, bạn có thể thanh toán cọc 50% hoặc thanh toán toàn bộ 100% qua cổng VNPay.
                 </p>
                 <div
                   style={{
@@ -2614,14 +2684,14 @@ export default function CustomerBookings() {
                     variant="primary"
                     onClick={() => handlePaymentRedirect(newBooking.bookingId, false)}
                   >
-                    Pay 50% Deposit ({formatVND(newBooking.bookingFinalAmount / 2)})
+                    Đặt cọc 50% ({formatVND(newBooking.bookingFinalAmount / 2)})
                   </AnimatedButton>
                   <AnimatedButton
                     type="button"
                     variant="secondary"
                     onClick={() => handlePaymentRedirect(newBooking.bookingId, true)}
                   >
-                    Pay 100% Full ({formatVND(newBooking.bookingFinalAmount)})
+                    Thanh toán 100% ({formatVND(newBooking.bookingFinalAmount)})
                   </AnimatedButton>
                 </div>
               </div>
@@ -2632,7 +2702,7 @@ export default function CustomerBookings() {
                 style={{ marginTop: '20px' }}
                 onClick={() => setViewMode('list')}
               >
-                Back to Appointments List
+                Quay lại danh sách lịch hẹn
               </AnimatedButton>
             </div>
           )}
@@ -2652,7 +2722,7 @@ export default function CustomerBookings() {
             </button>
 
             <div className="booking-detail-header-block">
-              <h3>Booking: {selectedBooking.bookingCode}</h3>
+              <h3>Mã đơn: {selectedBooking.bookingCode}</h3>
               <StatusBadge
                 type={getStatusClass(selectedBooking.bookingStatus)}
                 label={getStatusLabel(selectedBooking.bookingStatus)}
@@ -2775,47 +2845,47 @@ export default function CustomerBookings() {
               {/* Info grid */}
               <div className="booking-detail-grid">
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Date</span>
+                  <span className="booking-detail-item-label">Ngày hẹn</span>
                   <span className="booking-detail-item-value">
-                    {selectedBooking.slotDate || 'Not scheduled'}
+                    {selectedBooking.slotDate || 'Chưa lên lịch'}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Time Slot</span>
+                  <span className="booking-detail-item-label">Khung giờ hẹn</span>
                   <span className="booking-detail-item-value">
                     {selectedBooking.slotStartTime
                       ? selectedBooking.slotStartTime.substring(0, 5)
-                      : 'Not scheduled'}
+                      : 'Chưa có khung giờ'}
                     {selectedBooking.slotEndTime
                       ? ` - ${selectedBooking.slotEndTime.substring(0, 5)}`
                       : ''}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Vehicle</span>
+                  <span className="booking-detail-item-label">Phương tiện</span>
                   <span className="booking-detail-item-value">
-                    🚘 {selectedBooking.licensePlate || 'None'} (
-                    {selectedBooking.vehicleBrand || 'Unknown Brand'})
+                    🚘 {selectedBooking.licensePlate || 'Không có'} (
+                    {selectedBooking.vehicleBrand || 'Chưa rõ hãng'})
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Vehicle Type</span>
+                  <span className="booking-detail-item-label">Loại phương tiện</span>
                   <span className="booking-detail-item-value">
                     {getVehicleLabel(selectedBooking.vehicleType)}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Loyalty Points Earned</span>
+                  <span className="booking-detail-item-label">Điểm tích lũy nhận được</span>
                   <span className="booking-detail-item-value">
-                    +{selectedBooking.earnedPoints || 0} pts
+                    +{selectedBooking.earnedPoints || 0} điểm
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Created At</span>
+                  <span className="booking-detail-item-label">Thời gian tạo đơn</span>
                   <span className="booking-detail-item-value">
                     {selectedBooking.createdAtUtc
-                      ? new Date(selectedBooking.createdAtUtc).toLocaleDateString('en-US')
-                      : 'Unknown'}
+                      ? new Date(selectedBooking.createdAtUtc).toLocaleDateString('vi-VN')
+                      : 'Không rõ'}
                   </span>
                 </div>
                 {selectedBooking.assignedStaffName && (
@@ -2833,7 +2903,7 @@ export default function CustomerBookings() {
 
               {/* Service list items */}
               <div className="booking-detail-services-box">
-                <div className="booking-detail-services-title">Services List</div>
+                <div className="booking-detail-services-title">Danh sách dịch vụ</div>
                 {selectedBooking.lines && selectedBooking.lines.length > 0 ? (
                   selectedBooking.lines.map(line => (
                     <div key={line.bookingLineId} className="booking-detail-service-line">
@@ -2847,7 +2917,7 @@ export default function CustomerBookings() {
                   ))
                 ) : (
                   <div className="booking-detail-service-line">
-                    <span>No services found.</span>
+                    <span>Không tìm thấy dịch vụ nào.</span>
                   </div>
                 )}
 
@@ -2911,7 +2981,7 @@ export default function CustomerBookings() {
                       marginTop: '4px',
                     }}
                   >
-                    <span>Total Amount</span>
+                    <span>Tổng tiền</span>
                     <span>{formatVND(selectedBooking.bookingFinalAmount)}</span>
                   </div>
                   {selectedBooking.depositAmount && selectedBooking.depositAmount > 0 ? (
@@ -2926,7 +2996,7 @@ export default function CustomerBookings() {
                           marginTop: '6px',
                         }}
                       >
-                        <span>Online Deposit Paid</span>
+                        <span>Đã cọc trực tuyến</span>
                         <span>-{formatVND(selectedBooking.depositAmount)}</span>
                       </div>
                       <div
@@ -2938,7 +3008,7 @@ export default function CustomerBookings() {
                           marginTop: '4px',
                         }}
                       >
-                        <span>Remaining Balance to Pay at Counter</span>
+                        <span>Số tiền còn lại thanh toán tại quầy</span>
                         <span>
                           {formatVND(
                             selectedBooking.bookingFinalAmount - selectedBooking.depositAmount
@@ -2956,7 +3026,7 @@ export default function CustomerBookings() {
                         marginTop: '4px',
                       }}
                     >
-                      <span>Total Amount to Pay</span>
+                      <span>Tổng tiền cần thanh toán</span>
                       <span>{formatVND(selectedBooking.bookingFinalAmount)}</span>
                     </div>
                   )}
@@ -2980,7 +3050,7 @@ export default function CustomerBookings() {
                       color: 'var(--color-heading)',
                     }}
                   >
-                    Service Review
+                    Đánh giá dịch vụ
                   </div>
                   {(() => {
                     const review = userReviews.find(
@@ -3028,7 +3098,7 @@ export default function CustomerBookings() {
                                 color: 'var(--color-text-muted)',
                               }}
                             >
-                              No comment.
+                              Không có nhận xét.
                             </p>
                           )}
                           {review.isHidden && (
@@ -3036,7 +3106,7 @@ export default function CustomerBookings() {
                               className="badge badge-danger"
                               style={{ marginTop: '8px', display: 'inline-block' }}
                             >
-                              This review is hidden by management
+                              Đánh giá này đã bị ẩn bởi ban quản lý
                             </span>
                           )}
                         </div>
@@ -3051,8 +3121,7 @@ export default function CustomerBookings() {
                               marginBottom: '10px',
                             }}
                           >
-                            You haven't reviewed this appointment yet. Share your experience with
-                            us!
+                            Bạn chưa đánh giá lịch hẹn này. Hãy chia sẻ trải nghiệm với chúng tôi nhé!
                           </p>
                           <button
                             type="button"
@@ -3062,7 +3131,7 @@ export default function CustomerBookings() {
                               handleOpenReviewModal(selectedBooking);
                             }}
                           >
-                            Write Review
+                            Viết đánh giá
                           </button>
                         </div>
                       );
@@ -3088,7 +3157,7 @@ export default function CustomerBookings() {
                       maxWidth: '340px',
                     }}
                   >
-                    Present this QR code or Booking ID to staff at the branch counter for check-in.
+                    Xuất trình mã QR này hoặc Mã đơn cho nhân viên tại quầy chi nhánh để làm thủ tục nhận xe.
                   </p>
                 </div>
               )}
@@ -3103,7 +3172,7 @@ export default function CustomerBookings() {
                   size="sm"
                   onClick={() => handlePaymentRedirect(selectedBooking.bookingId, false)}
                 >
-                  Pay Deposit (50%)
+                  Thanh toán cọc (50%)
                 </AnimatedButton>
               )}
               {(selectedBooking.bookingStatus === 1 || selectedBooking.bookingStatus === 2) && (
@@ -3113,7 +3182,7 @@ export default function CustomerBookings() {
                   size="sm"
                   onClick={() => handleCancelBookingClick(selectedBooking)}
                 >
-                  Cancel Appointment
+                  Hủy lịch hẹn
                 </AnimatedButton>
               )}
               <AnimatedButton
@@ -3122,7 +3191,7 @@ export default function CustomerBookings() {
                 size="sm"
                 onClick={() => setShowDetailsModal(false)}
               >
-                Close
+                Đóng
               </AnimatedButton>
             </div>
           </div>
@@ -3131,19 +3200,19 @@ export default function CustomerBookings() {
 
       <ConfirmModal
         isOpen={showCancelConfirm && !!bookingToCancel}
-        title="Cancel Appointment"
+        title="Hủy lịch hẹn"
         variant="danger"
         onCancel={() => {
           setShowCancelConfirm(false);
           setBookingToCancel(null);
         }}
         onConfirm={handleConfirmCancel}
-        confirmText="Cancel Appointment"
-        cancelText="Dismiss"
+        confirmText="Xác nhận hủy lịch"
+        cancelText="Quay lại"
         message={
           <>
             <p>
-              Are you sure you want to cancel booking code{' '}
+              Bạn có chắc chắn muốn hủy lịch hẹn mã{' '}
               <span className="highlight-plate">{bookingToCancel?.bookingCode}</span>?
             </p>
             <div
@@ -3151,7 +3220,7 @@ export default function CustomerBookings() {
               style={{ width: '100%', textAlign: 'left', marginTop: '12px' }}
             >
               <label className="form-label" htmlFor="cancel-reason-input">
-                Reason for Cancellation
+                Lý do hủy lịch
               </label>
               <textarea
                 id="cancel-reason-input"
@@ -3159,7 +3228,7 @@ export default function CustomerBookings() {
                 style={{ minHeight: '80px', color: 'var(--color-heading)' }}
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
-                placeholder="Enter cancellation reason (e.g., busy schedule, change of mind...)"
+                placeholder="Nhập lý do hủy lịch (ví dụ: bận việc đột xuất, đổi kế hoạch...)"
                 required
               />
             </div>

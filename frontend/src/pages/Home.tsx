@@ -175,6 +175,7 @@ export default function Home() {
     basePrice: svc.applicablePrice != null ? svc.applicablePrice : svc.basePrice,
     durationMinutes: svc.applicableDurationMinutes != null ? svc.applicableDurationMinutes : svc.durationMinutes,
     isActive: svc.isActive,
+    vehicleType: svc.vehicleType ?? null,
   }))
 
   const totalServicePages = Math.max(1, Math.ceil(displayServices.length / SERVICE_PAGE_SIZE))
@@ -592,7 +593,24 @@ export default function Home() {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                       <span>{svc.durationMinutes} phút</span>
                     </div>
-                    <h3 className="service-name" style={{ color: '#0f172a', fontWeight: 800, fontSize: '20px', marginBottom: '8px', paddingRight: '80px' }}>{svc.name}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <h3 className="service-name" style={{ color: '#0f172a', fontWeight: 800, fontSize: '20px', margin: 0, paddingRight: '80px' }}>{svc.name}</h3>
+                      {svc.vehicleType && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: svc.vehicleType === 1 ? 'rgba(59, 130, 246, 0.1)' : svc.vehicleType === 2 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          color: svc.vehicleType === 1 ? '#2563eb' : svc.vehicleType === 2 ? '#059669' : '#d97706',
+                          border: '1px solid currentColor'
+                        }}>
+                          {svc.vehicleType === 1 ? '🏍️ Xe máy' : svc.vehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+                        </span>
+                      )}
+                    </div>
                     <p className="service-desc" style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', minHeight: '44px', marginBottom: '16px', flex: 1 }}>{svc.description || 'Dịch vụ rửa xe tự động chuyên nghiệp.'}</p>
                     <div className="service-price" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '20px' }}>
                       <span className="price-value" style={{ color: '#0f172a', fontSize: '28px', fontWeight: 800 }}>{new Intl.NumberFormat('vi-VN').format(svc.basePrice)}</span>
