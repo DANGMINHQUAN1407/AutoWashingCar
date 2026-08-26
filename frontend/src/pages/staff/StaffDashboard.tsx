@@ -395,7 +395,7 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
             ) : lines.length === 0 ? (
               <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', padding: '10px 0' }}>Chưa có dịch vụ nào.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 180, overflowY: 'auto', paddingRight: 4 }}>
                 {lines.map((line, idx) => (
                   <div key={line.bookingLineId} className="bdetail-row" style={{ padding: '8px 0', borderBottom: idx === lines.length - 1 ? 'none' : '1px dashed var(--color-border-dim)' }}>
                     <div>

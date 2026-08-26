@@ -161,6 +161,10 @@ export default function CustomerBookings() {
   const [addonPage, setAddonPage] = useState(1);
   const ADDON_PAGE_SIZE = 6;
 
+  // Slot pagination in Wizard Step 4
+  const [slotPage, setSlotPage] = useState(1);
+  const SLOT_PAGE_SIZE = 6;
+
   // Dynamic pricing & booking output
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
@@ -428,6 +432,7 @@ export default function CustomerBookings() {
     setSelectedBranchId('');
     setSelectedServiceIds([]);
     setSelectedSlotId('');
+    setSlotPage(1);
     setQuote(null);
     setNewBooking(null);
     setSelectedUserVoucherId('');
@@ -565,6 +570,7 @@ export default function CustomerBookings() {
     };
     fetchSlots();
     setSelectedSlotId('');
+    setSlotPage(1);
   }, [selectedBranchId, selectedDate]);
 
   // Fetch available vouchers when branch changes in wizard
@@ -2006,68 +2012,129 @@ export default function CustomerBookings() {
                       </div>
 
                       {/* Time Slots */}
-                      <div>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                          KHUNG GIỜ CÒN TRỐNG
-                        </label>
-                        {slots.length === 0 ? (
-                          <div
-                            style={{
-                              padding: '16px',
-                              background: '#f8fafc',
-                              borderRadius: '10px',
-                              textAlign: 'center',
-                              fontSize: '0.88rem',
-                              color: '#64748b',
-                              border: '1px dashed #cbd5e1'
-                            }}
-                          >
-                            Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                      {(() => {
+                        const totalSlotPages = Math.ceil(slots.length / SLOT_PAGE_SIZE) || 1;
+                        const pagedSlots = slots.slice((slotPage - 1) * SLOT_PAGE_SIZE, slotPage * SLOT_PAGE_SIZE);
+
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', margin: 0 }}>
+                                KHUNG GIỜ CÒN TRỐNG
+                              </label>
+                              {slots.length > 0 && (
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                  {slots.length} khung giờ
+                                </span>
+                              )}
+                            </div>
+                            {slots.length === 0 ? (
+                              <div
+                                style={{
+                                  padding: '16px',
+                                  background: '#f8fafc',
+                                  borderRadius: '10px',
+                                  textAlign: 'center',
+                                  fontSize: '0.88rem',
+                                  color: '#64748b',
+                                  border: '1px dashed #cbd5e1'
+                                }}
+                              >
+                                Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                  {pagedSlots.map(slot => {
+                                    const isSelected = selectedSlotId === slot.slotInventoryId;
+                                    const isFull = slot.availableCount <= 0;
+                                    const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
+                                    const isDisable = isFull || isPast;
+                                    return (
+                                      <button
+                                        key={slot.slotInventoryId}
+                                        type="button"
+                                        disabled={isDisable}
+                                        onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          padding: '10px 8px',
+                                          borderRadius: '10px',
+                                          cursor: isDisable ? 'not-allowed' : 'pointer',
+                                          border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                          background: isSelected ? '#eff6ff' : isDisable ? '#f8fafc' : '#ffffff',
+                                          color: isSelected ? '#0284c7' : isDisable ? '#94a3b8' : '#0f172a',
+                                          opacity: isDisable ? 0.5 : 1,
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                      >
+                                        <span style={{ fontSize: '0.95rem', fontWeight: 700, textDecoration: isDisable ? 'line-through' : 'none' }}>
+                                          {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#64748b', fontWeight: 500 }}>
+                                          {isPast
+                                            ? 'Đã qua'
+                                            : isFull
+                                              ? 'Đã đầy'
+                                              : `Còn ${slot.availableCount} chỗ`}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Slot Pagination */}
+                                {slots.length > SLOT_PAGE_SIZE && (
+                                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage <= 1}
+                                      onClick={() => setSlotPage(p => Math.max(1, p - 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage <= 1 ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage <= 1 ? '#94a3b8' : '#334155',
+                                        cursor: slotPage <= 1 ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      ← Trước
+                                    </button>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                                      Trang {slotPage} / {totalSlotPages}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage >= totalSlotPages}
+                                      onClick={() => setSlotPage(p => Math.min(totalSlotPages, p + 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage >= totalSlotPages ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage >= totalSlotPages ? '#94a3b8' : '#334155',
+                                        cursor: slotPage >= totalSlotPages ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      Sau →
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
-                        ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
-                            {slots.map(slot => {
-                              const isSelected = selectedSlotId === slot.slotInventoryId;
-                              const isFull = slot.availableCount <= 0;
-                              const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
-                              const isDisable = isFull || isPast;
-                              return (
-                                <button
-                                  key={slot.slotInventoryId}
-                                  type="button"
-                                  disabled={isDisable}
-                                  onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '10px 8px',
-                                    borderRadius: '10px',
-                                    cursor: isDisable ? 'not-allowed' : 'pointer',
-                                    border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
-                                    background: isSelected ? '#eff6ff' : isDisable ? '#f8fafc' : '#ffffff',
-                                    color: isSelected ? '#0284c7' : isDisable ? '#94a3b8' : '#0f172a',
-                                    opacity: isDisable ? 0.5 : 1,
-                                    transition: 'all 0.15s ease',
-                                  }}
-                                >
-                                  <span style={{ fontSize: '0.95rem', fontWeight: 700, textDecoration: isDisable ? 'line-through' : 'none' }}>
-                                    {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
-                                  </span>
-                                  <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#64748b', fontWeight: 500 }}>
-                                    {isPast
-                                      ? 'Đã qua'
-                                      : isFull
-                                        ? 'Đã đầy'
-                                        : `Còn ${slot.availableCount} chỗ`}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })()}
                     </div>
                   </div>
 

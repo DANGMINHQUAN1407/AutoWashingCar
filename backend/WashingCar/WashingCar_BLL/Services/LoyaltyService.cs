@@ -57,6 +57,7 @@ public class LoyaltyService : ILoyaltyService
         {
             throw AppException.NotFound(ValidationMessage.Loyalty.AccountNotFound);
         }
+        await RecomputeTierAsync(account, ct);
         return await BuildLoyaltyAccountDto(account, ct);
     }
 
@@ -82,6 +83,58 @@ public class LoyaltyService : ILoyaltyService
         };
     }
 
+    // Helper dùng chung: build DTO kèm thông tin NextTier + PointsToNextTier
+    // Lấy tất cả tier active → tìm tier có MinPoints > tier hiện tại → đó là NextTier
+    /// <summary>Dựng DTO loyalty kèm hạng kế tiếp (NextTier) và số điểm còn thiếu để lên hạng (PointsToNextTier).</summary>
+    /// <remarks>Gọi: ITierRepository.GetAllActiveOrderedAsync.</remarks>
+    private async Task<LoyaltyAccountDto> BuildLoyaltyAccountDto(LoyaltyAccount account, CancellationToken ct)
+    {
+        var allTiers = await _tierRepo.GetAllActiveOrderedAsync(ct);
+        var nextTier = allTiers.FirstOrDefault(t => t.MinPoints > account.Tier.MinPoints);
+
+        return new LoyaltyAccountDto
+        {
+            LoyaltyAccountId = account.LoyaltyAccountId,
+            UserId = account.UserId,
+            CurrentPoints = account.CurrentPoints,
+            LifetimePoints = account.LifetimePoints,
+            Tier = account.Tier.ToTierInfo(),
+            NextTier = nextTier?.ToTierInfo(),
+            PointsToNextTier = nextTier != null
+                ? Math.Max(0, nextTier.MinPoints - account.LifetimePoints)
+                : null,
+            UpdatedAtUtc = account.UpdatedAtUtc,
+        };
+    }
+
+    /// <summary>
+    /// Tính toán và tự động cập nhật TierId của tài khoản dựa trên LifetimePoints và cấu hình MinPoints của các hạng.
+    /// </summary>
+    private async Task<bool> RecomputeTierAsync(LoyaltyAccount account, CancellationToken ct = default)
+    {
+        var allTiers = await _tierRepo.GetAllActiveOrderedAsync(ct);
+        if (allTiers.Count == 0) return false;
+
+        var eligibleTier = allTiers
+            .Where(t => t.IsActive && account.LifetimePoints >= t.MinPoints)
+            .OrderByDescending(t => t.MinPoints)
+            .FirstOrDefault() ?? allTiers[0];
+
+        if (account.TierId != eligibleTier.TierId)
+        {
+            var oldTierName = account.Tier?.TierName ?? "Unknown";
+            account.TierId = eligibleTier.TierId;
+            account.Tier = eligibleTier;
+            account.UpdatedAtUtc = DateTime.UtcNow;
+            await _repo.SaveChangesAsync(ct);
+            _logger.LogInformation("User {UserId} upgraded/updated from tier {OldTier} to {NewTier} with {LifetimePoints} lifetime points",
+                account.UserId, oldTierName, eligibleTier.TierName, account.LifetimePoints);
+            return true;
+        }
+
+        return false;
+    }
+
     // Customer xem loyalty của mình. Nếu chưa có account → tự tạo với tier thấp nhất (Member)
     // Tính NextTier + PointsToNextTier (VD: đang Silver, cần thêm 3800đ lên Gold)
     /// <summary>Customer xem loyalty của mình — tự tạo account hạng thấp nhất nếu chưa có.</summary>
@@ -101,6 +154,7 @@ public class LoyaltyService : ILoyaltyService
         var account = await _repo.GetByUserIdAsync(userId, ct);
         if (account != null)
         {
+            await RecomputeTierAsync(account, ct);
             return account;
         }
 
@@ -125,33 +179,9 @@ public class LoyaltyService : ILoyaltyService
         return account;
     }
 
-    // Helper dùng chung: build DTO kèm thông tin NextTier + PointsToNextTier
-    // Lấy tất cả tier active → tìm tier có MinPoints > tier hiện tại → đó là NextTier
-    /// <summary>Dựng DTO loyalty kèm hạng kế tiếp (NextTier) và số điểm còn thiếu để lên hạng (PointsToNextTier).</summary>
-    /// <remarks>Gọi: ITierRepository.GetAllActiveOrderedAsync.</remarks>
-    private async Task<LoyaltyAccountDto> BuildLoyaltyAccountDto(LoyaltyAccount account, CancellationToken ct)
-    {
-        var allTiers = await _tierRepo.GetAllActiveOrderedAsync(ct);
-        var nextTier = allTiers.FirstOrDefault(t => t.MinPoints > account.Tier.MinPoints);
-
-        return new LoyaltyAccountDto
-        {
-            LoyaltyAccountId = account.LoyaltyAccountId,
-            UserId = account.UserId,
-            CurrentPoints = account.CurrentPoints,
-            LifetimePoints = account.LifetimePoints,
-            Tier = account.Tier.ToTierInfo(),
-            NextTier = nextTier?.ToTierInfo(),
-            PointsToNextTier = nextTier != null
-            ? nextTier.MinPoints - account.CurrentPoints
-            : null,
-            UpdatedAtUtc = account.UpdatedAtUtc,
-        };
-    }
-
     // Cộng điểm khi booking hoàn thành (BookingService sẽ gọi method này)
     // CurrentPoints += amount (điểm dùng được), LifetimePoints += amount (điểm xếp hạng)
-    // Tạo LedgerEntry(Earn) → SaveChanges → DB trigger recompute tier → reload account
+    // Tạo LedgerEntry(Earn) → SaveChanges → Recompute tier → reload account
     /// <summary>Cộng điểm thủ công theo amount cố định — không phải luồng chính (xem EarnFromBookingAsync cho luồng booking thật).</summary>
     /// <remarks>Gọi: helper GetOrCreateAccountAsync → ILoyaltyRepository.AddLedgerEntryAsync → SaveChangesAsync → GetByUserIdAsync (reload sau trigger).</remarks>
     public async Task<LoyaltyAccountDto> EarnPointsAsync(Guid userId, int amount, Guid? bookingId, string? description, CancellationToken ct = default)
@@ -178,10 +208,10 @@ public class LoyaltyService : ILoyaltyService
         };
 
         await _repo.AddLedgerEntryAsync(entry, ct);
-        //DB trigger tr_LLE_AfterInser_RecomputerTier tự động cập nhật TierID
+        await RecomputeTierAsync(account, ct);
         await _repo.SaveChangesAsync(ct);
 
-        //Reload để lấy tier mới sau khi trigger chạy
+        //Reload để lấy tier mới sau khi tính lại hạng
         account = await _repo.GetByUserIdAsync(userId, ct);
         return await BuildLoyaltyAccountDto(account!, ct);
     }
@@ -194,7 +224,7 @@ public class LoyaltyService : ILoyaltyService
     /// <summary>Được BookingService.CloseAsync gọi — tính điểm theo EarnRate hạng, +30% nếu thanh toán 100% 1 lần. Idempotent theo bookingId.</summary>
     /// <remarks>
     /// Gọi: ILoyaltyRepository.HasEarnedForBookingAsync (idempotent check) → helper GetOrCreateAccountAsync
-    /// → AddLedgerEntryAsync (tự SaveChanges, DB trigger nâng hạng) → IUserRepository.GetByIdAsync + ILoyaltyRepository.GetByUserIdAsync
+    /// → AddLedgerEntryAsync (tự SaveChanges, nâng hạng) → IUserRepository.GetByIdAsync + ILoyaltyRepository.GetByUserIdAsync
     /// + IEmailService.SendPointsEarnedEmailAsync (best-effort, qua helper TrySendPointsEarnedEmailAsync).
     /// </remarks>
     public async Task<int> EarnFromBookingAsync(Guid userId, decimal bookingAmount, Guid bookingId, bool applyFullPaymentBonus = false, CancellationToken ct = default)
@@ -234,8 +264,9 @@ public class LoyaltyService : ILoyaltyService
                 : "Tích điểm từ đơn hàng",
         };
 
-        // AddLedgerEntryAsync tự SaveChanges → DB trigger trg_LLE_AfterInsert_RecomputeTier tự nâng hạng
+        // AddLedgerEntryAsync tự SaveChanges
         await _repo.AddLedgerEntryAsync(entry, ct);
+        await RecomputeTierAsync(account, ct);
 
         // Gửi mail báo cộng điểm (best-effort)
         await TrySendPointsEarnedEmailAsync(userId, points, ct);
@@ -279,6 +310,7 @@ public class LoyaltyService : ILoyaltyService
         };
 
         await _repo.AddLedgerEntryAsync(entry, ct);
+        await RecomputeTierAsync(account, ct);
         await transaction.CommitAsync(ct);
 
         // Gửi mail báo cộng điểm (best-effort), chỉ sau khi ledger đã commit.
