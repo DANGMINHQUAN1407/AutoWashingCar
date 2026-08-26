@@ -886,6 +886,10 @@ export async function getBookingQuote(data: BookingQuoteRequest): Promise<Bookin
   const rawLines = unwrapped?.lines ?? unwrapped?.Lines ?? []
   return {
     lines: Array.isArray(rawLines) ? rawLines.map(normalizeBookingLine) : [],
+    serviceSubtotal: Number(unwrapped?.serviceSubtotal ?? unwrapped?.ServiceSubtotal ?? 0),
+    vehicleCondition: unwrapped?.vehicleCondition ?? unwrapped?.VehicleCondition,
+    vehicleSurchargeRate: Number(unwrapped?.vehicleSurchargeRate ?? unwrapped?.VehicleSurchargeRate ?? 0),
+    vehicleSurchargeAmount: Number(unwrapped?.vehicleSurchargeAmount ?? unwrapped?.VehicleSurchargeAmount ?? 0),
     subtotal: Number(unwrapped?.subtotal ?? unwrapped?.Subtotal ?? 0),
     discountAmount: Number(unwrapped?.discountAmount ?? unwrapped?.DiscountAmount ?? 0),
     finalAmount: Number(unwrapped?.finalAmount ?? unwrapped?.FinalAmount ?? 0),

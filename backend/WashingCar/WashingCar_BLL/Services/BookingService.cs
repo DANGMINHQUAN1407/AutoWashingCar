@@ -36,6 +36,7 @@ public class BookingService(
 {
     // Slot lưu theo giờ địa phương; VN = UTC+7 (không DST). Xem WashingCar_Common.Helpers.VietnamTimeHelper.
     private const int VietnamUtcOffsetHours = VietnamTimeHelper.UtcOffsetHours;
+    private const decimal LuxuryBrandSurchargeRate = 0.10m;
 
     // Số ngày được đặt trước tối đa mặc định — hạng có benefit AdvanceBookingDays sẽ override giá trị này.
     private const int DefaultMaxAdvanceBookingDays = 3;
@@ -53,6 +54,16 @@ public class BookingService(
         BookingStatus.CheckedIn,
         BookingStatus.InProgress,
     ];
+
+    private static readonly HashSet<string> LuxuryBrandNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Mercedes-Benz",
+        "Mercedes Benz",
+        "BMW",
+        "Audi",
+        "Porsche",
+        "Lexus",
+    };
 
     /// <summary>
     /// Normalize selection parent-child và trả trạng thái checkbox trước khi tính giá.
@@ -1419,9 +1430,18 @@ public class BookingService(
     {
         var condition = VehicleConditionPolicy.GetCondition(vehicle.ManufactureYear);
         var rate = VehicleConditionPolicy.GetSurchargeRate(condition);
+        if (IsLuxuryVehicle(vehicle))
+            rate += LuxuryBrandSurchargeRate;
+
         var amount = Math.Round(serviceSubtotal * rate, 2, MidpointRounding.AwayFromZero);
         return (condition, rate, amount);
     }
+
+    private static bool IsLuxuryVehicle(Vehicle vehicle)
+        => vehicle.BrandCatalog?.IsLuxury == true || IsLuxuryBrandName(vehicle.Brand);
+
+    private static bool IsLuxuryBrandName(string? brand)
+        => !string.IsNullOrWhiteSpace(brand) && LuxuryBrandNames.Contains(brand.Trim());
 
     /// <summary>
     /// Tính lại tiền dịch vụ và phụ thu theo tỷ lệ snapshot đã chốt lúc tạo đơn.
@@ -1490,6 +1510,7 @@ public class BookingService(
             VehicleType  = (byte)request.NewVehicle.VehicleType,
             Brand        = brandCatalog?.Name ?? (string.IsNullOrWhiteSpace(request.NewVehicle.Brand) ? null : request.NewVehicle.Brand.Trim()),
             BrandCatalogId = brandCatalog?.VehicleBrandCatalogId,
+            BrandCatalog = brandCatalog,
             Model        = string.IsNullOrWhiteSpace(request.NewVehicle.Model) ? null : request.NewVehicle.Model.Trim(),
             ManufactureYear = request.NewVehicle.ManufactureYear,
             EngineCatalogId = request.NewVehicle.EngineCatalogId,

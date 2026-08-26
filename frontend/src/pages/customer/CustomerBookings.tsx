@@ -559,9 +559,10 @@ export default function CustomerBookings() {
     fetchLoyaltyPoints();
   }, [viewMode]);
 
-  // Fetch Quote when slot, services selection, voucher, or loyalty points changes
+  // Fetch Quote when vehicle, slot, services selection, voucher, or loyalty points changes
   useEffect(() => {
-    if (wizardStep !== 4 || !selectedSlotId || selectedServiceIds.length === 0) {
+    if (![3, 4].includes(wizardStep) || !selectedVehicleId || !selectedSlotId || selectedServiceIds.length === 0) {
+      setQuote(null);
       return;
     }
 
@@ -570,6 +571,7 @@ export default function CustomerBookings() {
       setErrorMsg(null);
       try {
         const payload: any = {
+          VehicleId: selectedVehicleId,
           SlotInventoryId: selectedSlotId,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
           RedeemMode: redeemMode,
@@ -592,6 +594,7 @@ export default function CustomerBookings() {
     fetchQuote();
   }, [
     wizardStep,
+    selectedVehicleId,
     selectedSlotId,
     selectedServiceIds,
     selectedUserVoucherId,
@@ -850,6 +853,54 @@ export default function CustomerBookings() {
     return new Intl.NumberFormat('en-US').format(value) + ' VND';
   };
 
+  const getVehicleConditionSurchargeRate = (condition?: string) => {
+    if (condition === 'New') return 0.1;
+    if (condition === 'Old') return 0.15;
+    return 0;
+  };
+
+  const getVehicleConditionSurchargeLabel = (condition?: string) => {
+    if (condition === 'New') return 'Xe mới +10%';
+    if (condition === 'Old') return 'Xe cũ +15%';
+    return 'Tiêu chuẩn';
+  };
+
+  const getVehicleSurchargeBreakdown = (source: any, condition?: string) => {
+    const serviceSubtotal = Number(source?.serviceSubtotal ?? source?.ServiceSubtotal ?? 0);
+    const totalRate = Number(source?.vehicleSurchargeRate ?? source?.VehicleSurchargeRate ?? 0);
+    const totalAmount = Number(source?.vehicleSurchargeAmount ?? source?.VehicleSurchargeAmount ?? 0);
+    if (totalAmount <= 0 || serviceSubtotal <= 0) return [];
+
+    const conditionRate = getVehicleConditionSurchargeRate(condition);
+    const conditionAmount = Math.round(serviceSubtotal * conditionRate);
+    const items: Array<{ label: string; amount: number }> = [];
+
+    if (conditionRate > 0 && conditionAmount > 0) {
+      items.push({
+        label: getVehicleConditionSurchargeLabel(condition),
+        amount: Math.min(conditionAmount, totalAmount),
+      });
+    }
+
+    const extraRate = Math.max(0, totalRate - conditionRate);
+    const extraAmount = Math.max(0, totalAmount - items.reduce((sum, item) => sum + item.amount, 0));
+    if (extraRate > 0.0001 && extraAmount > 0) {
+      items.push({
+        label: `Xe sang +${Math.round(extraRate * 100)}%`,
+        amount: extraAmount,
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        label: getVehicleConditionSurchargeLabel(condition),
+        amount: totalAmount,
+      });
+    }
+
+    return items;
+  };
+
   const handleApplyVoucherCode = async () => {
     const code = voucherCodeInput.trim().toUpperCase();
     if (!code) return;
@@ -858,6 +909,7 @@ export default function CustomerBookings() {
     setVoucherError(null);
     try {
       const testQuote = await api.getBookingQuote({
+        VehicleId: selectedVehicleId,
         SlotInventoryId: selectedSlotId,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         VoucherCode: code,
@@ -1547,6 +1599,12 @@ export default function CustomerBookings() {
                     const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
                     const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
                     const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+                    const quotedSubtotal = quote?.subtotal ?? quote?.Subtotal;
+                    const estimatedTotal = quotedSubtotal ?? estimatedPrice;
+                    const surchargeBreakdown = getVehicleSurchargeBreakdown(
+                      quote,
+                      quote?.vehicleCondition ?? quote?.VehicleCondition
+                    );
 
                     const selectMainPackage = (svc: BranchService) => {
                       setSelectedServiceIds(prev => {
@@ -1673,9 +1731,28 @@ export default function CustomerBookings() {
                             ⏱️ Ước tính: <strong>{estimatedMinutes}</strong> phút
                           </span>
                           <span style={{ color: 'var(--color-heading)' }}>
-                            Tạm tính: <strong>{formatVND(estimatedPrice)}</strong>
+                            Tạm tính: <strong>{quoteLoading && selectedSlotId ? 'Đang tính...' : formatVND(estimatedTotal)}</strong>
                           </span>
                         </div>
+                        {surchargeBreakdown.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: '8px',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px dashed var(--color-border-dim)',
+                              color: 'var(--color-text-muted)',
+                              fontSize: '0.84rem',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {surchargeBreakdown.map(item => (
+                              <div key={item.label}>
+                                Ghi chú: Phụ thu {item.label.toLowerCase()} ({formatVND(item.amount)})
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </>
                     );
                   })()}
@@ -1804,12 +1881,12 @@ export default function CustomerBookings() {
                       <span>Tiền dịch vụ gốc</span>
                       <strong>{formatVND(quote.serviceSubtotal ?? quote.subtotal)}</strong>
                     </div>
-                    {quote.vehicleSurchargeAmount > 0 && (
-                      <div className="quote-row">
-                        <span>Phụ thu xe ({quote.vehicleCondition === 'New' ? 'Xe mới +10%' : quote.vehicleCondition === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'})</span>
-                        <strong>+{formatVND(quote.vehicleSurchargeAmount)}</strong>
+                    {getVehicleSurchargeBreakdown(quote, quote.vehicleCondition).map(item => (
+                      <div className="quote-row" key={item.label}>
+                        <span>Phụ thu xe ({item.label})</span>
+                        <strong>+{formatVND(item.amount)}</strong>
                       </div>
-                    )}
+                    ))}
                     {quote.vehicleSurchargeAmount > 0 && (
                       <div className="quote-row" style={{ borderTop: '1px dashed var(--color-border-dim)', paddingTop: '6px' }}>
                         <span>Tổng cộng tạm tính</span>
@@ -2354,16 +2431,16 @@ export default function CustomerBookings() {
                     🚘 <strong>License Plate:</strong> {newBooking.licensePlate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking.bookingSubtotal)}
+                    💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking!.bookingSubtotal)}
                   </p>
-                  {(newBooking.vehicleSurchargeAmount ?? 0) > 0 && (
-                    <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                      ⚡ <strong>Phụ thu xe ({newBooking.vehicleConditionAtBooking === 'New' ? 'Xe mới +10%' : newBooking.vehicleConditionAtBooking === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'}):</strong> +{formatVND(newBooking.vehicleSurchargeAmount)}
+                  {getVehicleSurchargeBreakdown(newBooking, newBooking!.vehicleConditionAtBooking).map(item => (
+                    <p style={{ margin: '6px 0', fontSize: '0.9rem' }} key={item.label}>
+                      ⚡ <strong>Phụ thu xe ({item.label}):</strong> +{formatVND(item.amount)}
                     </p>
-                  )}
-                  {(newBooking.vehicleSurchargeAmount ?? 0) > 0 && (
+                  ))}
+                  {(newBooking!.vehicleSurchargeAmount ?? 0) > 0 && (
                     <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                      💵 <strong>Tổng cộng tạm tính:</strong> {formatVND(newBooking.bookingSubtotal)}
+                      💵 <strong>Tổng cộng tạm tính:</strong> {formatVND(newBooking!.bookingSubtotal)}
                     </p>
                   )}
                   {newBooking.bookingDiscountAmount > 0 && (
@@ -2684,16 +2761,17 @@ export default function CustomerBookings() {
                     <span>Tiền dịch vụ gốc</span>
                     <span>{formatVND(selectedBooking.serviceSubtotal ?? selectedBooking.bookingSubtotal)}</span>
                   </div>
-                  {(selectedBooking.vehicleSurchargeAmount ?? 0) > 0 && (
+                  {getVehicleSurchargeBreakdown(selectedBooking, selectedBooking!.vehicleConditionAtBooking).map(item => (
                     <div
                       className="booking-detail-service-line"
                       style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}
+                      key={item.label}
                     >
-                      <span>Phụ thu xe ({selectedBooking.vehicleConditionAtBooking === 'New' ? 'Xe mới +10%' : selectedBooking.vehicleConditionAtBooking === 'Old' ? 'Xe cũ +15%' : 'Tiêu chuẩn'})</span>
-                      <span>+{formatVND(selectedBooking.vehicleSurchargeAmount)}</span>
+                      <span>Phụ thu xe ({item.label})</span>
+                      <span>+{formatVND(item.amount)}</span>
                     </div>
-                  )}
-                  {(selectedBooking.vehicleSurchargeAmount ?? 0) > 0 && (
+                  ))}
+                  {(selectedBooking!.vehicleSurchargeAmount ?? 0) > 0 && (
                     <div
                       className="booking-detail-service-line"
                       style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', borderTop: '1px dashed var(--color-border-dim)', paddingTop: '4px' }}

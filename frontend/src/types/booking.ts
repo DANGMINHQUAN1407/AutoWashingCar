@@ -41,11 +41,13 @@ export interface Booking {
   lines: BookingLine[];
   serviceSummary?: string; // từ BookingListItemDto (queue/list endpoint)
   serviceSubtotal?: number;
+  vehicleSurchargeRate?: number;
   vehicleSurchargeAmount?: number;
   vehicleConditionAtBooking?: string;
 }
 
 export interface BookingQuoteRequest {
+  VehicleId?: string;
   SlotInventoryId: string;
   UserVoucherId?: string;
   VoucherCode?: string;
@@ -59,6 +61,10 @@ export interface BookingQuoteRequest {
 
 export interface BookingQuoteDto {
   lines: BookingLine[];
+  serviceSubtotal: number;
+  vehicleCondition?: string;
+  vehicleSurchargeRate: number;
+  vehicleSurchargeAmount: number;
   subtotal: number;
   discountAmount: number;
   finalAmount: number;
@@ -141,6 +147,7 @@ export function normalizeBooking(raw: any): Booking {
     lines: Array.isArray(rawLines) ? rawLines.map(normalizeBookingLine) : [],
     serviceSummary: pick(raw, 'serviceSummary', 'ServiceSummary') as string | undefined,
     serviceSubtotal: pick(raw, 'serviceSubtotal', 'ServiceSubtotal') as number | undefined,
+    vehicleSurchargeRate: pick(raw, 'vehicleSurchargeRate', 'VehicleSurchargeRate') as number | undefined,
     vehicleSurchargeAmount: pick(raw, 'vehicleSurchargeAmount', 'VehicleSurchargeAmount') as number | undefined,
     vehicleConditionAtBooking: pick(raw, 'vehicleConditionAtBooking', 'VehicleConditionAtBooking') as string | undefined,
   };
