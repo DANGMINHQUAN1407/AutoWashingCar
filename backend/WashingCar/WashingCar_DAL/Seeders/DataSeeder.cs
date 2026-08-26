@@ -221,6 +221,9 @@ public static class DataSeeder
             IF COL_LENGTH('dbo.VehicleBrandCatalog', 'VehicleType') IS NULL
                 ALTER TABLE [dbo].[VehicleBrandCatalog] ADD [VehicleType] TINYINT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_VehicleType] DEFAULT ((2));
 
+            IF COL_LENGTH('dbo.VehicleBrandCatalog', 'IsLuxury') IS NULL
+                ALTER TABLE [dbo].[VehicleBrandCatalog] ADD [IsLuxury] BIT NOT NULL CONSTRAINT [DF_VehicleBrandCatalog_IsLuxury] DEFAULT ((0));
+
             IF COL_LENGTH('dbo.Vehicle', 'BrandCatalogId') IS NULL
                 ALTER TABLE [dbo].[Vehicle] ADD [BrandCatalogId] UNIQUEIDENTIFIER NULL;
 

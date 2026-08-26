@@ -78,7 +78,16 @@ namespace WashingCar_BLL.Services
                 user.PasswordHash = _hasher.HashPassword(user, tempPassword);
                 await _userRepo.CreateAsync(user);
                 if (!string.IsNullOrWhiteSpace(user.Email))
-                    await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName, tempPassword);
+                {
+                    try
+                    {
+                        await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName, tempPassword);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Không thể gửi email đến {Email}", user.Email);
+                    }
+                }
 
                 return user.ToDto();
             }

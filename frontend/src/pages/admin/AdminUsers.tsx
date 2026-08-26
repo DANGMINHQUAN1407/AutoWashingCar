@@ -186,7 +186,7 @@ export default function AdminUsers() {
 
       if (modalMode === 'create') {
         await api.createStaff(payload)
-        showToast('Tạo tài khoản nhân viên thành công. Mật khẩu tạm thời đã gửi qua email.', 'success')
+        showToast('Tạo tài khoản nhân viên thành công. Nếu có email hợp lệ, hệ thống sẽ gửi mật khẩu tạm thời.', 'success')
       } else if (modalMode === 'edit' && selectedUser) {
         await api.updateUser(selectedUser.userId, payload)
         showToast('Cập nhật thông tin người dùng thành công.', 'success')
