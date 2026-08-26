@@ -19,6 +19,10 @@ public class ServiceCatalogController(IServiceCatalogService service) : BaseApiC
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] ServiceCatalogQuery query)
     {
+        var canViewInactive = User.IsInRole(UserRole.Admin) || User.IsInRole(UserRole.Manager);
+        if (!canViewInactive)
+            query.IsActive = true;
+
         var result = await _service.GetAllPaginatedAsync(query);
         return Paged(result);
     }

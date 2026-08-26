@@ -156,6 +156,15 @@ export default function CustomerBookings() {
   const [selectedDate, setSelectedDate] = useState<string>(() => getCached('selectedDate', getLocalDateString()));
   const [selectedSlotId, setSelectedSlotId] = useState<string>(() => getCached('selectedSlotId', ''));
 
+  // Service filtering & pagination in Wizard Step 3
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [addonPage, setAddonPage] = useState(1);
+  const ADDON_PAGE_SIZE = 6;
+
+  // Slot pagination in Wizard Step 4
+  const [slotPage, setSlotPage] = useState(1);
+  const SLOT_PAGE_SIZE = 6;
+
   // Dynamic pricing & booking output
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
@@ -372,6 +381,16 @@ export default function CustomerBookings() {
       setEngineCatalogs(engineRes.items || []);
       setBodyStyleCatalogs(bodyStyleRes.items || []);
 
+      // Auto select first branch if available and no valid cached branch is selected
+      if (branchRes?.items && branchRes.items.length > 0) {
+        const cachedBranch = sessionStorage.getItem('booking_wizard_selectedBranchId');
+        const parsedBranch = cachedBranch ? JSON.parse(cachedBranch) : '';
+        const existsBranch = branchRes.items.some((b: any) => b.branchId === parsedBranch);
+        if (!parsedBranch || !existsBranch) {
+          setSelectedBranchId(branchRes.items[0].branchId);
+        }
+      }
+
       // Auto select first vehicle if available and no valid cached vehicle is selected
       if (vehicleRes && vehicleRes.length > 0) {
         const firstId = vehicleRes[0].VehicleId || vehicleRes[0].vehicleId;
@@ -384,7 +403,7 @@ export default function CustomerBookings() {
       }
       return branchRes.items || [];
     } catch (err) {
-      setErrorMsg(extractErrorMessage(err, 'Failed to load branch or vehicle information.'));
+      console.error('Failed to load branch or vehicle information:', err);
       return [];
     } finally {
       setBranchesLoading(false);
@@ -413,6 +432,7 @@ export default function CustomerBookings() {
     setSelectedBranchId('');
     setSelectedServiceIds([]);
     setSelectedSlotId('');
+    setSlotPage(1);
     setQuote(null);
     setNewBooking(null);
     setSelectedUserVoucherId('');
@@ -423,6 +443,7 @@ export default function CustomerBookings() {
     setRedeemPoints(0);
     setCustomRedeemInput('');
     setRedeemError(null);
+    setErrorMsg(null);
     initWizardData();
   };
 
@@ -449,6 +470,7 @@ export default function CustomerBookings() {
       setRedeemPoints(0);
       setCustomRedeemInput('');
       setRedeemError(null);
+      setErrorMsg(null);
       initWizardData().then(async fetchedBranches => {
         if (queryBranchId) {
           setSelectedBranchId(queryBranchId);
@@ -468,7 +490,7 @@ export default function CustomerBookings() {
     }
   }, []);
 
-  // Load branch services when branch changes
+  // Load branch services when branch or vehicle changes
   useEffect(() => {
     if (!selectedBranchId) {
       setServices([]);
@@ -476,29 +498,60 @@ export default function CustomerBookings() {
     }
     const fetchServices = async () => {
       try {
-        const items = await api.getBranchServices(selectedBranchId);
-        const activeServices = items.filter(s => s.isActive) || [];
-        setServices(activeServices);
+        const currentVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+        const vType = currentVeh ? (currentVeh.VehicleType ?? currentVeh.vehicleType) : undefined;
+        const eCatId = currentVeh ? (currentVeh.EngineCatalogId ?? currentVeh.engineCatalogId ?? undefined) : undefined;
 
-        // Preselect service from query parameters if available
-        const params = new URLSearchParams(window.location.search);
-        const preselectedServiceId = params.get('serviceId');
-        if (preselectedServiceId) {
-          const hasService = activeServices.some(s => s.serviceId === preselectedServiceId);
-          if (hasService) {
-            setSelectedServiceIds([preselectedServiceId]);
-          } else {
-            setSelectedServiceIds([]);
-          }
+        // Fetch catalog tailored to branch and vehicle type + engine pricing
+        const catalogRes = await api.getServiceCatalog({
+          branchId: selectedBranchId,
+          vehicleType: vType,
+          engineCatalogId: eCatId,
+          isActive: true,
+          pageSize: 100,
+        });
+
+        if (catalogRes?.items && catalogRes.items.length > 0) {
+          const mappedServices: BranchService[] = catalogRes.items
+            .filter(item => {
+              if (vType) {
+                return item.vehicleType === vType || item.vehicleType === null || item.vehicleType === undefined;
+              }
+              return true;
+            })
+            .map(item => ({
+              branchServiceId: item.serviceCatalogItemId || '',
+              branchId: selectedBranchId,
+              serviceId: item.serviceCatalogItemId || '',
+              serviceName: item.serviceName || item.name || '',
+              description: item.description || '',
+              basePrice: (item.applicablePrice != null && item.applicablePrice > 0 ? item.applicablePrice : item.basePrice) || 0,
+              durationMinutes: (item.applicableDurationMinutes != null && item.applicableDurationMinutes > 0 ? item.applicableDurationMinutes : item.durationMinutes) || 0,
+              vehicleType: item.vehicleType ?? undefined,
+              vehicleTypeName: item.vehicleTypeName,
+              servicePackageType: item.servicePackageType || 1,
+              isActive: item.isActive ?? true,
+            }));
+          setServices(mappedServices);
+
+          // Keep previously selected services if still available
+          setSelectedServiceIds(prev => prev.filter(id => mappedServices.some(s => s.serviceId === id)));
         } else {
-          setSelectedServiceIds([]);
+          // Fallback to getBranchServices if needed
+          const items = await api.getBranchServices(selectedBranchId);
+          const activeServices = items
+            .filter(s => s.isActive)
+            .filter(s => !vType || s.vehicleType === vType || !s.vehicleType) || [];
+          setServices(activeServices);
+          setSelectedServiceIds(prev => prev.filter(id => activeServices.some(s => s.serviceId === id)));
         }
       } catch (err) {
-        setErrorMsg(extractErrorMessage(err, 'Failed to load branch services.'));
+        console.error('Failed to load branch services:', err);
+        setServices([]);
       }
     };
     fetchServices();
-  }, [selectedBranchId]);
+  }, [selectedBranchId, selectedVehicleId, vehicles]);
 
   // Load slots when branch or date changes
   useEffect(() => {
@@ -517,6 +570,7 @@ export default function CustomerBookings() {
     };
     fetchSlots();
     setSelectedSlotId('');
+    setSlotPage(1);
   }, [selectedBranchId, selectedDate]);
 
   // Fetch available vouchers when branch changes in wizard
@@ -573,6 +627,7 @@ export default function CustomerBookings() {
         const payload: any = {
           VehicleId: selectedVehicleId,
           SlotInventoryId: selectedSlotId,
+          VehicleId: selectedVehicleId || undefined,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
           RedeemMode: redeemMode,
           RedeemPoints: redeemPoints,
@@ -596,6 +651,7 @@ export default function CustomerBookings() {
     wizardStep,
     selectedVehicleId,
     selectedSlotId,
+    selectedVehicleId,
     selectedServiceIds,
     selectedUserVoucherId,
     selectedVoucherCode,
@@ -755,23 +811,23 @@ export default function CustomerBookings() {
   const getStatusLabel = (status: number) => {
     switch (status) {
       case 1:
-        return 'Pending Payment';
+        return 'Chờ thanh toán cọc';
       case 2:
-        return 'Confirmed';
+        return 'Đã xác nhận';
       case 3:
-        return 'Checked In';
+        return 'Đã Check-in';
       case 4:
-        return 'In Progress';
+        return 'Đang thực hiện';
       case 5:
-        return 'Completed';
+        return 'Hoàn thành';
       case 6:
-        return 'Closed';
+        return 'Đã đóng';
       case 7:
-        return 'Cancelled';
+        return 'Đã hủy';
       case 8:
-        return 'No Show';
+        return 'Vắng mặt';
       default:
-        return 'Unknown';
+        return 'Không xác định';
     }
   };
 
@@ -799,7 +855,9 @@ export default function CustomerBookings() {
   };
 
   const getVehicleLabel = (type?: number) => {
-    return type === 1 ? 'Motorbike' : 'Car';
+    if (type === 1) return 'Xe máy';
+    if (type === 3) return 'Xe tải';
+    return 'Ô tô';
   };
 
   // Filter bookings based on activeTab
@@ -849,8 +907,8 @@ export default function CustomerBookings() {
 
   // Format currency helper
   const formatVND = (value?: number) => {
-    if (value === undefined) return '0 VND';
-    return new Intl.NumberFormat('en-US').format(value) + ' VND';
+    if (value === undefined) return '0 đ';
+    return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
   };
 
   const getVehicleConditionSurchargeRate = (condition?: string) => {
@@ -911,6 +969,7 @@ export default function CustomerBookings() {
       const testQuote = await api.getBookingQuote({
         VehicleId: selectedVehicleId,
         SlotInventoryId: selectedSlotId,
+        VehicleId: selectedVehicleId || undefined,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
         VoucherCode: code,
         RedeemMode: redeemMode,
@@ -970,12 +1029,12 @@ export default function CustomerBookings() {
     <div className="portal-page">
       <div className="dash-header">
         <div>
-          <h2>Car Wash Appointments</h2>
-          <p>Book your car care appointment and track your booking status.</p>
+          <h2>Đặt lịch rửa xe</h2>
+          <p>Đặt lịch chăm sóc xe và theo dõi tiến trình phục vụ dễ dàng.</p>
         </div>
         {viewMode === 'list' && (
           <AnimatedButton type="button" variant="primary" onClick={handleStartWizard}>
-            Book New Appointment
+            + Đặt lịch mới
           </AnimatedButton>
         )}
       </div>
@@ -1043,25 +1102,25 @@ export default function CustomerBookings() {
               className={`bookings-tab-btn ${activeTab === 'upcoming' ? 'active' : ''}`}
               onClick={() => setActiveTab('upcoming')}
             >
-              Upcoming
+              Sắp diễn ra
             </button>
             <button
               type="button"
               className={`bookings-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
             >
-              History
+              Lịch sử
             </button>
           </div>
 
           <div className="booking-list">
             {loadingList ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Loading bookings...
+                Đang tải danh sách lịch hẹn...
               </div>
             ) : filteredBookings.length === 0 ? (
               <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '40px' }}>
-                Không tìm thấy lịch hẹn nào. Click "Book New Appointment" để đặt lịch mới!
+                Không tìm thấy lịch hẹn nào. Bấm "+ Đặt lịch mới" để đặt lịch ngay!
               </div>
             ) : (
               paginatedBookings.map(b => {
@@ -1074,7 +1133,7 @@ export default function CustomerBookings() {
                     {isActive && <div className="booking-status-indicator" />}
                     <div className="booking-main">
                       <div className="booking-header">
-                        <h4>Booking ID: {b.bookingCode}</h4>
+                        <h4>Mã đơn: {b.bookingCode}</h4>
                         <StatusBadge
                           type={getStatusClass(b.bookingStatus)}
                           label={getStatusLabel(b.bookingStatus)}
@@ -1082,14 +1141,14 @@ export default function CustomerBookings() {
                       </div>
                       <div className="booking-details">
                         <span>
-                          <strong>Date:</strong> {b.slotDate || 'Not scheduled'}
+                          <strong>Ngày:</strong> {b.slotDate || 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Time:</strong>{' '}
-                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Not scheduled'}
+                          <strong>Giờ:</strong>{' '}
+                          {b.slotStartTime ? b.slotStartTime.substring(0, 5) : 'Chưa lên lịch'}
                         </span>
                         <span>
-                          <strong>Total:</strong> {formatVND(b.bookingFinalAmount)}
+                          <strong>Tổng tiền:</strong> {formatVND(b.bookingFinalAmount)}
                         </span>
                       </div>
                     </div>
@@ -1101,7 +1160,7 @@ export default function CustomerBookings() {
                       >
                         {b.bookingStatus >= 1 && b.bookingStatus <= 4
                           ? '🔍 Chi tiết & Theo dõi'
-                          : 'Details'}
+                          : 'Chi tiết'}
                       </button>
                       {b.bookingStatus === 1 && (
                         <button
@@ -1109,7 +1168,7 @@ export default function CustomerBookings() {
                           className="btn btn-primary btn-sm"
                           onClick={() => handlePaymentRedirect(b.bookingId, false)}
                         >
-                          Pay Deposit
+                          Thanh toán cọc
                         </button>
                       )}
                       {(b.bookingStatus === 1 || b.bookingStatus === 2) && (
@@ -1118,7 +1177,7 @@ export default function CustomerBookings() {
                           className="btn btn-danger btn-sm"
                           onClick={() => handleCancelBookingClick(b)}
                         >
-                          Cancel Booking
+                          Hủy lịch
                         </button>
                       )}
                       {(b.bookingStatus === 5 || b.bookingStatus === 6) &&
@@ -1186,25 +1245,25 @@ export default function CustomerBookings() {
                 className={`wizard-step-node ${wizardStep === 1 ? 'active' : ''} ${wizardStep > 1 ? 'completed' : ''}`}
               >
                 <div className="step-number">1</div>
-                <div className="step-label">Branch & Services</div>
+                <div className="step-label">Chọn chi nhánh</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 2 ? 'active' : ''} ${wizardStep > 2 ? 'completed' : ''}`}
               >
                 <div className="step-number">2</div>
-                <div className="step-label">Choose Vehicle</div>
+                <div className="step-label">Chọn phương tiện</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 3 ? 'active' : ''} ${wizardStep > 3 ? 'completed' : ''}`}
               >
                 <div className="step-number">3</div>
-                <div className="step-label">Choose Date & Time</div>
+                <div className="step-label">Chọn ngày &amp; giờ</div>
               </div>
               <div
                 className={`wizard-step-node ${wizardStep === 4 ? 'active' : ''} ${wizardStep > 4 ? 'completed' : ''}`}
               >
                 <div className="step-number">4</div>
-                <div className="step-label">Confirm</div>
+                <div className="step-label">Báo giá &amp; Xác nhận</div>
               </div>
             </div>
           )}
@@ -1212,9 +1271,9 @@ export default function CustomerBookings() {
           {/* STEP 1: SELECT BRANCH & CHOOSE PRELIMINARY SERVICES */}
           {wizardStep === 1 && (
             <div>
-              <h3>Step 1: Select Branch</h3>
+              <h3>Bước 1: Chọn chi nhánh</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Please select the branch most convenient for you.
+                Vui lòng chọn chi nhánh thuận tiện nhất cho bạn.
               </p>
 
               {bookingLimitMessage && (
@@ -1233,9 +1292,9 @@ export default function CustomerBookings() {
               )}
 
               {branchesLoading ? (
-                <p>Loading branches...</p>
+                <p>Đang tải danh sách chi nhánh...</p>
               ) : branches.length === 0 ? (
-                <p>No active branches available. Please contact the shop to create or activate a branch.</p>
+                <p>Chưa có chi nhánh nào hoạt động. Vui lòng liên hệ trung tâm để được hỗ trợ.</p>
               ) : (
                 <div className="wizard-selection-grid">
                   {branches.map(b => (
@@ -1259,7 +1318,7 @@ export default function CustomerBookings() {
                             marginTop: '8px',
                           }}
                         >
-                          🕒 Hours: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
+                          🕒 Giờ hoạt động: {b.openTime.substring(0, 5)} - {b.closeTime.substring(0, 5)}
                         </p>
                       )}
                     </div>
@@ -1269,7 +1328,7 @@ export default function CustomerBookings() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
                 <AnimatedButton type="button" variant="ghost" onClick={() => setViewMode('list')} showArrow={false}>
-                  ← Cancel
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1277,7 +1336,7 @@ export default function CustomerBookings() {
                   disabled={!selectedBranchId || !!bookingLimitMessage}
                   onClick={() => setWizardStep(2)}
                 >
-                  Next
+                  Tiếp tục →
                 </AnimatedButton>
               </div>
             </div>
@@ -1286,15 +1345,15 @@ export default function CustomerBookings() {
           {/* STEP 2: SELECT VEHICLE OR ADD VEHICLE */}
           {wizardStep === 2 && (
             <div>
-              <h3>Step 2: Choose Your Vehicle</h3>
+              <h3>Bước 2: Chọn phương tiện</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Select the vehicle you want to wash or register a new one below.
+                Chọn xe bạn muốn rửa hoặc đăng ký xe mới bên dưới.
               </p>
 
               <div className="wizard-selection-grid">
                 {vehicles.map(v => {
                   const plate = v.LicensePlate || v.licensePlate;
-                  const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Unknown Brand';
+                  const brand = v.BrandCatalogName || v.brandCatalogName || v.Brand || v.brand || 'Chưa rõ hãng';
                   const type = v.VehicleType ?? v.vehicleType ?? 2;
                   const id = v.VehicleId || v.vehicleId;
                   const imageUrl = v.PrimaryImageUrl || v.primaryImageUrl;
@@ -1367,7 +1426,7 @@ export default function CustomerBookings() {
                   >
                     <div className="quick-vehicle-btn-content">
                       <span style={{ fontSize: '1.8rem' }}>➕</span>
-                      <span>Register New Vehicle</span>
+                      <span>Đăng ký xe mới</span>
                     </div>
                   </div>
                 ) : (
@@ -1375,14 +1434,14 @@ export default function CustomerBookings() {
                     className="wizard-card-item"
                     style={{ border: '1px solid var(--color-primary)', cursor: 'default' }}
                   >
-                    <h4 style={{ marginBottom: '12px' }}>Quick Register</h4>
+                    <h4 style={{ marginBottom: '12px' }}>Đăng ký nhanh xe mới</h4>
                     <form
                       onSubmit={handleQuickVehicleSubmit}
                       style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
                     >
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          License Plate
+                          Biển số xe
                         </label>
                         <input
                           className="form-input"
@@ -1404,7 +1463,7 @@ export default function CustomerBookings() {
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Vehicle Type
+                          Loại phương tiện
                         </label>
                         <select
                           className="form-input"
@@ -1420,14 +1479,14 @@ export default function CustomerBookings() {
                             setQuickBodyStyleCatalogId('');
                           }}
                         >
-                          <option value={2}>Car</option>
-                          <option value={1}>Motorbike</option>
-                          <option value={3}>Truck (Xe tải / xe ba gác)</option>
+                          <option value={2}>Ô tô</option>
+                          <option value={1}>Xe máy</option>
+                          <option value={3}>Xe tải (Xe tải / xe ba gác)</option>
                         </select>
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Brand
+                          Hãng xe
                         </label>
                         <select
                           className="form-input"
@@ -1440,13 +1499,13 @@ export default function CustomerBookings() {
                             setQuickBrand(catId === CUSTOM_BRAND_VALUE ? '' : matched?.name ?? '');
                           }}
                         >
-                          <option value="">-- Select brand --</option>
+                          <option value="">-- Chọn hãng xe --</option>
                           {brandCatalogs
                             .filter(cat => Number(cat.vehicleType ?? cat.VehicleType) === Number(quickType))
                             .map(cat => (
                               <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
-                          <option value={CUSTOM_BRAND_VALUE}>Other / custom</option>
+                          <option value={CUSTOM_BRAND_VALUE}>Khác / Tùy chỉnh</option>
                         </select>
                         {quickBrandCatalogId === CUSTOM_BRAND_VALUE && (
                           <input
@@ -1454,14 +1513,14 @@ export default function CustomerBookings() {
                             style={{ padding: '6px 10px', fontSize: '0.9rem', marginTop: 8 }}
                             value={quickBrand}
                             onChange={e => setQuickBrand(e.target.value)}
-                            placeholder="Enter brand"
+                            placeholder="Nhập tên hãng xe"
                             maxLength={50}
                           />
                         )}
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>
-                          Model (Dòng xe)
+                          Dòng xe (Model)
                         </label>
                         <input
                           className="form-input"
@@ -1548,7 +1607,7 @@ export default function CustomerBookings() {
                           style={{ flex: 1 }}
                           onClick={() => setShowQuickVehicle(false)}
                         >
-                          Cancel
+                          Hủy bỏ
                         </AnimatedButton>
                         <AnimatedButton
                           type="submit"
@@ -1556,7 +1615,7 @@ export default function CustomerBookings() {
                           style={{ flex: 1 }}
                           disabled={quickVehicleLoading}
                         >
-                          {quickVehicleLoading ? 'Creating...' : 'Save Vehicle'}
+                          {quickVehicleLoading ? 'Đang tạo...' : 'Lưu phương tiện'}
                         </AnimatedButton>
                       </div>
                     </form>
@@ -1566,7 +1625,7 @@ export default function CustomerBookings() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
                 <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(1)} showArrow={false}>
-                  ← Back
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -1574,7 +1633,7 @@ export default function CustomerBookings() {
                   disabled={!selectedVehicleId}
                   onClick={() => setWizardStep(3)}
                 >
-                  Next
+                  Tiếp tục →
                 </AnimatedButton>
               </div>
             </div>
@@ -1582,19 +1641,159 @@ export default function CustomerBookings() {
 
           {/* STEP 3: SELECT SERVICES & DATE/TIME SLOT */}
           {wizardStep === 3 && (
-            <div>
-              <h3>Step 3: Services & Appointment Time</h3>
-              <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Please select the services you need and choose an available time slot.
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  Bước 3: Dịch vụ &amp; Giờ hẹn
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.92rem', margin: 0 }}>
+                  Vui lòng chọn các dịch vụ cần thực hiện và chọn khung giờ còn trống.
+                </p>
+              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
-                {/* Services list (Left) */}
-                <div>
+              {/* Main Layout Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(320px, 1fr)', gap: '24px', alignItems: 'start' }}>
+                {/* Left Column (Services) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Vehicle Info Card */}
                   {(() => {
-                    const mainPackages = services.filter(s => (s.servicePackageType ?? 1) !== 2);
-                    const addOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
-                    const selectedMain = mainPackages.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const selVehicle = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+                    const currentPlate = selVehicle ? (selVehicle.LicensePlate || selVehicle.licensePlate) : '';
+                    const currentType = selVehicle ? Number(selVehicle.VehicleType ?? selVehicle.vehicleType ?? 2) : 2;
+                    const currentBrand = selVehicle ? (selVehicle.BrandCatalogName || selVehicle.brandCatalogName || selVehicle.Brand || selVehicle.brand) : '';
+                    const currentImg = selVehicle ? (selVehicle.PrimaryImageUrl || selVehicle.primaryImageUrl) : '';
+
+                    return (
+                      <div
+                        style={{
+                          background: 'rgba(2, 132, 199, 0.06)',
+                          border: '1.5px solid rgba(2, 132, 199, 0.2)',
+                          borderRadius: '16px',
+                          padding: '16px 20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
+                          {currentImg ? (
+                            <img
+                              src={currentImg}
+                              alt={currentPlate}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '10px',
+                                objectFit: 'cover',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                flexShrink: 0,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '10px',
+                                background: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.6rem',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                              }}
+                            >
+                              {currentType === 1 ? '🏍️' : currentType === 3 ? '🚚' : '🚗'}
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              Bảng giá áp dụng cho: {getVehicleLabel(currentType)} {currentPlate ? `[${currentPlate}]` : ''}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
+                              {currentBrand ? `${currentBrand} · ` : ''}Đơn giá và thời lượng dịch vụ đã tự động tối ưu hóa cho loại phương tiện này.
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              ✨ Chỉ hiển thị dịch vụ phù hợp với loại phương tiện này
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setWizardStep(2)}
+                          style={{
+                            background: '#ffffff',
+                            color: '#0284c7',
+                            border: '1px solid #0284c7',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            padding: '8px 14px',
+                            fontSize: '0.85rem',
+                            whiteSpace: 'nowrap',
+                            position: 'relative',
+                            zIndex: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          🔄 Đổi xe khác
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Search Bar */}
+                  <div>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="🔍 Tìm kiếm nhanh dịch vụ (ví dụ: rửa bọt tuyết, tẩy ố, dưỡng bóng, xông tinh dầu...)"
+                      value={serviceSearchQuery}
+                      onChange={e => {
+                        setServiceSearchQuery(e.target.value);
+                        setAddonPage(1);
+                      }}
+                      style={{
+                        width: '100%',
+                        fontSize: '0.92rem',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                      }}
+                    />
+                  </div>
+
+                  {(() => {
+                    const query = serviceSearchQuery.trim().toLowerCase();
+                    const allMain = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const allAddOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+
+                    const mainPackages = allMain.filter(s =>
+                      !query ||
+                      s.serviceName.toLowerCase().includes(query) ||
+                      (s.description && s.description.toLowerCase().includes(query))
+                    );
+
+                    const filteredAddOns = allAddOns.filter(s =>
+                      !query ||
+                      s.serviceName.toLowerCase().includes(query) ||
+                      (s.description && s.description.toLowerCase().includes(query))
+                    );
+
+                    const totalAddonPages = Math.max(1, Math.ceil(filteredAddOns.length / ADDON_PAGE_SIZE));
+                    const paginatedAddOns = filteredAddOns.slice(
+                      (addonPage - 1) * ADDON_PAGE_SIZE,
+                      addonPage * ADDON_PAGE_SIZE
+                    );
+
+                    const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
                     const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
                     const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
                     const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
@@ -1608,10 +1807,9 @@ export default function CustomerBookings() {
 
                     const selectMainPackage = (svc: BranchService) => {
                       setSelectedServiceIds(prev => {
-                        // Premium loai tru moi add-on; Standard giu lai add-on dang chon
                         const keptAddOns = (svc.servicePackageType ?? 1) === 3
                           ? []
-                          : prev.filter(id => addOns.some(a => a.serviceId === id));
+                          : prev.filter(id => allAddOns.some(a => a.serviceId === id));
                         return [svc.serviceId, ...keptAddOns];
                       });
                     };
@@ -1627,92 +1825,201 @@ export default function CustomerBookings() {
 
                     return (
                       <>
-                        <h4
-                          style={{
-                            borderBottom: '1px solid var(--color-border-dim)',
-                            paddingBottom: '8px',
-                            marginBottom: '12px',
-                          }}
-                        >
-                          Gói Dịch Vụ Chính
-                        </h4>
-                        {mainPackages.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Chi nhánh này chưa có gói dịch vụ chính nào.
-                          </p>
-                        ) : (
-                          <div className="wizard-service-list">
-                            {mainPackages.map(s => {
-                              const isSelected = selectedServiceIds.includes(s.serviceId);
-                              return (
-                                <div
-                                  key={s.serviceId}
-                                  className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
-                                  onClick={() => selectMainPackage(s)}
-                                >
-                                  <div className="wizard-service-checkbox" style={{ borderRadius: '50%' }} />
-                                  <div className="wizard-service-info">
-                                    <h5>
-                                      {s.serviceName}
+                        {/* Main Service Section */}
+                        <section style={{
+                          background: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          border: '1.5px solid #e2e8f0',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                              Gói Dịch Vụ Chính <span style={{ fontWeight: 400, fontSize: '0.9rem', color: '#64748b' }}>({mainPackages.length} gói)</span>
+                            </h2>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Chọn một gói dịch vụ chính</p>
+                          </div>
+
+                          {mainPackages.length === 0 ? (
+                            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                              {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào phù hợp với loại xe của bạn.'}
+                            </p>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+                              {mainPackages.map(s => {
+                                const isSelected = selectedServiceIds.includes(s.serviceId);
+                                return (
+                                  <div
+                                    key={s.serviceId}
+                                    onClick={() => selectMainPackage(s)}
+                                    style={{
+                                      position: 'relative',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      padding: '16px',
+                                      borderRadius: '14px',
+                                      cursor: 'pointer',
+                                      border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                      background: isSelected ? '#eff6ff' : '#ffffff',
+                                      boxShadow: isSelected ? '0 4px 12px rgba(2, 132, 199, 0.12)' : '0 1px 3px rgba(0,0,0,0.03)',
+                                      transition: 'all 0.2s ease',
+                                    }}
+                                  >
+                                    {/* Radio indicator */}
+                                    <div style={{ position: 'absolute', right: '14px', top: '14px', color: isSelected ? '#0284c7' : '#cbd5e1' }}>
+                                      <span style={{ fontSize: '1.2rem' }}>{isSelected ? '🔘' : '⚪'}</span>
+                                    </div>
+
+                                    <div style={{ paddingRight: '28px', marginBottom: '8px' }}>
+                                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{s.serviceName}</h4>
+                                    </div>
+
+                                    {/* Badges */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                      {s.vehicleType && (
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '3px 8px',
+                                          borderRadius: '20px',
+                                          background: '#f1f5f9',
+                                          color: '#334155',
+                                          border: '1px solid #cbd5e1'
+                                        }}>
+                                          {s.vehicleType === 1 ? '🏍️ XE MÁY' : s.vehicleType === 2 ? '🚗 Ô TÔ' : '🚚 XE TẢI'}
+                                        </span>
+                                      )}
+                                      <span style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        padding: '3px 8px',
+                                        borderRadius: '20px',
+                                        background: '#f1f5f9',
+                                        color: '#475569',
+                                        border: '1px solid #e2e8f0'
+                                      }}>
+                                        ⏱️ {s.durationMinutes} phút
+                                      </span>
                                       {(s.servicePackageType ?? 1) === 3 && (
-                                        <span className="badge badge-warning" style={{ marginLeft: '8px' }}>
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '3px 8px',
+                                          borderRadius: '20px',
+                                          background: 'rgba(2, 132, 199, 0.08)',
+                                          color: '#0284c7',
+                                          border: '1px solid rgba(2, 132, 199, 0.2)'
+                                        }}>
                                           Trọn gói
                                         </span>
                                       )}
-                                    </h5>
-                                    <p>⏱️ Thời gian: {s.durationMinutes} phút</p>
-                                  </div>
-                                  <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                                    </div>
 
-                        <h4
-                          style={{
-                            borderBottom: '1px solid var(--color-border-dim)',
-                            paddingBottom: '8px',
-                            margin: '24px 0 12px',
-                          }}
-                        >
-                          Dịch Vụ Bổ Sung
-                        </h4>
-                        {isPremiumSelected ? (
-                          <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
-                            Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
-                          </div>
-                        ) : addOns.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Chi nhánh này chưa có dịch vụ bổ sung nào.
-                          </p>
-                        ) : (
-                          <div className="wizard-service-list">
-                            {addOns.map(s => {
-                              const isSelected = selectedServiceIds.includes(s.serviceId);
-                              return (
-                                <div
-                                  key={s.serviceId}
-                                  className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
-                                  style={!selectedMain ? { opacity: 0.55 } : undefined}
-                                  onClick={() => selectedMain && toggleAddOn(s)}
-                                >
-                                  <div className="wizard-service-checkbox" />
-                                  <div className="wizard-service-info">
-                                    <h5>{s.serviceName}</h5>
-                                    <p>⏱️ +{s.durationMinutes} phút</p>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 14px', flex: 1 }}>
+                                      {s.description || 'Gói dịch vụ tiêu chuẩn chuyên nghiệp.'}
+                                    </p>
+
+                                    <div style={{ marginTop: 'auto', textAlign: 'right', fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>
+                                      {formatVND(s.basePrice)}
+                                    </div>
                                   </div>
-                                  <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+                          )}
+                        </section>
+
+                        {/* Add-on Service Section */}
+                        <section style={{
+                          background: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          border: '1.5px solid #e2e8f0',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                              Dịch Vụ Bổ Sung (Add-ons) <span style={{ fontWeight: 400, fontSize: '0.9rem', color: '#64748b' }}>({filteredAddOns.length} dịch vụ)</span>
+                            </h2>
                           </div>
-                        )}
-                        {!selectedMain && addOns.length > 0 && !isPremiumSelected && (
-                          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
-                            Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
-                          </p>
-                        )}
+
+                          {isPremiumSelected ? (
+                            <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
+                              Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
+                            </div>
+                          ) : filteredAddOns.length === 0 ? (
+                            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                              {query ? 'Không tìm thấy dịch vụ bổ sung phù hợp từ khóa.' : 'Chi nhánh này chưa có dịch vụ bổ sung nào.'}
+                            </p>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {paginatedAddOns.map(s => {
+                                  const isSelected = selectedServiceIds.includes(s.serviceId);
+                                  return (
+                                    <div
+                                      key={s.serviceId}
+                                      onClick={() => selectedMain && toggleAddOn(s)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        borderRadius: '12px',
+                                        border: isSelected ? '1.5px solid #0284c7' : '1.5px solid #e2e8f0',
+                                        background: isSelected ? '#eff6ff' : '#ffffff',
+                                        cursor: selectedMain ? 'pointer' : 'not-allowed',
+                                        opacity: selectedMain ? 1 : 0.6,
+                                        transition: 'all 0.18s ease',
+                                      }}
+                                    >
+                                      {/* Checkbox */}
+                                      <div style={{
+                                        width: '22px',
+                                        height: '22px',
+                                        borderRadius: '6px',
+                                        border: isSelected ? '2px solid #0284c7' : '2px solid #cbd5e1',
+                                        background: isSelected ? '#0284c7' : '#ffffff',
+                                        color: '#ffffff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: '14px',
+                                        flexShrink: 0,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 800
+                                      }}>
+                                        {isSelected && '✓'}
+                                      </div>
+
+                                      <div style={{ flex: 1 }}>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>{s.serviceName}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
+                                          <span>⏱️ +{s.durationMinutes} phút</span>
+                                        </div>
+                                      </div>
+
+                                      <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0284c7' }}>
+                                        +{formatVND(s.basePrice)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Add-ons Pagination */}
+                              {filteredAddOns.length > ADDON_PAGE_SIZE && (
+                                <div style={{ marginTop: '16px' }}>
+                                  <Pagination
+                                    currentPage={addonPage}
+                                    totalPages={totalAddonPages}
+                                    totalCount={filteredAddOns.length}
+                                    itemName="dịch vụ bổ sung"
+                                    onPageChange={setAddonPage}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          )}
 
                         {/* Thanh tổng kết cập nhật theo thời gian thực */}
                         <div
@@ -1753,99 +2060,287 @@ export default function CustomerBookings() {
                             ))}
                           </div>
                         )}
+                          {!selectedMain && allAddOns.length > 0 && !isPremiumSelected && (
+                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '10px' }}>
+                              💡 Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
+                            </p>
+                          )}
+                        </section>
                       </>
                     );
                   })()}
                 </div>
 
-                {/* Date & Time Slot selection (Right) */}
-                <div>
-                  <h4
-                    style={{
-                      borderBottom: '1px solid var(--color-border-dim)',
-                      paddingBottom: '8px',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    Appointment Schedule
-                  </h4>
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="form-label">Select Date</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={selectedDate}
-                      onChange={e => setSelectedDate(e.target.value)}
-                      min={getLocalDateString()}
-                    />
-                  </div>
+                {/* Right Column (Appointment Panel - Sticky) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '80px', zIndex: 10 }}>
+                  {/* Card 1: Khung giờ hẹn */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    border: '1.5px solid #e2e8f0',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      background: '#f8fafc',
+                      padding: '14px 18px',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      color: '#0f172a'
+                    }}>
+                      📅 Khung giờ hẹn
+                    </div>
 
-                  <label className="form-label">Available Time Slots</label>
-                  {slots.length === 0 ? (
-                    <p
-                      style={{
-                        fontSize: '0.88rem',
-                        color: 'var(--color-text-muted)',
-                        marginTop: '8px',
-                      }}
-                    >
-                      No available time slots on this date. Please select another date.
-                    </p>
-                  ) : (
-                    <div className="slots-time-grid">
-                      {slots.map(slot => {
-                        const isSelected = selectedSlotId === slot.slotInventoryId;
-                        const isFull = slot.availableCount <= 0;
-                        const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
-                        const isDisable = isFull || isPast;
+                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                      {/* Date Picker */}
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                          CHỌN NGÀY HẸN
+                        </label>
+                        <input
+                          type="date"
+                          className="form-input"
+                          value={selectedDate}
+                          onChange={e => setSelectedDate(e.target.value)}
+                          min={getLocalDateString()}
+                          style={{ width: '100%', fontSize: '0.95rem', borderRadius: '10px', padding: '10px 14px' }}
+                        />
+                      </div>
+
+                      {/* Time Slots */}
+                      {(() => {
+                        const totalSlotPages = Math.ceil(slots.length / SLOT_PAGE_SIZE) || 1;
+                        const pagedSlots = slots.slice((slotPage - 1) * SLOT_PAGE_SIZE, slotPage * SLOT_PAGE_SIZE);
+
                         return (
-                          <div
-                            key={slot.slotInventoryId}
-                            className={`slot-chip-item ${isSelected ? 'selected' : ''} ${isDisable ? 'disabled' : ''}`}
-                            onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
-                          >
-                            <span className="slot-chip-time">
-                              {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
-                            </span>
-                            <span className="slot-chip-meta">
-                              {isPast
-                                ? 'Past'
-                                : isFull
-                                  ? 'Full'
-                                  : `${slot.availableCount} slots left`}
-                            </span>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', margin: 0 }}>
+                                KHUNG GIỜ CÒN TRỐNG
+                              </label>
+                              {slots.length > 0 && (
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                  {slots.length} khung giờ
+                                </span>
+                              )}
+                            </div>
+                            {slots.length === 0 ? (
+                              <div
+                                style={{
+                                  padding: '16px',
+                                  background: '#f8fafc',
+                                  borderRadius: '10px',
+                                  textAlign: 'center',
+                                  fontSize: '0.88rem',
+                                  color: '#64748b',
+                                  border: '1px dashed #cbd5e1'
+                                }}
+                              >
+                                Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                  {pagedSlots.map(slot => {
+                                    const isSelected = selectedSlotId === slot.slotInventoryId;
+                                    const isFull = slot.availableCount <= 0;
+                                    const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
+                                    const isDisable = isFull || isPast;
+                                    return (
+                                      <button
+                                        key={slot.slotInventoryId}
+                                        type="button"
+                                        disabled={isDisable}
+                                        onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          padding: '10px 8px',
+                                          borderRadius: '10px',
+                                          cursor: isDisable ? 'not-allowed' : 'pointer',
+                                          border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                          background: isSelected ? '#eff6ff' : isDisable ? '#f8fafc' : '#ffffff',
+                                          color: isSelected ? '#0284c7' : isDisable ? '#94a3b8' : '#0f172a',
+                                          opacity: isDisable ? 0.5 : 1,
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                      >
+                                        <span style={{ fontSize: '0.95rem', fontWeight: 700, textDecoration: isDisable ? 'line-through' : 'none' }}>
+                                          {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#64748b', fontWeight: 500 }}>
+                                          {isPast
+                                            ? 'Đã qua'
+                                            : isFull
+                                              ? 'Đã đầy'
+                                              : `Còn ${slot.availableCount} chỗ`}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Slot Pagination */}
+                                {slots.length > SLOT_PAGE_SIZE && (
+                                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage <= 1}
+                                      onClick={() => setSlotPage(p => Math.max(1, p - 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage <= 1 ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage <= 1 ? '#94a3b8' : '#334155',
+                                        cursor: slotPage <= 1 ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      ← Trước
+                                    </button>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                                      Trang {slotPage} / {totalSlotPages}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage >= totalSlotPages}
+                                      onClick={() => setSlotPage(p => Math.min(totalSlotPages, p + 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage >= totalSlotPages ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage >= totalSlotPages ? '#94a3b8' : '#334155',
+                                        cursor: slotPage >= totalSlotPages ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      Sau →
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         );
-                      })}
+                      })()}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: '30px',
-                  borderTop: '1px solid var(--color-border-dim)',
-                  paddingTop: '20px',
-                }}
-              >
-                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
-                  ← Back
-                </AnimatedButton>
-                <AnimatedButton
-                  type="button"
-                  variant="primary"
-                  disabled={
-                    !services.some(
-                      s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
-                    ) || !selectedSlotId
-                  }
-                  onClick={() => setWizardStep(4)}
-                >
-                  View Quote &amp; Confirm
-                </AnimatedButton>
+                  {/* Card 2: Tóm tắt đặt lịch */}
+                  {(() => {
+                    const allMain = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const allAddOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+                    const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const selectedAddOns = allAddOns.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+
+                    return (
+                      <div style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        border: '1.5px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        padding: '18px'
+                      }}>
+                        <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', margin: '0 0 14px' }}>
+                          TÓM TẮT ĐẶT LỊCH
+                        </h3>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Dịch vụ chính:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {selectedMain ? `${selectedMain.serviceName} (${formatVND(selectedMain.basePrice)})` : 'Chưa chọn'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Dịch vụ bổ sung:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {selectedAddOns.length > 0 ? `${selectedAddOns.length} dịch vụ` : '0 dịch vụ'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Thời gian dự kiến:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {estimatedMinutes > 0 ? `${estimatedMinutes} phút` : '0 phút'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>Tạm tính:</span>
+                          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7' }}>
+                            {formatVND(estimatedPrice)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Actions Buttons */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => setWizardStep(2)}
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        background: '#ffffff'
+                      }}
+                    >
+                      ← Quay lại
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={
+                        !services.some(
+                          s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
+                        ) || !selectedSlotId
+                      }
+                      onClick={() => setWizardStep(4)}
+                      style={{
+                        flex: 2,
+                        padding: '12px',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                      }}
+                    >
+                      Tiếp tục →
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1853,16 +2348,16 @@ export default function CustomerBookings() {
           {/* STEP 4: QUOTE PREVIEW & CONFIRM */}
           {wizardStep === 4 && (
             <div>
-              <h3>Step 4: Invoice & Confirmation</h3>
+              <h3>Bước 4: Báo giá &amp; Xác nhận</h3>
               <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-                Please review your booking details and confirm below.
+                Vui lòng kiểm tra lại thông tin chi tiết và xác nhận đặt lịch bên dưới.
               </p>
 
               {quoteLoading ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Loading invoice details...</p>
+                <p style={{ padding: '20px', textAlign: 'center' }}>Đang tính toán chi tiết báo giá...</p>
               ) : !quote ? (
                 <p className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>
-                  Failed to calculate quote. Please go back and try again.
+                  Không thể tính báo giá. Vui lòng quay lại và thử lại.
                 </p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -1875,7 +2370,7 @@ export default function CustomerBookings() {
                         marginBottom: '14px',
                       }}
                     >
-                      Invoice Summary
+                      Chi tiết hóa đơn
                     </h4>
                     <div className="quote-row">
                       <span>Tiền dịch vụ gốc</span>
@@ -1921,7 +2416,7 @@ export default function CustomerBookings() {
                         marginBottom: '4px',
                       }}
                     >
-                      Booking Summary
+                      Tóm tắt đặt lịch
                     </h4>
                     <div>
                       <p
@@ -1932,11 +2427,11 @@ export default function CustomerBookings() {
                           marginBottom: '2px',
                         }}
                       >
-                        Selected Branch
+                        Chi nhánh đã chọn
                       </p>
                       <p style={{ fontWeight: 600 }}>
                         {branches.find(b => b.branchId === selectedBranchId)?.name ||
-                          'Selected Branch'}
+                          'Chi nhánh đã chọn'}
                       </p>
                     </div>
                     <div>
@@ -1948,13 +2443,13 @@ export default function CustomerBookings() {
                           marginBottom: '2px',
                         }}
                       >
-                        Date & Time
+                        Ngày &amp; Giờ hẹn
                       </p>
                       <p style={{ fontWeight: 600 }}>
-                        {selectedDate} at{' '}
+                        {selectedDate} lúc{' '}
                         {slots
                           .find(s => s.slotInventoryId === selectedSlotId)
-                          ?.slotStartTime?.substring(0, 5) || 'Selected Time'}
+                          ?.slotStartTime?.substring(0, 5) || 'Chưa chọn giờ'}
                       </p>
                     </div>
                     <div>
@@ -1963,19 +2458,36 @@ export default function CustomerBookings() {
                           fontSize: '0.8rem',
                           textTransform: 'uppercase',
                           color: 'var(--color-text-muted)',
-                          marginBottom: '2px',
+                          marginBottom: '4px',
                         }}
                       >
-                        Vehicle
+                        Phương tiện
                       </p>
-                      <p style={{ fontWeight: 600 }}>
-                        🚘{' '}
-                        {vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId)
-                          ?.LicensePlate ||
-                          vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId)
-                            ?.licensePlate ||
-                          'Selected Vehicle'}
-                      </p>
+                      {(() => {
+                        const curVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+                        const curImg = curVeh?.PrimaryImageUrl || curVeh?.primaryImageUrl || '';
+                        const curPlate = curVeh?.LicensePlate || curVeh?.licensePlate || 'Xe đã chọn';
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {curImg ? (
+                              <img
+                                src={curImg}
+                                alt={curPlate}
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  objectFit: 'cover',
+                                  border: '1px solid var(--color-border-dim)',
+                                }}
+                              />
+                            ) : (
+                              <span>🚘</span>
+                            )}
+                            <span style={{ fontWeight: 600 }}>{curPlate}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -2346,7 +2858,7 @@ export default function CustomerBookings() {
                 }}
               >
                 <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(3)} showArrow={false}>
-                  ← Back
+                  ← Quay lại
                 </AnimatedButton>
                 <AnimatedButton
                   type="button"
@@ -2354,7 +2866,7 @@ export default function CustomerBookings() {
                   disabled={submitLoading || !quote}
                   onClick={handleConfirmBooking}
                 >
-                  {submitLoading ? 'Creating booking...' : 'Confirm & Book Now'}
+                  {submitLoading ? 'Đang tạo lịch hẹn...' : 'Xác nhận & Đặt lịch ngay'}
                 </AnimatedButton>
               </div>
             </div>
@@ -2364,9 +2876,9 @@ export default function CustomerBookings() {
           {wizardStep === 5 && newBooking && (
             <div className="booking-success-card">
               <div className="success-icon-wrap">✓</div>
-              <h2>Booking Successful!</h2>
+              <h2>Đặt lịch thành công!</h2>
               <p style={{ color: 'var(--color-text-muted)', maxWidth: '460px' }}>
-                Thank you for choosing AutoWashPro. Your booking has been received and confirmed.
+                Cảm ơn bạn đã lựa chọn AutoWashPro. Lịch hẹn của bạn đã được tiếp nhận và xử lý.
               </p>
 
               <div
@@ -2396,7 +2908,7 @@ export default function CustomerBookings() {
                     />
                   </div>
                   <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                    Check-in Code: <strong>{newBooking.bookingCode}</strong>
+                    Mã Check-in: <strong>{newBooking.bookingCode}</strong>
                   </span>
                 </div>
 
@@ -2418,17 +2930,17 @@ export default function CustomerBookings() {
                       paddingBottom: '6px',
                     }}
                   >
-                    Booking Summary
+                    Tóm tắt đặt lịch
                   </h4>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    📅 <strong>Date:</strong> {newBooking.slotDate}
+                    📅 <strong>Ngày:</strong> {newBooking.slotDate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    🕒 <strong>Time:</strong>{' '}
+                    🕒 <strong>Giờ:</strong>{' '}
                     {newBooking.slotStartTime ? newBooking.slotStartTime.substring(0, 5) : '00:00'}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
-                    🚘 <strong>License Plate:</strong> {newBooking.licensePlate}
+                    🚘 <strong>Biển số xe:</strong> {newBooking.licensePlate}
                   </p>
                   <p style={{ margin: '6px 0', fontSize: '0.9rem' }}>
                     💵 <strong>Tiền dịch vụ gốc:</strong> {formatVND(newBooking.serviceSubtotal ?? newBooking!.bookingSubtotal)}
@@ -2447,7 +2959,7 @@ export default function CustomerBookings() {
                     <p
                       style={{ margin: '6px 0', fontSize: '0.9rem', color: 'var(--color-success)' }}
                     >
-                      🎁 <strong>Discount:</strong> -{formatVND(newBooking.bookingDiscountAmount)}
+                      🎁 <strong>Giảm giá:</strong> -{formatVND(newBooking.bookingDiscountAmount)}
                     </p>
                   )}
                   {newBooking.redeemedPoints > 0 && (
@@ -2466,7 +2978,7 @@ export default function CustomerBookings() {
                       marginTop: '6px',
                     }}
                   >
-                    💰 <strong>Total Amount:</strong> {formatVND(newBooking.bookingFinalAmount)}
+                    💰 <strong>Tổng tiền thanh toán:</strong> {formatVND(newBooking.bookingFinalAmount)}
                   </p>
                 </div>
               </div>
@@ -2483,7 +2995,7 @@ export default function CustomerBookings() {
                 }}
               >
                 <h4 style={{ color: 'var(--color-primary)', marginBottom: '8px' }}>
-                  💳 Online Deposit / Payment via VNPay
+                  💳 Đặt cọc / Thanh toán trực tuyến qua VNPay
                 </h4>
                 <p
                   style={{
@@ -2493,8 +3005,7 @@ export default function CustomerBookings() {
                     lineHeight: '1.4',
                   }}
                 >
-                  To guarantee your spot and speed up check-in, please choose to pay a 50% deposit
-                  online or pay the full 100% amount now via VNPay.
+                  Để đảm bảo giữ chỗ và làm thủ tục nhanh chóng khi đến chi nhánh, bạn có thể thanh toán cọc 50% hoặc thanh toán toàn bộ 100% qua cổng VNPay.
                 </p>
                 <div
                   style={{
@@ -2509,14 +3020,14 @@ export default function CustomerBookings() {
                     variant="primary"
                     onClick={() => handlePaymentRedirect(newBooking.bookingId, false)}
                   >
-                    Pay 50% Deposit ({formatVND(newBooking.bookingFinalAmount / 2)})
+                    Đặt cọc 50% ({formatVND(newBooking.bookingFinalAmount / 2)})
                   </AnimatedButton>
                   <AnimatedButton
                     type="button"
                     variant="secondary"
                     onClick={() => handlePaymentRedirect(newBooking.bookingId, true)}
                   >
-                    Pay 100% Full ({formatVND(newBooking.bookingFinalAmount)})
+                    Thanh toán 100% ({formatVND(newBooking.bookingFinalAmount)})
                   </AnimatedButton>
                 </div>
               </div>
@@ -2527,7 +3038,7 @@ export default function CustomerBookings() {
                 style={{ marginTop: '20px' }}
                 onClick={() => setViewMode('list')}
               >
-                Back to Appointments List
+                Quay lại danh sách lịch hẹn
               </AnimatedButton>
             </div>
           )}
@@ -2547,7 +3058,7 @@ export default function CustomerBookings() {
             </button>
 
             <div className="booking-detail-header-block">
-              <h3>Booking: {selectedBooking.bookingCode}</h3>
+              <h3>Mã đơn: {selectedBooking.bookingCode}</h3>
               <StatusBadge
                 type={getStatusClass(selectedBooking.bookingStatus)}
                 label={getStatusLabel(selectedBooking.bookingStatus)}
@@ -2670,47 +3181,47 @@ export default function CustomerBookings() {
               {/* Info grid */}
               <div className="booking-detail-grid">
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Date</span>
+                  <span className="booking-detail-item-label">Ngày hẹn</span>
                   <span className="booking-detail-item-value">
-                    {selectedBooking.slotDate || 'Not scheduled'}
+                    {selectedBooking.slotDate || 'Chưa lên lịch'}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Time Slot</span>
+                  <span className="booking-detail-item-label">Khung giờ hẹn</span>
                   <span className="booking-detail-item-value">
                     {selectedBooking.slotStartTime
                       ? selectedBooking.slotStartTime.substring(0, 5)
-                      : 'Not scheduled'}
+                      : 'Chưa có khung giờ'}
                     {selectedBooking.slotEndTime
                       ? ` - ${selectedBooking.slotEndTime.substring(0, 5)}`
                       : ''}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Vehicle</span>
+                  <span className="booking-detail-item-label">Phương tiện</span>
                   <span className="booking-detail-item-value">
-                    🚘 {selectedBooking.licensePlate || 'None'} (
-                    {selectedBooking.vehicleBrand || 'Unknown Brand'})
+                    🚘 {selectedBooking.licensePlate || 'Không có'} (
+                    {selectedBooking.vehicleBrand || 'Chưa rõ hãng'})
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Vehicle Type</span>
+                  <span className="booking-detail-item-label">Loại phương tiện</span>
                   <span className="booking-detail-item-value">
                     {getVehicleLabel(selectedBooking.vehicleType)}
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Loyalty Points Earned</span>
+                  <span className="booking-detail-item-label">Điểm tích lũy nhận được</span>
                   <span className="booking-detail-item-value">
-                    +{selectedBooking.earnedPoints || 0} pts
+                    +{selectedBooking.earnedPoints || 0} điểm
                   </span>
                 </div>
                 <div className="booking-detail-item">
-                  <span className="booking-detail-item-label">Created At</span>
+                  <span className="booking-detail-item-label">Thời gian tạo đơn</span>
                   <span className="booking-detail-item-value">
                     {selectedBooking.createdAtUtc
-                      ? new Date(selectedBooking.createdAtUtc).toLocaleDateString('en-US')
-                      : 'Unknown'}
+                      ? new Date(selectedBooking.createdAtUtc).toLocaleDateString('vi-VN')
+                      : 'Không rõ'}
                   </span>
                 </div>
                 {selectedBooking.assignedStaffName && (
@@ -2728,7 +3239,7 @@ export default function CustomerBookings() {
 
               {/* Service list items */}
               <div className="booking-detail-services-box">
-                <div className="booking-detail-services-title">Services List</div>
+                <div className="booking-detail-services-title">Danh sách dịch vụ</div>
                 {selectedBooking.lines && selectedBooking.lines.length > 0 ? (
                   selectedBooking.lines.map(line => (
                     <div key={line.bookingLineId} className="booking-detail-service-line">
@@ -2742,7 +3253,7 @@ export default function CustomerBookings() {
                   ))
                 ) : (
                   <div className="booking-detail-service-line">
-                    <span>No services found.</span>
+                    <span>Không tìm thấy dịch vụ nào.</span>
                   </div>
                 )}
 
@@ -2807,7 +3318,7 @@ export default function CustomerBookings() {
                       marginTop: '4px',
                     }}
                   >
-                    <span>Total Amount</span>
+                    <span>Tổng tiền</span>
                     <span>{formatVND(selectedBooking.bookingFinalAmount)}</span>
                   </div>
                   {selectedBooking.depositAmount && selectedBooking.depositAmount > 0 ? (
@@ -2822,7 +3333,7 @@ export default function CustomerBookings() {
                           marginTop: '6px',
                         }}
                       >
-                        <span>Online Deposit Paid</span>
+                        <span>Đã cọc trực tuyến</span>
                         <span>-{formatVND(selectedBooking.depositAmount)}</span>
                       </div>
                       <div
@@ -2834,7 +3345,7 @@ export default function CustomerBookings() {
                           marginTop: '4px',
                         }}
                       >
-                        <span>Remaining Balance to Pay at Counter</span>
+                        <span>Số tiền còn lại thanh toán tại quầy</span>
                         <span>
                           {formatVND(
                             selectedBooking.bookingFinalAmount - selectedBooking.depositAmount
@@ -2852,7 +3363,7 @@ export default function CustomerBookings() {
                         marginTop: '4px',
                       }}
                     >
-                      <span>Total Amount to Pay</span>
+                      <span>Tổng tiền cần thanh toán</span>
                       <span>{formatVND(selectedBooking.bookingFinalAmount)}</span>
                     </div>
                   )}
@@ -2876,7 +3387,7 @@ export default function CustomerBookings() {
                       color: 'var(--color-heading)',
                     }}
                   >
-                    Service Review
+                    Đánh giá dịch vụ
                   </div>
                   {(() => {
                     const review = userReviews.find(
@@ -2924,7 +3435,7 @@ export default function CustomerBookings() {
                                 color: 'var(--color-text-muted)',
                               }}
                             >
-                              No comment.
+                              Không có nhận xét.
                             </p>
                           )}
                           {review.isHidden && (
@@ -2932,7 +3443,7 @@ export default function CustomerBookings() {
                               className="badge badge-danger"
                               style={{ marginTop: '8px', display: 'inline-block' }}
                             >
-                              This review is hidden by management
+                              Đánh giá này đã bị ẩn bởi ban quản lý
                             </span>
                           )}
                         </div>
@@ -2947,8 +3458,7 @@ export default function CustomerBookings() {
                               marginBottom: '10px',
                             }}
                           >
-                            You haven't reviewed this appointment yet. Share your experience with
-                            us!
+                            Bạn chưa đánh giá lịch hẹn này. Hãy chia sẻ trải nghiệm với chúng tôi nhé!
                           </p>
                           <button
                             type="button"
@@ -2958,7 +3468,7 @@ export default function CustomerBookings() {
                               handleOpenReviewModal(selectedBooking);
                             }}
                           >
-                            Write Review
+                            Viết đánh giá
                           </button>
                         </div>
                       );
@@ -2984,7 +3494,7 @@ export default function CustomerBookings() {
                       maxWidth: '340px',
                     }}
                   >
-                    Present this QR code or Booking ID to staff at the branch counter for check-in.
+                    Xuất trình mã QR này hoặc Mã đơn cho nhân viên tại quầy chi nhánh để làm thủ tục nhận xe.
                   </p>
                 </div>
               )}
@@ -2999,7 +3509,7 @@ export default function CustomerBookings() {
                   size="sm"
                   onClick={() => handlePaymentRedirect(selectedBooking.bookingId, false)}
                 >
-                  Pay Deposit (50%)
+                  Thanh toán cọc (50%)
                 </AnimatedButton>
               )}
               {(selectedBooking.bookingStatus === 1 || selectedBooking.bookingStatus === 2) && (
@@ -3009,7 +3519,7 @@ export default function CustomerBookings() {
                   size="sm"
                   onClick={() => handleCancelBookingClick(selectedBooking)}
                 >
-                  Cancel Appointment
+                  Hủy lịch hẹn
                 </AnimatedButton>
               )}
               <AnimatedButton
@@ -3018,7 +3528,7 @@ export default function CustomerBookings() {
                 size="sm"
                 onClick={() => setShowDetailsModal(false)}
               >
-                Close
+                Đóng
               </AnimatedButton>
             </div>
           </div>
@@ -3027,19 +3537,19 @@ export default function CustomerBookings() {
 
       <ConfirmModal
         isOpen={showCancelConfirm && !!bookingToCancel}
-        title="Cancel Appointment"
+        title="Hủy lịch hẹn"
         variant="danger"
         onCancel={() => {
           setShowCancelConfirm(false);
           setBookingToCancel(null);
         }}
         onConfirm={handleConfirmCancel}
-        confirmText="Cancel Appointment"
-        cancelText="Dismiss"
+        confirmText="Xác nhận hủy lịch"
+        cancelText="Quay lại"
         message={
           <>
             <p>
-              Are you sure you want to cancel booking code{' '}
+              Bạn có chắc chắn muốn hủy lịch hẹn mã{' '}
               <span className="highlight-plate">{bookingToCancel?.bookingCode}</span>?
             </p>
             <div
@@ -3047,7 +3557,7 @@ export default function CustomerBookings() {
               style={{ width: '100%', textAlign: 'left', marginTop: '12px' }}
             >
               <label className="form-label" htmlFor="cancel-reason-input">
-                Reason for Cancellation
+                Lý do hủy lịch
               </label>
               <textarea
                 id="cancel-reason-input"
@@ -3055,7 +3565,7 @@ export default function CustomerBookings() {
                 style={{ minHeight: '80px', color: 'var(--color-heading)' }}
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
-                placeholder="Enter cancellation reason (e.g., busy schedule, change of mind...)"
+                placeholder="Nhập lý do hủy lịch (ví dụ: bận việc đột xuất, đổi kế hoạch...)"
                 required
               />
             </div>

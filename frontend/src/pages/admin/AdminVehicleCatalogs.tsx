@@ -232,7 +232,7 @@ export default function AdminVehicleCatalogs() {
           className={`btn ${activeTab === 'brand' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => handleTabChange('brand')}
         >
-          Hãng Xe
+          🚗 Hãng Xe
         </button>
       </div>
 
@@ -243,7 +243,7 @@ export default function AdminVehicleCatalogs() {
             type="text"
             className="form-input"
             style={{ width: '100%', paddingLeft: '32px' }}
-            placeholder={`Tìm kiếm theo tên hoặc mã ${activeTab === 'engine' ? 'động cơ' : 'kiểu dáng'}...`}
+            placeholder={`Tìm kiếm theo tên hoặc mã ${activeTab === 'engine' ? 'động cơ' : activeTab === 'bodyStyle' ? 'kiểu dáng' : 'hãng xe'}...`}
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
           />
@@ -272,7 +272,7 @@ export default function AdminVehicleCatalogs() {
                   <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border-dim)' }}>
                     <th style={{ padding: '16px' }}>Mã Danh Mục</th>
                     <th style={{ padding: '16px' }}>Tên Hiển Thị</th>
-                    <th style={{ padding: '16px' }}>Hệ Thống (Legacy)</th>
+                    <th style={{ padding: '16px' }}>Hệ Thống</th>
                     <th style={{ padding: '16px' }}>Trạng Thái</th>
                     <th style={{ padding: '16px', textAlign: 'right' }}>Thao Tác</th>
                   </tr>
@@ -288,7 +288,7 @@ export default function AdminVehicleCatalogs() {
                       <td style={{ padding: '16px' }}>{item.name}</td>
                       <td style={{ padding: '16px', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                         {item.legacyEnumValue !== null && item.legacyEnumValue !== undefined ? (
-                          <span>ID cũ: {item.legacyEnumValue}</span>
+                          <span>Mã số: {item.legacyEnumValue}</span>
                         ) : (
                           <span style={{ fontStyle: 'italic' }}>Tự thêm mới</span>
                         )}
@@ -304,14 +304,14 @@ export default function AdminVehicleCatalogs() {
                             className="btn btn-ghost btn-sm"
                             onClick={() => handleOpenEditModal(item)}
                           >
-                            Edit
+                            Sửa
                           </button>
                           <button
                             className={`btn btn-sm ${item.isActive ? 'btn-danger-ghost' : 'btn-success-ghost'}`}
                             onClick={() => handleToggleStatus(item)}
                             style={{ fontSize: '0.8rem' }}
                           >
-                            {item.isActive ? 'Deactivate' : 'Activate'}
+                            {item.isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}
                           </button>
                         </div>
                       </td>
@@ -378,7 +378,7 @@ export default function AdminVehicleCatalogs() {
               {activeTab === 'brand' && (
                 <>
                   <div className="form-group">
-                    <label className="form-label" htmlFor="catalog-vehicle-type">Loáº¡i xe</label>
+                    <label className="form-label" htmlFor="catalog-vehicle-type">Loại xe</label>
                     <select
                       id="catalog-vehicle-type"
                       className="form-input"
@@ -386,9 +386,9 @@ export default function AdminVehicleCatalogs() {
                       onChange={e => setForm(prev => ({ ...prev, vehicleType: Number(e.target.value) }))}
                       disabled={modalMode === 'edit'}
                     >
-                      <option value={1}>Xe mÃ¡y</option>
-                      <option value={2}>Ã” tÃ´</option>
-                      <option value={3}>Xe táº£i</option>
+                      <option value={1}>Xe máy</option>
+                      <option value={2}>Ô tô</option>
+                      <option value={3}>Xe tải</option>
                     </select>
                   </div>
                   <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -400,7 +400,7 @@ export default function AdminVehicleCatalogs() {
                       style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                     />
                     <label htmlFor="catalog-luxury" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>
-                      HÃ£ng xe sang (metadata, chÆ°a tÃ­nh phá»¥ phÃ­)
+                      Hãng xe sang trọng
                     </label>
                   </div>
                 </>

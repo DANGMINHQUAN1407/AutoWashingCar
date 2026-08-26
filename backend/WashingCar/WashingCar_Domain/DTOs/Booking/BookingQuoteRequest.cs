@@ -4,8 +4,9 @@ namespace WashingCar_Domain.DTOs.Booking;
 
 public class BookingQuoteRequest
 {
-    /// <summary>Xe của khách để tính phụ thu theo tình trạng; để trống thì không áp phụ thu.</summary>
-    public Guid? VehicleId { get; set; }
+    /// <summary>Xe của khách; bắt buộc để xác định loại xe, động cơ và bảng giá áp dụng.</summary>
+    [Required]
+    public Guid VehicleId { get; set; }
 
     [Required] public Guid SlotInventoryId { get; set; }
     public Guid? UserVoucherId { get; set; }

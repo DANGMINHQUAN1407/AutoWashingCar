@@ -98,7 +98,7 @@ function CheckInModal({ queue, onClose, onSuccess }: CheckInModalProps) {
       onSuccess()
       onClose()
     } catch (e: any) {
-      setConfirmError(e?.message || 'Check-in failed.')
+      setConfirmError(e?.message || 'Check-in thất bại.')
     }
     setConfirming(false)
   }
@@ -107,12 +107,12 @@ function CheckInModal({ queue, onClose, onSuccess }: CheckInModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Check-In by Booking Code</h3>
+          <h3>Check-In bằng Mã đặt lịch</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div style={{ display: 'flex', gap: 8, marginBottom: scanMode ? 12 : 0 }}>
-            <input ref={inputRef} className="form-input" placeholder="Booking code or QR token…"
+            <input ref={inputRef} className="form-input" placeholder="Nhập mã đặt lịch hoặc mã QR…"
               value={code}
               disabled={scanMode}
               onChange={e => { setCode(e.target.value); setPreview(null); setFindError('') }}
@@ -129,7 +129,7 @@ function CheckInModal({ queue, onClose, onSuccess }: CheckInModalProps) {
                 ✕ Hủy
               </button>
             )}
-            <button className="btn btn-primary btn-sm" onClick={() => handleFind()} disabled={scanMode} style={{ flexShrink: 0 }}>Find</button>
+            <button className="btn btn-primary btn-sm" onClick={() => handleFind()} disabled={scanMode} style={{ flexShrink: 0 }}>Tìm kiếm</button>
           </div>
           
           {scanMode && (
@@ -144,20 +144,20 @@ function CheckInModal({ queue, onClose, onSuccess }: CheckInModalProps) {
             <div className="checkin-preview-card" style={{ marginTop: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span className="checkin-preview-plate">{preview.licensePlate || preview.bookingCode}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--color-success)', fontWeight: 700 }}>FOUND</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--color-success)', fontWeight: 700 }}>ĐÃ TÌM THẤY</span>
               </div>
-              {preview.customerName && <div className="checkin-preview-row"><span>Customer</span><strong>{preview.customerName}</strong></div>}
-              <div className="checkin-preview-row"><span>Service</span><strong>{serviceNames(preview)}</strong></div>
-              <div className="checkin-preview-row"><span>Time</span><strong>{preview.slotDate} {fmt(preview.slotStartTime)}</strong></div>
-              <div className="checkin-preview-row"><span>Amount</span><strong>{preview.bookingFinalAmount.toLocaleString('vi-VN')}đ</strong></div>
+              {preview.customerName && <div className="checkin-preview-row"><span>Khách hàng</span><strong>{preview.customerName}</strong></div>}
+              <div className="checkin-preview-row"><span>Dịch vụ</span><strong>{serviceNames(preview)}</strong></div>
+              <div className="checkin-preview-row"><span>Thời gian</span><strong>{preview.slotDate} {fmt(preview.slotStartTime)}</strong></div>
+              <div className="checkin-preview-row"><span>Số tiền</span><strong>{preview.bookingFinalAmount.toLocaleString('vi-VN')}đ</strong></div>
             </div>
           )}
           {confirmError && <div className="staff-alert staff-alert--error" style={{ padding: '10px 14px', marginTop: 12 }}>{confirmError}</div>}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Đóng</button>
           <button className="btn btn-primary btn-sm" disabled={!preview || confirming} onClick={handleConfirm}>
-            {confirming ? 'Processing…' : 'Confirm Check-In'}
+            {confirming ? 'Đang xử lý…' : 'Xác nhận Check-In'}
           </button>
         </div>
       </div>
@@ -181,11 +181,11 @@ function CancelModal({ booking, onClose, onSuccess }: CancelModalProps) {
     setCancelling(true)
     setError('')
     try {
-      await api.cancelBooking(booking.bookingId, reason || 'Cancelled by staff')
+      await api.cancelBooking(booking.bookingId, reason || 'Hủy bởi nhân viên')
       onSuccess()
       onClose()
     } catch (e: any) {
-      setError(e?.message || 'Cancel failed.')
+      setError(e?.message || 'Hủy lịch hẹn thất bại.')
     }
     setCancelling(false)
   }
@@ -194,26 +194,26 @@ function CancelModal({ booking, onClose, onSuccess }: CancelModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Cancel Booking</h3>
+          <h3>Hủy lịch hẹn</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>
-            Cancel booking <strong>{booking.bookingCode}</strong>
+            Bạn có chắc muốn hủy lịch hẹn <strong>{booking.bookingCode}</strong>
             {booking.licensePlate && <> — <strong>{booking.licensePlate}</strong></>}?
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Reason (optional)</label>
-            <input className="form-input" placeholder="Customer no-show, wrong booking…"
+            <label className="form-label">Lý do hủy (tùy chọn)</label>
+            <input className="form-input" placeholder="Khách không đến, đặt nhầm…"
               value={reason} onChange={e => setReason(e.target.value)} />
           </div>
           {error && <div className="staff-alert staff-alert--error" style={{ padding: '10px 14px' }}>{error}</div>}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Back</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Quay lại</button>
           <button className="btn btn-sm" style={{ background: 'var(--color-danger)', borderColor: 'var(--color-danger)', color: '#fff' }}
             disabled={cancelling} onClick={handleCancel}>
-            {cancelling ? 'Cancelling…' : 'Confirm Cancel'}
+            {cancelling ? 'Đang hủy…' : 'Xác nhận hủy'}
           </button>
         </div>
       </div>
@@ -263,8 +263,64 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
       .finally(() => setServicesLoading(false))
   }, [])
 
+  const bookingVehicleType = (booking as any)?.vehicle?.vehicleType ?? (booking as any)?.vehicleType ?? (initialBooking as any)?.vehicleType ?? null
+
+  const existingServiceIds = new Set(
+    (booking.lines ?? []).map(l => l.serviceCatalogItemId || (l as any).serviceId)
+  )
+
+  const hasStandard = (booking.lines ?? []).some(l => {
+    const s = services.find(srv => srv.serviceId === (l.serviceCatalogItemId || (l as any).serviceId))
+    return s?.servicePackageType === 1
+  })
+
+  const hasPremium = (booking.lines ?? []).some(l => {
+    const s = services.find(srv => srv.serviceId === (l.serviceCatalogItemId || (l as any).serviceId))
+    return s?.servicePackageType === 3
+  })
+
+  const applicableServices = services.filter(s => {
+    // 1. Không hiển thị dịch vụ đã có trong đơn (tránh trùng lặp)
+    if (existingServiceIds.has(s.serviceId)) return false
+    // 2. Không hiển thị dịch vụ khác loại xe
+    if (bookingVehicleType && s.vehicleType && s.vehicleType !== bookingVehicleType) return false
+    // 3. Nếu đơn đã có gói Premium (3) -> không thêm được bất kỳ dịch vụ nào khác
+    if (hasPremium) return false
+    // 4. Nếu đơn đã có gói Standard (1) -> không thêm được gói Standard (1) hoặc Premium (3) khác (chỉ thêm được Add-on = 2)
+    if (hasStandard && (s.servicePackageType === 1 || s.servicePackageType === 3)) return false
+    return true
+  })
+
+  useEffect(() => {
+    if (applicableServices.length > 0) {
+      if (!applicableServices.some(s => s.serviceId === selectedServiceId)) {
+        setSelectedServiceId(applicableServices[0].serviceId)
+      }
+    } else {
+      setSelectedServiceId('')
+    }
+  }, [applicableServices, selectedServiceId])
+
   const handleAdd = async () => {
     if (!selectedServiceId) return
+    const targetService = services.find(s => s.serviceId === selectedServiceId)
+    if (targetService?.vehicleType && bookingVehicleType && targetService.vehicleType !== bookingVehicleType) {
+      const vName = targetService.vehicleType === 1 ? 'Xe máy' : targetService.vehicleType === 2 ? 'Ô tô' : 'Xe tải'
+      const curVName = bookingVehicleType === 1 ? 'Xe máy' : bookingVehicleType === 2 ? 'Ô tô' : 'Xe tải'
+      setError(`Dịch vụ '${targetService.serviceName}' chỉ dành cho ${vName}, không thể áp dụng cho đơn ${curVName}.`)
+      return
+    }
+
+    if (targetService?.servicePackageType === 1 && hasStandard) {
+      setError('Mỗi đơn hàng chỉ được chọn 1 gói rửa chính (Standard).')
+      return
+    }
+
+    if ((targetService?.servicePackageType === 3 && (hasStandard || hasPremium)) || hasPremium) {
+      setError('Gói Premium là gói toàn diện, không thể kết hợp với các gói khác.')
+      return
+    }
+
     setAdding(true)
     setError('')
     try {
@@ -275,7 +331,7 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
       setBooking(updated)
       onSuccess()
     } catch (e: any) {
-      setError(e?.message || 'Failed to add service.')
+      setError(e?.message || 'Không thể thêm dịch vụ.')
     }
     setAdding(false)
   }
@@ -288,7 +344,7 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
       setBooking(updated)
       onSuccess()
     } catch (e: any) {
-      setError(e?.message || 'Failed to remove service.')
+      setError(e?.message || 'Không thể xoá dịch vụ.')
     }
     setRemoving(null)
   }
@@ -305,9 +361,23 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
             </span>
             <div>
               <h3 style={{ marginBottom: 2, fontSize: '1.15rem' }}>Quản lý dịch vụ</h3>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'Courier New, monospace', fontWeight: 600 }}>
-                {booking.licensePlate || booking.bookingCode}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'Courier New, monospace', fontWeight: 600 }}>
+                  {booking.licensePlate || booking.bookingCode}
+                </span>
+                {bookingVehicleType && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 700,
+                    background: bookingVehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' : bookingVehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                    color: bookingVehicleType === 1 ? '#2563eb' : bookingVehicleType === 2 ? '#059669' : '#d97706',
+                  }}>
+                    {bookingVehicleType === 1 ? '🏍️ Xe máy' : bookingVehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -325,7 +395,7 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
             ) : lines.length === 0 ? (
               <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', padding: '10px 0' }}>Chưa có dịch vụ nào.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 180, overflowY: 'auto', paddingRight: 4 }}>
                 {lines.map((line, idx) => (
                   <div key={line.bookingLineId} className="bdetail-row" style={{ padding: '8px 0', borderBottom: idx === lines.length - 1 ? 'none' : '1px dashed var(--color-border-dim)' }}>
                     <div>
@@ -355,17 +425,19 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
           <div className="bdetail-section">
             <div className="bdetail-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              Thêm dịch vụ
+              Thêm dịch vụ phù hợp ({applicableServices.length})
             </div>
             {servicesLoading ? (
               <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Đang tải danh sách dịch vụ…</div>
-            ) : services.length === 0 ? (
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Không có dịch vụ khả dụng.</div>
+            ) : applicableServices.length === 0 ? (
+              <div style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', padding: '16px 0', textAlign: 'center' }}>
+                ✅ Đã thêm đầy đủ tất cả các dịch vụ khả dụng cho đơn này.
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 4 }}>
                 {/* List of services */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto', paddingRight: 4, margin: '0 -4px', padding: '4px' }}>
-                  {services.map(s => {
+                  {applicableServices.map(s => {
                     const isSelected = selectedServiceId === s.serviceId;
                     return (
                       <div
@@ -380,9 +452,23 @@ function ServiceLineModal({ booking: initialBooking, onClose, onSuccess }: Servi
                           boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.15)' : 'var(--shadow-sm)'
                         }}
                       >
-                        <span style={{ fontSize: '0.95rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--color-primary)' : 'var(--color-heading)' }}>
-                          {s.serviceName}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--color-primary)' : 'var(--color-heading)' }}>
+                            {s.serviceName}
+                          </span>
+                          {s.vehicleType && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' : s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                              color: s.vehicleType === 1 ? '#2563eb' : s.vehicleType === 2 ? '#059669' : '#d97706',
+                            }}>
+                              {s.vehicleType === 1 ? '🏍️ Xe máy' : s.vehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+                            </span>
+                          )}
+                        </div>
                         <span style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? 'var(--color-primary)' : 'var(--color-text)' }}>
                           {s.basePrice.toLocaleString('vi-VN')}đ
                         </span>
@@ -725,11 +811,11 @@ interface BookingDetailModalProps {
 }
 
 const STATUS_LABELS: Record<number, string> = {
-  1: 'Pending', 2: 'Confirmed', 3: 'Checked In',
-  4: 'In Progress', 5: 'Completed', 6: 'Closed', 7: 'Cancelled',
+  1: 'Chờ xử lý', 2: 'Đã xác nhận', 3: 'Đã Check-in',
+  4: 'Đang rửa', 5: 'Hoàn thành', 6: 'Đã đóng', 7: 'Đã hủy', 8: 'Vắng mặt',
 }
-const VEHICLE_TYPE: Record<number, string> = { 1: 'Sedan', 2: 'SUV', 3: 'Truck' }
-const BOOKING_TYPE: Record<number, string> = { 1: 'Online', 2: 'Walk-in' }
+const VEHICLE_TYPE: Record<number, string> = { 1: 'Xe máy', 2: 'Ô tô', 3: 'Xe tải' }
+const BOOKING_TYPE: Record<number, string> = { 1: 'Trực tuyến', 2: 'Khách trực tiếp' }
 
 function BookingDetailModal({ booking: initial, onClose }: BookingDetailModalProps) {
   const [booking, setBooking] = useState<Booking>(initial)
@@ -948,22 +1034,22 @@ function BookingCard({ booking: b, onCheckin, onStart, onComplete, onClose, onCa
       <div className="ops-actions" style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px dashed var(--color-border-dim)', display: 'grid', gridTemplateColumns: b.bookingStatus === BS.InProgress || b.bookingStatus === BS.Confirmed ? '1fr 1fr' : '1fr', gap: 8 }}>
         {b.bookingStatus === BS.Confirmed && (
           <>
-            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onCheckin(b)} style={{ width: '100%' }}>Check In</button>
-            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', width: '100%', border: '1px solid var(--color-border-dim)' }} disabled={busy} onClick={() => onCancel(b)}>Cancel</button>
+            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onCheckin(b)} style={{ width: '100%' }}>Check-in</button>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', width: '100%', border: '1px solid var(--color-border-dim)' }} disabled={busy} onClick={() => onCancel(b)}>Hủy đơn</button>
           </>
         )}
         {b.bookingStatus === BS.CheckedIn && (
-          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onStart(b)} style={{ width: '100%' }}>Start Wash</button>
+          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onStart(b)} style={{ width: '100%' }}>Bắt đầu rửa</button>
         )}
         {b.bookingStatus === BS.InProgress && (
           <>
             <button className="btn btn-primary btn-sm" style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)', width: '100%' }}
-              disabled={busy} onClick={() => onComplete(b)}>Complete</button>
-            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onServices(b)} style={{ width: '100%' }}>Services</button>
+              disabled={busy} onClick={() => onComplete(b)}>Hoàn thành & Thu tiền</button>
+            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onServices(b)} style={{ width: '100%' }}>Thêm dịch vụ</button>
           </>
         )}
         {b.bookingStatus === BS.Completed && (
-          <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onClose(b)} style={{ width: '100%' }}>Close</button>
+          <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => onClose(b)} style={{ width: '100%' }}>Đóng đơn</button>
         )}
       </div>
     </div>
@@ -993,7 +1079,7 @@ function OpsColumn({ title, dot, items, cardProps }: ColumnProps) {
               <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
               <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
             </svg>
-            No bookings here
+            Không có lịch hẹn nào
           </div>
         )
         : items.map(b => <BookingCard key={b.bookingId} booking={b} {...cardProps} />)
@@ -1026,7 +1112,7 @@ export default function StaffDashboard() {
       const res = await api.getBookingQueue({ fromDate: d, toDate: d, pageSize: 100 })
       setQueue(res.items)
     } catch (e: any) {
-      setError(e?.message || 'Could not load queue. Make sure the backend is running.')
+      setError(e?.message || 'Không thể tải hàng đợi. Vui lòng thử lại.')
     }
     setLoading(false)
   }, [selectedDate])
@@ -1055,12 +1141,12 @@ export default function StaffDashboard() {
   const withBusy = async (fn: () => Promise<void>) => {
     setBusy(true)
     setError('')
-    try { await fn() } catch { setError('Action failed. Please try again.') }
+    try { await fn() } catch { setError('Thao tác thất bại. Vui lòng thử lại.') }
     setBusy(false)
   }
 
   const handleCheckin = (b: Booking) => {
-    if (!b.bookingCode) { setError('Booking code missing — use "Enter Code" instead.'); return }
+    if (!b.bookingCode) { setError('Thiếu mã đặt lịch — hãy dùng nút "Nhập mã Check-in".'); return }
     withBusy(async () => {
       await api.checkInBookingByCode({ BookingCode: b.bookingCode })
       await loadQueue()
@@ -1092,8 +1178,8 @@ export default function StaffDashboard() {
     <div className="portal-page">
       <div className="ops-header">
         <div>
-          <h2>Operations Board</h2>
-          <p>Manage active services and vehicle queues.</p>
+          <h2>Bảng điều phối vận hành</h2>
+          <p>Theo dõi dịch vụ đang thực hiện và hàng đợi xe tại chi nhánh.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1114,21 +1200,21 @@ export default function StaffDashboard() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
-            Refresh
+            Làm mới
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowCheckinModal(true)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
               <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="4" height="4" />
             </svg>
-            Enter Code
+            Nhập mã Check-in
           </button>
           <Link to="/staff/customers" className="btn btn-premium-glow btn-sm">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 5 }}>
               <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
               <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
             </svg>
-            Walk-in
+            Khách vãng lai
           </Link>
         </div>
       </div>
@@ -1141,12 +1227,12 @@ export default function StaffDashboard() {
       )}
 
       {loading
-        ? <div className="ops-loading">Loading queue…</div>
+        ? <div className="ops-loading">Đang tải hàng đợi…</div>
         : (
           <div className="ops-board">
-            <OpsColumn title="Waiting" dot="blue" items={waiting} cardProps={cardProps} />
-            <OpsColumn title="Washing" dot="yellow" items={washing} cardProps={cardProps} />
-            <OpsColumn title="Completed" dot="grey" items={completed} cardProps={cardProps} />
+            <OpsColumn title="Chờ thực hiện" dot="blue" items={waiting} cardProps={cardProps} />
+            <OpsColumn title="Đang rửa xe" dot="yellow" items={washing} cardProps={cardProps} />
+            <OpsColumn title="Đã hoàn thành" dot="grey" items={completed} cardProps={cardProps} />
           </div>
         )
       }

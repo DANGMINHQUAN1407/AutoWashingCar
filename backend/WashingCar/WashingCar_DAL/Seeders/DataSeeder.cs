@@ -25,10 +25,13 @@ public static class DataSeeder
         // --- BƯỚC 2: SEED GÓI DỊCH VỤ VÀ ADD-ON ---
         await SeedDefaultServicesAndAddOnsAsync(db);
 
-        // --- BƯỚC 3: SEED HẠNG THÀNH VIÊN VÀ QUYỀN LỢI ---
+        // --- BƯỚC 3: BACKFILL BẢNG GIÁ THEO LOẠI XE/ĐỘNG CƠ ---
+        await SeedServiceVehiclePricingAsync(db);
+
+        // --- BƯỚC 4: SEED HẠNG THÀNH VIÊN VÀ QUYỀN LỢI ---
         await SeedTiersAndBenefitsAsync(db);
 
-        // --- BƯỚC 4: TẠO TÀI KHOẢN SUPER ADMIN ---
+        // --- BƯỚC 5: TẠO TÀI KHOẢN SUPER ADMIN ---
         await SeedAdminAsync(db, configuration);
     }
 
@@ -310,6 +313,59 @@ public static class DataSeeder
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedServiceVehiclePricingAsync(WashingCarDbContext db)
+    {
+        var services = await db.ServiceCatalogItems
+            .Where(s => s.IsActive && s.ServiceNodeType == (byte)ServiceNodeType.Leaf)
+            .ToListAsync();
+
+        foreach (var service in services)
+        {
+            var targetVehicleType = service.VehicleType.HasValue ? (VehicleType)service.VehicleType.Value : VehicleType.Car;
+            await EnsurePricingRuleAsync(db, service, targetVehicleType, null, service.BasePrice, service.DurationMinutes);
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsurePricingRuleAsync(
+        WashingCarDbContext db,
+        ServiceCatalogItem service,
+        VehicleType vehicleType,
+        Guid? engineCatalogId,
+        decimal unitPrice,
+        short durationMinutes)
+    {
+        var exists = await db.ServiceVehiclePricings.AnyAsync(x =>
+            x.ServiceCatalogItemId == service.ServiceCatalogItemId
+            && x.VehicleType == vehicleType
+            && x.EngineCatalogId == engineCatalogId);
+
+        if (exists)
+            return;
+
+        await db.ServiceVehiclePricings.AddAsync(new ServiceVehiclePricing
+        {
+            ServiceVehiclePricingId = Guid.NewGuid(),
+            ServiceCatalogItemId = service.ServiceCatalogItemId,
+            VehicleType = vehicleType,
+            EngineCatalogId = engineCatalogId,
+            UnitPrice = unitPrice,
+            DurationMinutes = durationMinutes,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+    }
+
+    private static decimal ScalePrice(decimal value, decimal multiplier)
+        => Math.Max(1m, Math.Round(value * multiplier, 0, MidpointRounding.AwayFromZero));
+
+    private static short ScaleDuration(short value, decimal multiplier)
+        => (short)Math.Clamp(
+            Math.Round(value * multiplier, 0, MidpointRounding.AwayFromZero),
+            1,
+            short.MaxValue);
+
     private static async Task SeedAdminAsync(WashingCarDbContext db, IConfiguration configuration)
     {
         var adminEmail = configuration["SuperAdminSettings:Email"];
@@ -348,16 +404,19 @@ public static class DataSeeder
         // 1. Tạo 4 hạng mặc định nếu chưa có
         if (!await db.Tiers.AnyAsync())
         {
-            var defaultTiers = new[]
+            var defaultTiers = new List<Tier>
             {
                 new Tier { TierId = Guid.NewGuid(), TierName = "Bronze", MinPoints = 0, EarnRate = 1.0m, Benefits = "Tích điểm tiêu chuẩn, đặt lịch trước tối đa 3 ngày.", IsActive = true, CreatedAtUtc = now },
-                new Tier { TierId = Guid.NewGuid(), TierName = "Silver", MinPoints = 1000, EarnRate = 1.1m, Benefits = "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%, quà tặng khăn lau cao cấp.", IsActive = true, CreatedAtUtc = now },
-                new Tier { TierId = Guid.NewGuid(), TierName = "Gold", MinPoints = 2500, EarnRate = 1.25m, Benefits = "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%, miễn phí khử mùi Nano, ưu tiên khoang VIP.", IsActive = true, CreatedAtUtc = now },
-                new Tier { TierId = Guid.NewGuid(), TierName = "Diamond", MinPoints = 5000, EarnRate = 1.5m, Benefits = "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%, miễn phí tẩy ố kính & dưỡng lốp, chăm sóc chuyên biệt VIP.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Silver", MinPoints = 1000, EarnRate = 1.1m, Benefits = "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Gold", MinPoints = 2500, EarnRate = 1.25m, Benefits = "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%.", IsActive = true, CreatedAtUtc = now },
+                new Tier { TierId = Guid.NewGuid(), TierName = "Diamond", MinPoints = 5000, EarnRate = 1.5m, Benefits = "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%.", IsActive = true, CreatedAtUtc = now },
             };
             await db.Tiers.AddRangeAsync(defaultTiers);
             await db.SaveChangesAsync();
         }
+
+        // Tự động xóa các quyền lợi cũ demo không còn sử dụng (Type 3: Quà tặng/Dịch vụ miễn phí, Type 4: Hỗ trợ ưu tiên)
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [TierBenefit] WHERE [BenefitType] IN (3, 4)");
 
         // 2. Nạp quyền lợi (Tier Benefits) và cập nhật mốc điểm chuẩn
         var tiers = await db.Tiers.AsNoTracking().ToListAsync();
@@ -374,30 +433,25 @@ public static class DataSeeder
             // 🥈 2. HẠNG BẠC (Silver)
             else if (name.Contains("silver") || name.Contains("bạc") || name.Contains("bac"))
             {
-                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 1000, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%, quà tặng khăn lau cao cấp.", tier.TierId);
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 1000, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 5% tổng hóa đơn, đặt lịch trước 7 ngày, tích lũy điểm thưởng +10%.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "5", "Giảm giá 5% trực tiếp trên hóa đơn đặt lịch");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "7", "Đặt lịch trước tối đa 7 ngày");
-                await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Tặng 01 khăn lau xe chuyên dụng Microfiber", "Quà tặng tri ân thành viên Bạc");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 5, "10", "Tích lũy thêm 10% điểm thưởng mỗi lần rửa xe");
             }
             // 🥇 3. HẠNG VÀNG (Gold)
             else if (name.Contains("gold") || name.Contains("vàng") || name.Contains("vang"))
             {
-                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 2500, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích điểm thưởng +20%, miễn phí khử mùi Nano, ưu tiên khoang VIP.", tier.TierId);
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 2500, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 10% tổng hóa đơn, đặt lịch trước 14 ngày, tích lũy điểm thưởng +20%.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "10", "Giảm giá 10% trực tiếp trên mọi dịch vụ");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "14", "Đặt lịch trước tối đa 14 ngày");
-                await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Miễn phí 01 lần Xịt sương Nano khử khuẩn khoang lái", "Tặng dịch vụ xịt khử mùi Nano");
-                await UpsertBenefitSqlAsync(db, tier.TierId, 4, "Ưu tiên điều phối khoang rửa VIP và tiếp nhận nhanh", "Quyền ưu tiên khoang VIP");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 5, "20", "Tích lũy thêm 20% điểm thưởng");
             }
             // 💎 4. HẠNG KIM CƯƠNG (Diamond / Platinum)
             else if (name.Contains("diamond") || name.Contains("kim") || name.Contains("platinum"))
             {
-                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 5000, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích điểm thưởng +30%, miễn phí tẩy ố kính & dưỡng lốp, chăm sóc chuyên biệt VIP.", tier.TierId);
+                await db.Database.ExecuteSqlRawAsync("UPDATE [Tier] SET [MinPoints] = 5000, [Benefits] = {0} WHERE [TierId] = {1}", "Giảm giá 15% tổng hóa đơn, đặt lịch trước 30 ngày, tích lũy điểm thưởng +30%.", tier.TierId);
                 await UpsertBenefitSqlAsync(db, tier.TierId, 1, "15", "Giảm giá 15% trực tiếp trên toàn bộ hóa đơn");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 2, "30", "Đặt lịch trước không giới hạn (tối đa 30 ngày)");
-                await UpsertBenefitSqlAsync(db, tier.TierId, 3, "Miễn phí Tẩy ố kính lái & Phủ dưỡng bóng lốp cao cấp", "Dịch vụ chăm sóc chuyên sâu miễn phí");
-                await UpsertBenefitSqlAsync(db, tier.TierId, 4, "Hỗ trợ Hotline riêng 24/7 và Ưu tiên khoang rửa cao cấp nhất", "Dịch vụ khách hàng thượng hạng");
                 await UpsertBenefitSqlAsync(db, tier.TierId, 5, "30", "Tích lũy thêm 30% điểm thưởng");
             }
         }

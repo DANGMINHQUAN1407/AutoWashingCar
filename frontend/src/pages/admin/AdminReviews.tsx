@@ -171,8 +171,8 @@ export default function AdminReviews() {
     <div className="admin-reviews">
       <div className="ops-header">
         <div>
-          <h2>Quản lý Đánh giá hệ thống</h2>
-          <p>Xem, lọc theo chi nhánh và kiểm duyệt tất cả đánh giá của khách hàng trên toàn hệ thống.</p>
+          <h2>Đánh giá của khách hàng</h2>
+          <p>Xem, lọc theo chi nhánh và quản lý phản hồi của khách hàng trong hệ thống.</p>
         </div>
       </div>
 
@@ -195,10 +195,10 @@ export default function AdminReviews() {
           <div className="admin-stat-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div className="admin-stat-icon" style={{ fontSize: '1.5rem', color: '#ffb229' }}>★</div>
             <div className="admin-stat-trend" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-              {stats.averageRating >= 4.0 ? 'Tuyệt vời' : 'Trung bình'}
+              {stats.averageRating >= 4.0 ? 'Xuất sắc' : 'Trung bình'}
             </div>
           </div>
-          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Điểm đánh giá trung bình</div>
+          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Đánh giá trung bình</div>
           <div className="admin-stat-value" style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-heading)' }}>{stats.averageRating} / 5</div>
         </div>
 
@@ -206,7 +206,7 @@ export default function AdminReviews() {
           <div className="admin-stat-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div className="admin-stat-icon" style={{ fontSize: '1.5rem', color: '#1e90ff' }}>💬</div>
           </div>
-          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Tổng số lượt đánh giá</div>
+          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Tổng số đánh giá</div>
           <div className="admin-stat-value" style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-heading)' }}>{stats.totalReviews}</div>
         </div>
 
@@ -222,7 +222,7 @@ export default function AdminReviews() {
           <div className="admin-stat-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div className="admin-stat-icon" style={{ fontSize: '1.5rem', color: '#f59e0b' }}>⚙</div>
           </div>
-          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Đánh giá bị ẩn</div>
+          <div className="admin-stat-label" style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Đánh giá đã ẩn</div>
           <div className="admin-stat-value" style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-heading)' }}>{stats.hiddenCount}</div>
         </div>
       </div>
@@ -230,21 +230,25 @@ export default function AdminReviews() {
       {/* Filter Panel */}
       <div className="card filter-panel" style={{ marginTop: '24px' }}>
         <form onSubmit={handleSearchSubmit} className="filter-form">
-          <div className="filter-group-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '16px' }}>
-            <div className="filter-item">
+          {/* Hàng 1: Search bar */}
+          <div className="filter-search-row">
+            <div className="filter-item" style={{ flex: 1 }}>
               <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Tìm kiếm đánh giá</label>
               <div className="search-input-wrapper">
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="Nhập tên khách hàng, bình luận..."
+                  placeholder="Tên khách hàng, nội dung đánh giá..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
                 <button type="submit" className="btn btn-primary search-submit-btn">Tìm kiếm</button>
               </div>
             </div>
+          </div>
 
+          {/* Hàng 2: 4 dropdown filter */}
+          <div className="filter-group-row">
             <div className="filter-item">
               <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Lọc theo chi nhánh</label>
               <select
@@ -264,7 +268,7 @@ export default function AdminReviews() {
             </div>
 
             <div className="filter-item">
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Lọc số sao</label>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Lọc theo số sao</label>
               <select
                 className="form-input"
                 value={ratingFilter === undefined ? '' : ratingFilter}
@@ -294,9 +298,9 @@ export default function AdminReviews() {
                   setPage(1)
                 }}
               >
-                <option value="">Tất cả</option>
-                <option value="false">Đang hiển thị</option>
-                <option value="true">Đang bị ẩn</option>
+                <option value="">Tất cả trạng thái</option>
+                <option value="false">Hiển thị</option>
+                <option value="true">Đã ẩn</option>
               </select>
             </div>
 
@@ -312,8 +316,8 @@ export default function AdminReviews() {
                 }}
               >
                 <option value="">Tất cả loại</option>
-                <option value="1">Đánh giá Dịch vụ</option>
-                <option value="2">Đánh giá Nhân viên</option>
+                <option value="1">Đánh giá dịch vụ</option>
+                <option value="2">Đánh giá nhân viên</option>
               </select>
             </div>
           </div>
@@ -327,10 +331,10 @@ export default function AdminReviews() {
         </h3>
         
         {loading ? (
-          <div className="card-loading" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>Đang tải danh sách đánh giá...</div>
+          <div className="card-loading" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>Đang tải đánh giá...</div>
         ) : reviews.length === 0 ? (
           <div className="empty-ledger" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', border: '1px dashed var(--color-border)', borderRadius: '8px' }}>
-            Không tìm thấy đánh giá nào phù hợp với bộ lọc.
+            Không có đánh giá nào phù hợp với bộ lọc.
           </div>
         ) : (
           <div className="reviews-grid">
@@ -360,7 +364,7 @@ export default function AdminReviews() {
 
                   <div className="review-card-body">
                     <p className="review-comment">
-                      {review.comment ? `"${review.comment}"` : <span className="no-comment">Không có bình luận chi tiết.</span>}
+                      {review.comment ? `"${review.comment}"` : <span className="no-comment">Khách hàng không để lại nhận xét.</span>}
                     </p>
                     
                     <div className="review-metadata-tags">
@@ -393,7 +397,7 @@ export default function AdminReviews() {
                         color: review.isHidden ? 'var(--color-danger)' : 'var(--color-success)',
                         border: review.isHidden ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
                       }}>
-                        {review.isHidden ? 'Đang bị ẩn' : 'Hiển thị'}
+                        {review.isHidden ? 'Đã ẩn' : 'Hiển thị'}
                       </span>
                       <span className={`badge ${review.reviewType === 2 ? 'badge-warning' : 'badge-primary'}`} style={{
                         padding: '4px 10px',

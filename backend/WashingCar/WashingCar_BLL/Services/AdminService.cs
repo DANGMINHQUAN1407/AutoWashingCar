@@ -111,8 +111,8 @@ namespace WashingCar_BLL.Services
             var user = await _userRepo.GetByIdIncludeInactiveAsync(userId)
                 ?? throw AppException.NotFound(ValidationMessage.Common.UserNotFound);
 
-            // 2. Validate Role — admin được set Customer/Staff/Manager, không cho nâng thành Admin qua API
-            if (request.Role != UserRole.Customer && request.Role != UserRole.Staff && request.Role != UserRole.Manager)
+            // 2. Validate Role — chỉ cho phép đổi qua lại giữa Staff và Manager; Customer và Admin giữ nguyên role
+            if (request.Role != UserRole.Staff && request.Role != UserRole.Manager && request.Role != user.Role)
                 throw AppException.BadRequest(ValidationMessage.Common.InvalidRole);
 
             // 3. Nếu Email thay đổi → check trùng với user khác

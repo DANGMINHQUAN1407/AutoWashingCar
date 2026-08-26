@@ -762,8 +762,8 @@ export default function AdminBranches() {
       {/* Page Header */}
       <div className="dash-header">
         <div>
-          <h2>Branches Management</h2>
-          <p>Create and edit location details, assign managers, and configure active wash services.</p>
+          <h2>Quản lý chi nhánh</h2>
+          <p>Tạo và quản lý thông tin chi nhánh, phân công quản lý và cấu hình dịch vụ rửa xe.</p>
         </div>
         <button 
           type="button" 
@@ -773,7 +773,7 @@ export default function AdminBranches() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          Add Location
+          Thêm chi nhánh
         </button>
       </div>
 
@@ -781,11 +781,11 @@ export default function AdminBranches() {
       <div className="glass-filters">
         {/* Search */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="search-input">Search Branch</label>
+          <label className="form-label" htmlFor="search-input">Tìm kiếm chi nhánh</label>
           <input
             id="search-input"
             className="form-input form-input-icon"
-            placeholder="Search by name, address, code..."
+            placeholder="Tìm theo tên, địa chỉ, mã..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
@@ -798,11 +798,11 @@ export default function AdminBranches() {
 
         {/* City Filter */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="city-input">City</label>
+          <label className="form-label" htmlFor="city-input">Thành phố</label>
           <input
             id="city-input"
             className="form-input form-input-icon"
-            placeholder="e.g. Ho Chi Minh"
+            placeholder="Ví dụ: TP. Hồ Chí Minh"
             value={cityFilter}
             onChange={e => { setCityFilter(e.target.value); setPage(1); }}
           />
@@ -816,16 +816,16 @@ export default function AdminBranches() {
 
         {/* Status select */}
         <div className="filter-input-wrap">
-          <label className="form-label" htmlFor="status-select">Status</label>
+          <label className="form-label" htmlFor="status-select">Trạng thái</label>
           <select
             id="status-select"
             className="form-input form-select-custom"
             value={isActiveFilter}
             onChange={e => { setIsActiveFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active (Open)</option>
-            <option value="inactive">Inactive (Closed)</option>
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang mở cửa</option>
+            <option value="inactive">Tạm đóng cửa</option>
           </select>
         </div>
 
@@ -834,14 +834,14 @@ export default function AdminBranches() {
           type="button"
           className="btn-reset"
           onClick={handleResetFilters}
-          title="Reset filters"
+          title="Đặt lại bộ lọc"
           disabled={!search && !cityFilter && isActiveFilter === 'all'}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M23 4v6h-6M1 20v-6h6"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          Clear
+          Đặt lại
         </button>
       </div>
 
@@ -855,17 +855,17 @@ export default function AdminBranches() {
       ) : error ? (
         <div className="empty-state-premium">
           <div className="empty-state-icon-premium">⚠️</div>
-          <h3>Something went wrong</h3>
+          <h3>Đã có lỗi xảy ra</h3>
           <p>{error}</p>
           <button type="button" className="btn btn-secondary btn-sm mt-4" onClick={fetchBranches}>
-            Try Again
+            Thử lại
           </button>
         </div>
       ) : branches.length === 0 ? (
         <div className="empty-state-premium animate-fade-in">
           <div className="empty-state-icon-premium">📍</div>
-          <h3>No branches found</h3>
-          <p>We couldn't find any branches matching your filters. Try adjusting your search query.</p>
+          <h3>Không tìm thấy chi nhánh nào</h3>
+          <p>Không có chi nhánh nào phù hợp với bộ lọc tìm kiếm của bạn.</p>
         </div>
       ) : (
         <div className="branches-grid">
@@ -884,7 +884,7 @@ export default function AdminBranches() {
                 </div>
                 
                 {/* Status Switch */}
-                <label className="switch-premium" title={b.isActive ? 'Close branch' : 'Open branch'}>
+                <label className="switch-premium" title={b.isActive ? 'Đóng cửa chi nhánh' : 'Mở cửa chi nhánh'}>
                   <input
                     type="checkbox"
                     checked={b.isActive}
@@ -929,9 +929,9 @@ export default function AdminBranches() {
                 </div>
 
                 <div className="branch-manager-info">
-                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>Branch Manager</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>Quản lý chi nhánh</div>
                   <div style={{ fontSize: '0.88rem', color: b.managerName ? 'var(--color-heading)' : 'var(--color-text-muted)', fontWeight: 500, marginTop: '2px' }}>
-                    {b.managerName || '⚠️ No Manager Assigned'}
+                    {b.managerName || '⚠️ Chưa có quản lý'}
                   </div>
                 </div>
               </div>
@@ -948,7 +948,7 @@ export default function AdminBranches() {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: '4px' }}>
                       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
                     </svg>
-                    Services
+                    Dịch vụ
                   </button>
 
                   {/* Staff Config Trigger */}
@@ -964,7 +964,7 @@ export default function AdminBranches() {
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
-                    Staff
+                    Nhân viên
                   </button>
                 </div>
 
@@ -973,7 +973,7 @@ export default function AdminBranches() {
                   <button
                     type="button"
                     className="action-btn-circle"
-                    title="Edit Location Info"
+                    title="Chỉnh sửa thông tin"
                     style={{ color: 'var(--color-primary)' }}
                     onClick={() => openEditModal(b)}
                   >
@@ -993,7 +993,7 @@ export default function AdminBranches() {
       {!loading && !error && branches.length > 0 && (
         <div className="pagination-container-premium animate-fade-in">
           <div className="pagination-stats">
-            Showing <strong>{((page - 1) * pageSize) + 1}</strong> to <strong>{Math.min(page * pageSize, totalCount)}</strong> of <strong>{totalCount}</strong> branches
+            Hiển thị <strong>{((page - 1) * pageSize) + 1}</strong> đến <strong>{Math.min(page * pageSize, totalCount)}</strong> trong tổng số <strong>{totalCount}</strong> chi nhánh
           </div>
           <div className="pagination-buttons">
             <button
@@ -1007,7 +1007,7 @@ export default function AdminBranches() {
               </svg>
             </button>
             <span className="page-indicator-text">
-              Page {page} of {totalPages}
+              Trang {page} / {totalPages}
             </span>
             <button
               type="button"
@@ -1029,9 +1029,9 @@ export default function AdminBranches() {
           <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '580px', textAlign: 'left', alignItems: 'stretch' }}>
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>{modalMode === 'edit' ? 'Edit Branch Details' : 'Add New Branch Location'}</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>{modalMode === 'edit' ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh mới'}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                  {modalMode === 'edit' ? 'Update name, address, contact, and hours.' : 'Create a new wash station location in the system.'}
+                  {modalMode === 'edit' ? 'Cập nhật tên, địa chỉ, liên hệ và giờ mở cửa.' : 'Tạo địa điểm chi nhánh rửa xe mới trong hệ thống.'}
                 </p>
               </div>
               <button 
@@ -1054,12 +1054,12 @@ export default function AdminBranches() {
 
               <div className="form-row-double">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-code">Branch Code *</label>
+                  <label className="form-label" htmlFor="branch-code">Mã chi nhánh *</label>
                   <input
                     id="branch-code"
                     className="form-input"
                     required
-                    placeholder="Auto-generated"
+                    placeholder="Tự động tạo"
                     value={branchForm.branchCode}
                     disabled
                     onChange={e => setBranchForm(prev => ({ ...prev, branchCode: e.target.value }))}
@@ -1067,12 +1067,12 @@ export default function AdminBranches() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-name">Branch Name *</label>
+                  <label className="form-label" htmlFor="branch-name">Tên chi nhánh *</label>
                   <input
                     id="branch-name"
                     className="form-input"
                     required
-                    placeholder="e.g. WashPro Center D1"
+                    placeholder="Ví dụ: AutoWash Quận 1"
                     value={branchForm.name}
                     disabled={branchFormLoading}
                     onChange={e => setBranchForm(prev => ({ ...prev, name: e.target.value }))}
@@ -1081,13 +1081,13 @@ export default function AdminBranches() {
               </div>
 
               <div className="form-group" style={{ position: 'relative' }}>
-                <label className="form-label" htmlFor="branch-address">Address *</label>
+                <label className="form-label" htmlFor="branch-address">Địa chỉ *</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     id="branch-address"
                     className="form-input"
                     required
-                    placeholder="e.g. 123 Nguyen Hue Street"
+                    placeholder="VD: 123 Đường Nguyễn Huệ"
                     value={branchForm.address}
                     disabled={branchFormLoading}
                     onChange={handleAddressChange}
@@ -1128,7 +1128,7 @@ export default function AdminBranches() {
 
               <div className="form-row-double">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-city">City *</label>
+                  <label className="form-label" htmlFor="branch-city">Tỉnh / Thành phố *</label>
                   <select
                     id="branch-city"
                     className="form-input form-select-custom"
@@ -1150,7 +1150,7 @@ export default function AdminBranches() {
                       });
                     }}
                   >
-                    <option value="">-- Select City --</option>
+                    <option value="">-- Chọn Tỉnh / Thành phố --</option>
                     {provincesList.map((p: any) => (
                       <option key={p.code} value={p.name}>
                         {p.name}
@@ -1160,12 +1160,12 @@ export default function AdminBranches() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-phone">Phone Number *</label>
+                  <label className="form-label" htmlFor="branch-phone">Số điện thoại *</label>
                   <input
                     id="branch-phone"
                     className="form-input"
                     required
-                    placeholder="e.g. 0281234567"
+                    placeholder="VD: 0281234567"
                     value={branchForm.phone}
                     disabled={branchFormLoading}
                     onChange={e => setBranchForm(prev => ({ ...prev, phone: e.target.value }))}
@@ -1174,12 +1174,12 @@ export default function AdminBranches() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="branch-email">Email Address</label>
+                <label className="form-label" htmlFor="branch-email">Địa chỉ Email</label>
                 <input
                   id="branch-email"
                   type="email"
                   className="form-input"
-                  placeholder="e.g. district1@autowash.com"
+                  placeholder="VD: quan1@autowash.com"
                   value={branchForm.email}
                   disabled={branchFormLoading}
                   onChange={e => setBranchForm(prev => ({ ...prev, email: e.target.value }))}
@@ -1188,7 +1188,7 @@ export default function AdminBranches() {
 
               <div className="form-row-double">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-open">Opening Time *</label>
+                  <label className="form-label" htmlFor="branch-open">Giờ mở cửa *</label>
                   <input
                     id="branch-open"
                     type="time"
@@ -1201,7 +1201,7 @@ export default function AdminBranches() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-close">Closing Time *</label>
+                  <label className="form-label" htmlFor="branch-close">Giờ đóng cửa *</label>
                   <input
                     id="branch-close"
                     type="time"
@@ -1216,26 +1216,26 @@ export default function AdminBranches() {
 
               <div className="form-row-double">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-lat">Latitude (Disabled)</label>
+                  <label className="form-label" htmlFor="branch-lat">Vĩ độ (Tự động)</label>
                   <input
                     id="branch-lat"
                     type="number"
                     step="any"
                     className="form-input"
-                    placeholder="Auto-generated from map/address"
+                    placeholder="Tự động tạo từ bản đồ / địa chỉ"
                     value={branchForm.latitude}
                     disabled={true}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-lng">Longitude (Disabled)</label>
+                  <label className="form-label" htmlFor="branch-lng">Kinh độ (Tự động)</label>
                   <input
                     id="branch-lng"
                     type="number"
                     step="any"
                     className="form-input"
-                    placeholder="Auto-generated from map/address"
+                    placeholder="Tự động tạo từ bản đồ / địa chỉ"
                     value={branchForm.longitude}
                     disabled={true}
                   />
@@ -1244,7 +1244,7 @@ export default function AdminBranches() {
 
               {/* Interactive Map */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="form-label">Location Map (Click or Drag Marker to set coordinates)</label>
+                <label className="form-label">Bản đồ vị trí (Nhấp hoặc kéo thả ghim để chọn tọa độ)</label>
                 <div style={{ height: '220px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border-dim)', zIndex: 10 }}>
                   <MapContainer 
                     center={(() => {
@@ -1311,7 +1311,7 @@ export default function AdminBranches() {
               {/* Manager Assignment Selection */}
               {(modalMode === 'create' || modalMode === 'edit') && (
                 <div className="form-group">
-                  <label className="form-label" htmlFor="branch-manager">Assign Manager</label>
+                  <label className="form-label" htmlFor="branch-manager">Chỉ định Quản lý chi nhánh</label>
                   <select
                     id="branch-manager"
                     className="form-input form-select-custom"
@@ -1319,7 +1319,7 @@ export default function AdminBranches() {
                     disabled={managersLoading || branchFormLoading}
                     onChange={e => setBranchForm(prev => ({ ...prev, managerId: e.target.value }))}
                   >
-                    <option value="">-- Optional: Select Manager --</option>
+                    <option value="">-- Tùy chọn: Chọn Quản lý --</option>
                     {managers
                       .filter(m => {
                         const isAssignedToOther = assignedManagerIds.includes(m.userId) && m.userId !== selectedBranch?.managerId
@@ -1340,7 +1340,7 @@ export default function AdminBranches() {
                   onClick={() => setModalMode(null)} 
                   disabled={branchFormLoading}
                 >
-                  Cancel
+                  Hủy bỏ
                 </button>
                 <button 
                   type="submit" 
@@ -1348,8 +1348,8 @@ export default function AdminBranches() {
                   disabled={branchFormLoading}
                 >
                   {branchFormLoading 
-                    ? (modalMode === 'edit' ? 'Saving...' : 'Creating...') 
-                    : (modalMode === 'edit' ? 'Save Changes' : 'Create Branch')}
+                    ? (modalMode === 'edit' ? 'Đang lưu...' : 'Đang tạo...') 
+                    : (modalMode === 'edit' ? 'Lưu thay đổi' : 'Tạo chi nhánh')}
                 </button>
               </div>
             </form>
@@ -1363,9 +1363,9 @@ export default function AdminBranches() {
           <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', textAlign: 'left', alignItems: 'stretch' }}>
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Active Wash Services</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Cấu hình Dịch vụ rửa xe</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                  Enable or disable wash services offered at <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
+                  Bật hoặc tắt các gói dịch vụ được phục vụ tại <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
                 </p>
               </div>
               <button 
@@ -1382,11 +1382,11 @@ export default function AdminBranches() {
             <form onSubmit={handleSaveServices}>
               {catalogLoading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
-                  Loading catalog items...
+                  Đang tải danh mục dịch vụ...
                 </div>
               ) : catalogItems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--color-text-muted)' }}>
-                  No active items found in the service catalog. Create catalog items first.
+                  Không tìm thấy dịch vụ nào trong danh mục. Vui lòng tạo dịch vụ trước.
                 </div>
               ) : (
                 <div className="services-catalog-grid">
@@ -1405,8 +1405,22 @@ export default function AdminBranches() {
                           readOnly
                         />
                         <div className="service-selection-info">
-                          <h4>{item.name}</h4>
-                          <p>{item.durationMinutes} mins</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <h4 style={{ margin: 0 }}>{item.name}</h4>
+                            {item.vehicleType && (
+                              <span style={{
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                background: item.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' : item.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                color: item.vehicleType === 1 ? '#2563eb' : item.vehicleType === 2 ? '#059669' : '#d97706',
+                              }}>
+                                {item.vehicleType === 1 ? '🏍️ Xe máy' : item.vehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
+                              </span>
+                            )}
+                          </div>
+                          <p>{item.durationMinutes} phút</p>
                           <div className="price-tag">{item.basePrice.toLocaleString('vi-VN')} đ</div>
                         </div>
                         {isSelected && (
@@ -1448,14 +1462,14 @@ export default function AdminBranches() {
                   onClick={() => setModalMode(null)} 
                   disabled={savingServices}
                 >
-                  Cancel
+                  Hủy bỏ
                 </button>
                 <button 
                   type="submit" 
                   className="btn btn-primary" 
                   disabled={savingServices || catalogLoading}
                 >
-                  {savingServices ? 'Saving Changes...' : 'Save Service Configuration'}
+                  {savingServices ? 'Đang lưu cấu hình...' : 'Lưu cấu hình dịch vụ'}
                 </button>
               </div>
             </form>
@@ -1471,9 +1485,9 @@ export default function AdminBranches() {
           <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', textAlign: 'left', alignItems: 'stretch' }}>
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Branch Staff Directory</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Danh sách Nhân viên chi nhánh</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                  Manage personnel assigned to <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
+                  Quản lý nhân sự được phân công tại <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
                 </p>
               </div>
               <button 
@@ -1489,7 +1503,7 @@ export default function AdminBranches() {
 
             {/* Assign Staff Section */}
             <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--color-bg-dim, rgba(255,255,255,0.02))', borderRadius: '8px', border: '1px solid var(--color-border-dim)' }}>
-              <h4 style={{ fontSize: '0.95rem', marginBottom: '8px', color: 'var(--color-heading)' }}>Assign New Staff to Branch</h4>
+              <h4 style={{ fontSize: '0.95rem', marginBottom: '8px', color: 'var(--color-heading)' }}>Phân công nhân viên mới vào chi nhánh</h4>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <select
                   className="form-input form-select-custom"
@@ -1504,7 +1518,7 @@ export default function AdminBranches() {
                   }}
                   disabled={allStaffLoading || assignStaffLoading}
                 >
-                  <option value="">{allStaffLoading ? 'Loading staff...' : '-- Select a Staff member to assign --'}</option>
+                  <option value="">{allStaffLoading ? 'Đang tải danh sách nhân viên...' : '-- Chọn nhân viên để phân công --'}</option>
                   {allStaffList
                     .filter(s => !s.branchId && !branchStaff.some(bs => bs.userId === s.userId)) // filter out staff already assigned to any branch
                     .map(s => (
@@ -1519,14 +1533,14 @@ export default function AdminBranches() {
 
             {/* Staff Directory List */}
             <div>
-              <h4 style={{ fontSize: '0.95rem', marginBottom: '12px', color: 'var(--color-heading)' }}>Currently Assigned Staff</h4>
+              <h4 style={{ fontSize: '0.95rem', marginBottom: '12px', color: 'var(--color-heading)' }}>Nhân viên đang làm việc tại chi nhánh</h4>
               {staffLoading ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
-                  Loading staff list...
+                  Đang tải danh sách nhân viên...
                 </div>
               ) : branchStaff.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                  No staff members are currently assigned to this location.
+                  Chưa có nhân viên nào được phân công tại chi nhánh này.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
@@ -1545,11 +1559,11 @@ export default function AdminBranches() {
                     >
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--color-heading)' }}>{s.fullName}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{s.email || s.phoneNumber || 'No email/phone'}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{s.email || s.phoneNumber || 'Chưa có email/SĐT'}</div>
                       </div>
                       <button
                         type="button"
-                        title="Remove from branch"
+                        title="Xóa khỏi chi nhánh"
                         disabled={removeStaffLoadingId === s.userId}
                         onClick={() => handleRemoveStaff(s.userId)}
                         style={{
@@ -1581,7 +1595,7 @@ export default function AdminBranches() {
                 className="btn btn-primary" 
                 onClick={() => setModalMode(null)}
               >
-                Close Directory
+                Đóng danh sách
               </button>
             </div>
           </div>

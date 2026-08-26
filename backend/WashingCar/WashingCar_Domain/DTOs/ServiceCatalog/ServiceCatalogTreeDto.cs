@@ -7,6 +7,8 @@ public class ServiceCatalogTreeDto
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public short DurationMinutes { get; set; }
+    public byte? VehicleType { get; set; }
+    public string? VehicleTypeName { get; set; }
     public byte ServicePackageType { get; set; }
     public string ServicePackageTypeName { get; set; } = null!;
     public byte ServiceNodeType { get; set; }

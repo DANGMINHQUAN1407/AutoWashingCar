@@ -5,57 +5,57 @@
 /* rectangles, M tricolor stripe, Inter 700/300 weight pair.   */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ── Surface Colors ── */
-  --color-bg:           #050508; /* Canvas — near-black with subtle blue tint */
-  --color-bg-1:         #0a0a0f; /* Surface soft */
-  --color-bg-2:         #12121a; /* Surface card */
-  --color-bg-card:      #12121a; /* Surface card */
-  --color-bg-card-2:    #1a1a24; /* Surface elevated */
-  --color-bg-alt:       #0a0a0f; /* Alternate section bg */
-  --color-carbon:       #1e1e28; /* Carbon-fiber surface */
+  /* ── Surface Colors (Bright Modern Light Theme — Coupler.io / CRM style) ── */
+  --color-bg:           #edf2f7; /* Crisp, clean soft blue-gray canvas */
+  --color-bg-1:         #ffffff; /* Surface clean white */
+  --color-bg-2:         #f8fafc; /* Surface slate 50 */
+  --color-bg-card:      #ffffff; /* Surface pure white */
+  --color-bg-card-2:    #f1f5f9; /* Surface elevated */
+  --color-bg-alt:       #e2e8f0; /* Alternate section bg */
+  --color-carbon:       #ffffff; /* Clean card surface */
 
-  /* ── Brand & Accent (M Tricolor) ── */
-  --color-primary:      #ffffff; /* White — the primary CTA color */
-  --color-primary-glow: rgba(255, 255, 255, 0.08);
-  --color-primary-dim:  rgba(255, 255, 255, 0.04);
-  --m-blue-light:       #0066b1; /* M stripe stop 1 */
-  --m-blue-dark:        #1c69d4; /* M stripe stop 2 / BMW blue */
-  --m-red:              #e22718; /* M stripe stop 3 */
-  --color-bmw-blue:     #1c69d4; /* Heritage corporate blue */
-  --color-electric-blue:#0653b6; /* Electric vehicle accent */
+  /* ── Brand & Accent ── */
+  --color-primary:      #1e40af; /* Royal corporate blue */
+  --color-primary-glow: rgba(30, 64, 175, 0.08);
+  --color-primary-dim:  rgba(30, 64, 175, 0.04);
+  --m-blue-light:       #0284c7; /* Sky blue */
+  --m-blue-dark:        #2563eb; /* Royal blue */
+  --m-red:              #ef4444; /* Vivid red */
+  --color-bmw-blue:     #2563eb; /* Modern corporate blue */
+  --color-electric-blue:#0284c7; /* Electric cyan */
 
   /* ── Text Colors ── */
-  --color-text:         #b8b8c8; /* Body text — slightly blue-tinted */
-  --color-text-muted:   #6e6e82; /* Muted / captions */
-  --color-text-dim:     #45455a; /* Dimmed text */
-  --color-heading:      #ffffff; /* Ink / all headings */
-  --color-body-strong:  #e6e6f0; /* Emphasized body */
+  --color-text:         #334155; /* Body text — slate 700 */
+  --color-text-muted:   #64748b; /* Muted slate 500 */
+  --color-text-dim:     #94a3b8; /* Dimmed slate 400 */
+  --color-heading:      #0f172a; /* Deep dark slate 900 for headings */
+  --color-body-strong:  #0f172a; /* Emphasized body */
   --color-white:        #ffffff;
 
   /* ── Borders & Hairlines ── */
-  --color-border:       rgba(255, 255, 255, 0.1); /* Glass-style border */
-  --color-border-dim:   rgba(255, 255, 255, 0.05); /* Subtle glass separator */
+  --color-border:       #e2e8f0; /* Crisp slate 200 border */
+  --color-border-dim:   #f1f5f9; /* Soft separator */
 
   /* ── Semantic Colors ── */
   --color-success:      #10b981;
   --color-warning:      #f59e0b;
-  --color-danger:       #ef4444; /* Bright red */
+  --color-danger:       #ef4444;
 
-  /* ── Glassmorphism Tokens ── */
-  --glass-bg:           rgba(18, 18, 26, 0.6);
-  --glass-bg-strong:    rgba(18, 18, 26, 0.8);
-  --glass-border:       rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.18);
-  --glass-blur:         16px;
+  /* ── Card & Glass Tokens ── */
+  --glass-bg:           #ffffff;
+  --glass-bg-strong:    #ffffff;
+  --glass-border:       #e2e8f0;
+  --glass-border-hover: #cbd5e1;
+  --glass-blur:         0px;
 
-  /* ── Glow Tokens ── */
-  --glow-blue:          0 0 20px rgba(28, 105, 212, 0.25), 0 0 40px rgba(28, 105, 212, 0.1);
-  --glow-red:           0 0 20px rgba(226, 39, 24, 0.2), 0 0 40px rgba(226, 39, 24, 0.08);
-  --glow-white:         0 0 20px rgba(255, 255, 255, 0.1), 0 0 40px rgba(255, 255, 255, 0.05);
-  --glow-success:       0 0 15px rgba(16, 185, 129, 0.2);
-  --glow-gold:          0 0 20px rgba(245, 158, 11, 0.25), 0 0 40px rgba(245, 158, 11, 0.1);
+  /* ── Glow & Shadow Tokens ── */
+  --glow-blue:          0 4px 20px rgba(37, 99, 235, 0.15);
+  --glow-red:           0 4px 20px rgba(239, 68, 68, 0.15);
+  --glow-white:         0 4px 20px rgba(0, 0, 0, 0.05);
+  --glow-success:       0 4px 15px rgba(16, 185, 129, 0.15);
+  --glow-gold:          0 4px 20px rgba(245, 158, 11, 0.15);
 
   /* ── Typography ── */
   --font-sans:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -73,19 +73,19 @@
   --spacing-xl:         40px;
   --spacing-xxl:        64px;
 
-  /* ── Border Radius (premium subtle rounding) ── */
+  /* ── Border Radius (rounded modern CRM styling) ── */
   --radius-none:        0px;
-  --radius-sm:          6px;
-  --radius-md:          10px;
-  --radius-lg:          14px;
-  --radius-xl:          20px;
+  --radius-sm:          8px;
+  --radius-md:          12px;
+  --radius-lg:          16px;
+  --radius-xl:          24px;
   --radius-full:        9999px;
 
-  /* ── Shadows (premium glow system) ── */
-  --shadow-card:        0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover:  0 8px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(28, 105, 212, 0.08);
+  /* ── Shadows (crisp light-mode shadows) ── */
+  --shadow-card:        0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-card-hover:  0 10px 25px -3px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
   --shadow-glow:        var(--glow-blue);
-  --shadow-btn:         0 2px 12px rgba(0, 0, 0, 0.3);
+  --shadow-btn:         0 2px 8px rgba(37, 99, 235, 0.2);
 
   /* ── Transitions ── */
   --ease:               cubic-bezier(0.16, 1, 0.3, 1);
@@ -95,10 +95,10 @@
   --t-normal:           250ms;
   --t-slow:             400ms;
 
-  /* ── M Stripe Gradient ── */
-  --m-stripe:           linear-gradient(90deg, var(--m-blue-light) 0%, var(--m-blue-light) 33.33%, var(--m-blue-dark) 33.33%, var(--m-blue-dark) 66.66%, var(--m-red) 66.66%, var(--m-red) 100%);
+  /* ── Brand Gradient ── */
+  --m-stripe:           linear-gradient(90deg, #6366f1 0%, #2563eb 50%, #06b6d4 100%);
 
-  /* ── Legacy compat (used by some components) ── */
+  /* ── Legacy compat ── */
   --grad-primary:       none;
   --grad-hero:          none;
 
@@ -122,23 +122,11 @@ html {
 body {
   font-family: var(--font-sans);
   font-size: 16px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.5;
   color: var(--color-text);
   background-color: var(--color-bg);
   min-height: 100vh;
-  /* Carbon fiber micro-texture */
-  background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(28, 105, 212, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(226, 39, 24, 0.02) 0%, transparent 50%),
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 2px,
-      rgba(255, 255, 255, 0.008) 2px,
-      rgba(255, 255, 255, 0.008) 4px
-    );
-  background-attachment: fixed;
 }
 
 #root {
@@ -229,7 +217,7 @@ img, svg {
   margin-bottom: 16px;
 }
 
-/* ─── Button System (premium glow + glass) ─────────────── */
+/* ─── Button System (Modern Light CRM style) ──────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -238,7 +226,7 @@ img, svg {
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -247,99 +235,100 @@ img, svg {
   text-decoration: none;
   outline: none;
   position: relative;
-  border: 1px solid var(--color-heading);
-  padding: 16px 32px;
-  height: 48px;
+  border: 1px solid transparent;
+  padding: 0 24px;
+  height: 44px;
 }
 
 .btn:active {
   transform: scale(0.97);
 }
 
-/* Primary: white with glow */
+/* Primary: solid royal blue */
 .btn-primary {
-  background: transparent;
-  color: var(--color-heading);
-  border-color: var(--color-heading);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .btn-primary:hover {
-  background: var(--color-heading);
-  color: var(--color-bg);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
 }
 
-/* Secondary: glass bg */
+/* Secondary: light blue outline */
 .btn-secondary {
-  background: var(--glass-bg);
-  color: var(--color-heading);
-  border-color: var(--glass-border);
-  backdrop-filter: blur(8px);
+  background: #ffffff;
+  color: #1e40af;
+  border-color: #93c5fd;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
 }
 
 .btn-secondary:hover {
-  background: var(--glass-bg-strong);
-  border-color: var(--glass-border-hover);
-  box-shadow: var(--glow-white);
+  background: #eff6ff;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
   transform: translateY(-1px);
 }
 
-/* Ghost: transparent with subtle reveal */
+/* Ghost: transparent text-only */
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
-  border-color: transparent;
+  border-color: var(--color-border);
 }
 
 .btn-ghost:hover {
-  color: var(--color-heading);
-  border-color: var(--glass-border);
-  background: rgba(255, 255, 255, 0.03);
+  color: #0f172a;
+  border-color: #94a3b8;
+  background: #f1f5f9;
 }
 
-/* Danger: red glow */
+/* Danger: red */
 .btn-danger {
   background: transparent;
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  color: #b91c1c;
+  border-color: #fca5a5;
 }
 
 .btn-danger:hover {
-  background: var(--color-danger);
-  color: var(--color-heading);
-  box-shadow: var(--glow-red);
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #f87171;
   transform: translateY(-1px);
 }
 
-/* Success: green glow */
+/* Success: green */
 .btn-success {
   background: transparent;
-  color: var(--color-success);
-  border-color: var(--color-success);
+  color: #15803d;
+  border-color: #6ee7b7;
 }
 
 .btn-success:hover {
-  background: var(--color-success);
-  color: var(--color-heading);
-  box-shadow: var(--glow-success);
+  background: #dcfce7;
+  color: #14532d;
+  border-color: #34d399;
   transform: translateY(-1px);
 }
 
 /* Sizes */
-.btn-lg { padding: 16px 32px; font-size: 14px; height: 48px; }
-.btn-sm { padding: 8px 16px; font-size: 12px; height: 36px; letter-spacing: 1px; }
+.btn-lg { padding: 0 32px; font-size: 14px; height: 52px; }
+.btn-sm { padding: 0 16px; font-size: 12px; height: 36px; letter-spacing: 0.5px; }
 .btn-icon {
   padding: 0;
   border-radius: var(--radius-full);
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   aspect-ratio: 1;
-  border-color: var(--glass-border);
+  border-color: var(--color-border);
 }
 
 .btn:disabled {
-  opacity: 0.3;
+  opacity: 0.45;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
@@ -347,14 +336,14 @@ img, svg {
 
 /* Legacy premium glow — redirect to primary */
 .btn-premium-glow {
-  background: transparent;
-  color: var(--color-heading);
-  border-color: var(--color-heading);
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
 .btn-premium-glow:hover {
-  background: var(--color-heading);
-  color: var(--color-bg);
+  background: #1d4ed8;
+  color: #ffffff;
 }
 
 /* ─── Card System (glassmorphism + glow) ────────────────── */
@@ -389,79 +378,121 @@ img, svg {
   color: var(--color-heading);
 }
 
-.form-input {
+/* Universal input / select / textarea styling */
+.form-input,
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
   font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 300;
-  color: var(--color-heading);
-  background: rgba(10, 10, 15, 0.6);
-  border: 1px solid var(--glass-border);
+  font-size: 15px;
+  font-weight: 500;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
   border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  height: 48px;
-  width: 100%;
+  padding: 10px 14px;
   transition: all var(--t-normal) var(--ease);
   outline: none;
-  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.form-input::placeholder {
-  color: var(--color-text-muted);
-  font-weight: 300;
+.form-input,
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+select {
+  height: 44px;
 }
 
-.form-input:focus {
-  border-color: rgba(28, 105, 212, 0.5);
-  box-shadow: 0 0 0 3px rgba(28, 105, 212, 0.1), 0 0 15px rgba(28, 105, 212, 0.08);
-  background: rgba(10, 10, 15, 0.8);
+textarea.form-input,
+textarea.form-control,
+textarea {
+  height: auto;
+  min-height: 90px;
 }
 
-.form-input option {
-  background-color: var(--color-bg-card);
-  color: var(--color-heading);
+.form-input::placeholder,
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400;
 }
 
-.form-input.error {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+.form-input:focus,
+.form-control:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.15) !important;
 }
 
-/* ─── Badge / Chip (glass + glow) ───────────────────────── */
+.form-input option,
+.form-control option,
+select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.form-input.error,
+.form-control.error,
+input.error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ─── Badge / Chip (clean light badges) ─────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.12);
-  color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 .badge-danger {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 .badge-primary {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-heading);
-  border: 1px solid var(--glass-border);
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
 }
 
 /* ─── Divider ───────────────────────────────────────────── */
@@ -473,10 +504,10 @@ img, svg {
 }
 
 /* ─── Scroll Bar ────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ─── Animations (premium micro-animations) ─────────────── */
 @keyframes fadeUp {
@@ -579,9 +610,15 @@ img, svg {
 /* ─── Input wrapper (for password toggle etc.) ──────────── */
 .input-wrapper {
   position: relative;
+  width: 100%;
+  display: block;
 }
 
-.input-wrapper .form-input {
+.input-wrapper .form-input,
+.input-wrapper input[type="password"],
+.input-wrapper input[type="text"] {
+  width: 100% !important;
+  box-sizing: border-box;
   padding-right: 44px;
 }
 

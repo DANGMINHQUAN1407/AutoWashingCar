@@ -65,7 +65,7 @@ export default function CustomerLoyalty() {
   const nextMinPoints = nextTier?.minPoints ?? nextTier?.MinPoints ?? 0
   const pointsRange = nextMinPoints - minPoints
   const progressPercent = pointsRange > 0 
-    ? Math.min(100, Math.max(0, ((currentPoints - minPoints) / pointsRange) * 100))
+    ? Math.min(100, Math.max(0, ((lifetimePoints - minPoints) / pointsRange) * 100))
     : 100
 
   // Determine card style based on tier name
@@ -88,17 +88,17 @@ export default function CustomerLoyalty() {
     }
   }
 
-  const formatBenefitTitle = (b: any) => {
-    const type = b.benefitType || b.BenefitType
-    const val = b.benefitValue || b.BenefitValue
-    const desc = b.description || b.Description
-    const name = b.benefitTypeName || b.BenefitTypeName
+  const formatBenefitTitle = (benefit: any) => {
+    const type = benefit.benefitType || benefit.BenefitType
+    const val = benefit.benefitValue || benefit.BenefitValue
+    const desc = benefit.description || benefit.Description
+    const name = benefit.benefitTypeName || benefit.BenefitTypeName || 'Quyền lợi'
 
-    if (type === 1) return `Giảm giá ${val}% trên tổng hóa đơn đặt lịch`
-    if (type === 2) return `Đặt lịch trước tối đa ${val} ngày`
-    if (type === 3) return desc ? `${desc} (${val})` : val
+    if (type === 1) return `Giảm ${val}% cho mọi đơn đặt lịch`
+    if (type === 2) return `Giảm ${Number(val).toLocaleString('vi-VN')} đ trực tiếp cho mỗi đơn`
+    if (type === 3) return desc ? `Dịch vụ tặng kèm: ${desc}` : `Tặng dịch vụ (Mã: ${val})`
     if (type === 4) return desc ? `${desc} (${val})` : val
-    if (type === 5) return `Tích lũy thêm +${val}% điểm thưởng mỗi đơn`
+    if (type === 5) return `Tích thêm +${val}% điểm thưởng mỗi lần rửa`
     return desc || `${name}: ${val}`
   }
 
@@ -106,11 +106,11 @@ export default function CustomerLoyalty() {
     return (
       <div className="portal-page">
         <div className="dash-header">
-          <h2>Membership Program</h2>
+          <h2>Chương trình thành viên</h2>
         </div>
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading your membership card...</p>
+          <p>Đang tải thông tin thẻ thành viên...</p>
         </div>
       </div>
     )
@@ -120,8 +120,8 @@ export default function CustomerLoyalty() {
     <div className="portal-page loyalty-page-container">
       <div className="dash-header">
         <div>
-          <h2>Membership & Loyalty</h2>
-          <p>Track your level, benefits, and loyalty points history.</p>
+          <h2>Hạng thành viên & Điểm thưởng</h2>
+          <p>Theo dõi cấp độ thành viên, quyền lợi và lịch sử tích điểm của bạn.</p>
         </div>
       </div>
 
@@ -136,15 +136,15 @@ export default function CustomerLoyalty() {
               <span className="vip-card-chip"></span>
             </div>
             <div className="vip-card-body">
-              <div className="vip-card-tier-label">{tierName.toUpperCase()} MEMBER</div>
+              <div className="vip-card-tier-label">THÀNH VIÊN HẠNG {tierName.toUpperCase()}</div>
               <div className="vip-card-points-label">
                 <span className="pts-num">{currentPoints.toLocaleString()}</span>
-                <span className="pts-lbl">POINTS</span>
+                <span className="pts-lbl">ĐIỂM</span>
               </div>
             </div>
             <div className="vip-card-footer">
               <div className="vip-card-holder">
-                <div className="holder-lbl">CARD HOLDER</div>
+                <div className="holder-lbl">CHỦ THẺ</div>
                 <div className="holder-name">{displayName}</div>
               </div>
               <div className="vip-card-insignia">VIP</div>
@@ -155,26 +155,26 @@ export default function CustomerLoyalty() {
           {nextTierName && (
             <div className="card progress-card">
               <div className="progress-header">
-                <span>Progress to <strong>{nextTierName}</strong></span>
-                <span className="points-remaining">{pointsToNextTier.toLocaleString()} points needed</span>
+                <span>Tiến trình lên hạng <strong>{nextTierName}</strong></span>
+                <span className="points-remaining">Cần thêm {pointsToNextTier.toLocaleString()} điểm</span>
               </div>
               <div className="progress-bar-bg">
                 <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
               </div>
               <div className="progress-footer">
-                <span>{minPoints.toLocaleString()} pts</span>
-                <span>{nextMinPoints.toLocaleString()} pts</span>
+                <span>{minPoints.toLocaleString()} điểm</span>
+                <span>{nextMinPoints.toLocaleString()} điểm</span>
               </div>
             </div>
           )}
 
           {/* Benefits Info Card */}
           <div className="card benefits-card">
-            <h3 className="section-title">Current Tier Benefits ({tierName})</h3>
+            <h3 className="section-title">Quyền lợi hạng hiện tại ({tierName})</h3>
             <div className="benefit-info-row">
               <div className="benefit-icon">🪙</div>
               <div className="benefit-text">
-                <strong>Earn Rate:</strong> {Math.round(earnRate * 100)}% points back on every booking amount (1,000 VND spent = {earnRate * 10} points).
+                <strong>Hệ số tích điểm:</strong> Tích {Math.round(earnRate * 100)}% điểm thưởng trên tổng tiền thanh toán (1.000 đ = {earnRate * 10} điểm).
               </div>
             </div>
             
@@ -192,7 +192,7 @@ export default function CustomerLoyalty() {
               <div className="benefit-info-row">
                 <div className="benefit-icon">🎁</div>
                 <div className="benefit-text">
-                  <strong>Privileges:</strong> {benefits}
+                  <strong>Đặc quyền:</strong> {benefits}
                 </div>
               </div>
             ) : null}
@@ -200,7 +200,7 @@ export default function CustomerLoyalty() {
             <div className="benefit-info-row">
               <div className="benefit-icon">📊</div>
               <div className="benefit-text">
-                <strong>Lifetime Accumulated:</strong> {lifetimePoints.toLocaleString()} points.
+                <strong>Tổng điểm trọn đời:</strong> {lifetimePoints.toLocaleString()} điểm.
               </div>
             </div>
           </div>
@@ -210,29 +210,29 @@ export default function CustomerLoyalty() {
         <div className="loyalty-data-section">
           {/* Point History Ledger */}
           <div className="card history-card">
-            <h3 className="section-title">Points Transaction History</h3>
+            <h3 className="section-title">Nhật ký lịch sử điểm thưởng</h3>
             
             {history.length === 0 ? (
               <div className="empty-history">
-                <p>No loyalty transaction history found.</p>
-                <span>Book a service to start earning points!</span>
+                <p>Chưa có giao dịch tích điểm nào.</p>
+                <span>Hãy đặt lịch rửa xe để bắt đầu tích lũy điểm thưởng!</span>
               </div>
             ) : (
               <>
                 <div className="history-list">
                   {history.map((item) => {
-                    const isCredit = item.entryTypeName === 'Earn' || item.entryTypeName === 'Adjust' && item.points > 0
+                    const isCredit = item.entryTypeName === 'Earn' || (item.entryTypeName === 'Adjust' && item.points > 0)
                     const isDebit = item.points < 0 || item.entryTypeName === 'Redeem'
                     const displayPoints = item.points > 0 ? `+${item.points}` : item.points
                     
                     return (
                       <div key={item.loyaltyLedgerEntryId} className="history-item">
                         <div className="history-meta">
-                          <span className="history-desc">{item.description || 'Service booking reward'}</span>
+                          <span className="history-desc">{item.description || 'Thưởng tích điểm dịch vụ'}</span>
                           <span className="history-date">
-                            {new Date(item.createdAtUtc || item.CreatedAtUtc).toLocaleDateString(undefined, {
+                            {new Date(item.createdAtUtc || item.CreatedAtUtc).toLocaleDateString('vi-VN', {
                               year: 'numeric',
-                              month: 'short',
+                              month: 'numeric',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
@@ -241,9 +241,9 @@ export default function CustomerLoyalty() {
                         </div>
                         <div className="history-nums">
                           <span className={`history-points ${isCredit ? 'points-credit' : isDebit ? 'points-debit' : ''}`}>
-                            {displayPoints} pts
+                            {displayPoints} điểm
                           </span>
-                          <span className="history-balance">Bal: {item.balanceAfter} pts</span>
+                          <span className="history-balance">Số dư: {item.balanceAfter} điểm</span>
                         </div>
                       </div>
                     )
@@ -263,17 +263,17 @@ export default function CustomerLoyalty() {
 
           {/* Membership Tier List */}
           <div className="card tiers-list-card">
-            <h3 className="section-title">Membership Tier Comparison</h3>
+            <h3 className="section-title">Bảng so sánh các Hạng thành viên</h3>
             <div className="tier-comparison-grid">
               {tiers.map((t) => {
                 const isCurrent = t.tierId === currentTier?.tierId || t.tierName === currentTier?.tierName
                 
                 return (
                   <div key={t.tierId || t.tierName} className={`tier-compare-card ${isCurrent ? 'current-compare-tier' : ''}`}>
-                    {isCurrent && <span className="current-badge">YOUR TIER</span>}
+                    {isCurrent && <span className="current-badge">HẠNG HIỆN TẠI</span>}
                     <h4>{t.tierName}</h4>
-                    <div className="tier-req">Min points: <strong>{t.minPoints.toLocaleString()}</strong></div>
-                    <div className="tier-rate">Earn rate: <strong>{Math.round((t.earnRate || 0) * 100)}%</strong></div>
+                    <div className="tier-req">Điểm tối thiểu: <strong>{t.minPoints.toLocaleString()}</strong></div>
+                    <div className="tier-rate">Hệ số tích điểm: <strong>{Math.round((t.earnRate || 0) * 100)}%</strong></div>
                     {t.benefits && <p className="tier-benefits">{t.benefits}</p>}
                   </div>
                 )

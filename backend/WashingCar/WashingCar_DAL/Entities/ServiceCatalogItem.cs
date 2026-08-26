@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WashingCar_DAL.Entities;
@@ -18,6 +18,9 @@ public partial class ServiceCatalogItem
     /// <summary>1=Standard, 2=AddOn, 3=Premium.</summary>
     public byte ServicePackageType { get; set; } = (byte)WashingCar_Common.Enum.ServicePackageType.Standard;
 
+    /// <summary>1=Motorbike (Xe máy), 2=Car (Xe hơi/Ô tô), 3=Truck (Xe tải), null=All/Universal.</summary>
+    public byte? VehicleType { get; set; }
+
     /// <summary>1=Group, 2=Leaf. Only Leaf items can be booked and billed.</summary>
     public byte ServiceNodeType { get; set; } = (byte)WashingCar_Common.Enum.ServiceNodeType.Leaf;
 
@@ -36,6 +39,8 @@ public partial class ServiceCatalogItem
     public virtual ICollection<ServiceCatalogItem> ChildServiceCatalogItems { get; set; } = new List<ServiceCatalogItem>();
 
     public virtual ICollection<BranchService> BranchServices { get; set; } = new List<BranchService>();
+
+    public virtual ICollection<ServiceVehiclePricing> ServiceVehiclePricings { get; set; } = new List<ServiceVehiclePricing>();
 
     public virtual ICollection<BookingLine> BookingLines { get; set; } = new List<BookingLine>();
 }

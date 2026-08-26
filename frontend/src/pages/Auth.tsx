@@ -349,7 +349,7 @@ export default function Auth() {
             <div className="auth-mobile-header">
               <Link to="/" className="auth-back">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                Back to Home
+                Về trang chủ
               </Link>
               <div className="auth-brand">
                 <div className="auth-brand-icon">
@@ -379,14 +379,14 @@ export default function Auth() {
                 className={`auth-tab ${tab === 'login' ? 'active' : ''}`}
                 onClick={() => handleTabChange('login')}
               >
-                Sign In
+                Đăng nhập
               </button>
               <button
                 type="button"
                 className={`auth-tab ${tab === 'signup' ? 'active' : ''}`}
                 onClick={() => handleTabChange('signup')}
               >
-                Create Account
+                Tạo tài khoản
               </button>
               <div className={`auth-tab-indicator ${tab === 'signup' ? 'right' : ''}`} />
             </div>
@@ -395,8 +395,8 @@ export default function Auth() {
             {tab === 'login' && (
               <form onSubmit={handleSubmit} className="auth-form auth-form-login" key="login">
                 <div className="auth-form-header">
-                  <h2>Welcome back</h2>
-                  <p>Sign in to manage your bookings and account.</p>
+                  <h2>Chào mừng trở lại</h2>
+                  <p>Đăng nhập để quản lý lịch hẹn và tài khoản của bạn.</p>
                 </div>
 
                 {errorMsg && <div className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>{errorMsg}</div>}
@@ -412,7 +412,7 @@ export default function Auth() {
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                       </svg>
-                      Continue with Google
+                      Tiếp tục với Google
                     </button>
                     <div 
                       id="google-signin-btn-login"
@@ -432,11 +432,11 @@ export default function Auth() {
                 </div>
 
                 <div className="auth-divider">
-                  <span>or sign in with email</span>
+                  <span>hoặc đăng nhập bằng email</span>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="login-email">Email address</label>
+                  <label className="form-label" htmlFor="login-email">Địa chỉ Email</label>
                   <input
                     id="login-email"
                     name="email"
@@ -452,8 +452,8 @@ export default function Auth() {
 
                 <div className="form-group">
                   <div className="form-label-row">
-                    <label className="form-label" htmlFor="login-password">Password</label>
-                    <button type="button" className="link-btn form-link" onClick={() => handleTabChange('forgot')}>Forgot password?</button>
+                    <label className="form-label" htmlFor="login-password">Mật khẩu</label>
+                    <button type="button" className="link-btn form-link" onClick={() => handleTabChange('forgot')}>Quên mật khẩu?</button>
                   </div>
                   <div className="input-wrapper">
                     <input
@@ -478,13 +478,13 @@ export default function Auth() {
 
                 <button type="submit" className="btn btn-primary w-full" disabled={loading}>
                   {loading ? <span className="spinner" /> : null}
-                  {loading ? 'Signing In…' : 'Sign In'}
+                  {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
                 </button>
 
                 <p className="auth-switch">
-                  Don't have an account?{' '}
+                  Chưa có tài khoản?{' '}
                   <button type="button" className="link-btn" onClick={() => handleTabChange('signup')}>
-                    Create one free
+                    Đăng ký miễn phí
                   </button>
                 </p>
                 
@@ -501,15 +501,15 @@ export default function Auth() {
             {tab === 'forgot' && (
               <form onSubmit={handleSubmit} className="auth-form" key="forgot">
                 <div className="auth-form-header">
-                  <h2>Reset password</h2>
-                  <p>Enter your email and we'll send you instructions to reset your password.</p>
+                  <h2>Đặt lại mật khẩu</h2>
+                  <p>Nhập email của bạn để nhận liên kết đặt lại mật khẩu.</p>
                 </div>
 
                 {errorMsg && <div className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>{errorMsg}</div>}
                 {successMsg && <div className="badge badge-success" style={{ display: 'block', padding: '10px' }}>{successMsg}</div>}
 
                 <div className="form-group" style={{ marginTop: '20px' }}>
-                  <label className="form-label" htmlFor="forgot-email">Email address</label>
+                  <label className="form-label" htmlFor="forgot-email">Địa chỉ Email</label>
                   <input
                     id="forgot-email"
                     type="email"
@@ -523,13 +523,13 @@ export default function Auth() {
 
                 <button type="submit" className="btn btn-primary w-full" disabled={loading} style={{ marginTop: '10px' }}>
                   {loading ? <span className="spinner" /> : null}
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  {loading ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}
                 </button>
 
                 <p className="auth-switch" style={{ marginTop: '20px' }}>
-                  Remember your password?{' '}
+                  Nhớ lại mật khẩu?{' '}
                   <button type="button" className="link-btn" onClick={() => handleTabChange('login')}>
-                    Back to sign in
+                    Quay lại đăng nhập
                   </button>
                 </p>
               </form>
@@ -539,8 +539,8 @@ export default function Auth() {
             {tab === 'reset' && (
               <form onSubmit={handleSubmit} className="auth-form" key="reset">
                 <div className="auth-form-header">
-                  <h2>Reset Your Password</h2>
-                  <p>Please enter your new password below to reset your account credentials.</p>
+                  <h2>Đặt lại mật khẩu mới</h2>
+                  <p>Vui lòng nhập mật khẩu mới của bạn bên dưới.</p>
                 </div>
 
                 {errorMsg && <div className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>{errorMsg}</div>}
@@ -553,13 +553,13 @@ export default function Auth() {
                 ) : (
                   <>
                     <div className="form-group" style={{ marginTop: '20px' }}>
-                      <label className="form-label" htmlFor="reset-password">New Password</label>
+                      <label className="form-label" htmlFor="reset-password">Mật khẩu mới</label>
                       <div className="input-wrapper">
                         <input
                           id="reset-password"
                           type={showPass ? 'text' : 'password'}
                           className="form-input"
-                          placeholder="At least 8 characters"
+                          placeholder="Tối thiểu 8 ký tự"
                           value={resetPasswordStr}
                           onChange={e => setResetPasswordStr(e.target.value)}
                           required
@@ -576,14 +576,14 @@ export default function Auth() {
 
                     <button type="submit" className="btn btn-primary w-full" disabled={loading} style={{ marginTop: '10px' }}>
                       {loading ? <span className="spinner" /> : null}
-                      {loading ? 'Resetting...' : 'Change Password'}
+                      {loading ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
                     </button>
                   </>
                 )}
 
                 <p className="auth-switch" style={{ marginTop: '20px' }}>
                   <button type="button" className="link-btn" onClick={() => handleTabChange('login')}>
-                    Back to sign in
+                    Quay lại đăng nhập
                   </button>
                 </p>
               </form>
@@ -598,7 +598,7 @@ export default function Auth() {
             <div className="auth-mobile-header">
               <Link to="/" className="auth-back">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                Back to Home
+                Về trang chủ
               </Link>
               <div className="auth-brand">
                 <div className="auth-brand-icon">
@@ -628,14 +628,14 @@ export default function Auth() {
                 className={`auth-tab ${tab === 'login' ? 'active' : ''}`}
                 onClick={() => handleTabChange('login')}
               >
-                Sign In
+                Đăng nhập
               </button>
               <button
                 type="button"
                 className={`auth-tab ${tab === 'signup' ? 'active' : ''}`}
                 onClick={() => handleTabChange('signup')}
               >
-                Create Account
+                Tạo tài khoản
               </button>
               <div className={`auth-tab-indicator ${tab === 'signup' ? 'right' : ''}`} />
             </div>
@@ -644,8 +644,8 @@ export default function Auth() {
             {tab === 'signup' && (
               <form onSubmit={handleSubmit} className="auth-form auth-form-signup" key="signup">
                 <div className="auth-form-header">
-                  <h2>Create your account</h2>
-                  <p>Get started in seconds. No credit card required.</p>
+                  <h2>Tạo tài khoản mới</h2>
+                  <p>Bắt đầu chỉ trong vài giây. Hoàn toàn miễn phí.</p>
                 </div>
 
                 {errorMsg && <div className="badge badge-danger" style={{ display: 'block', padding: '10px' }}>{errorMsg}</div>}
@@ -659,7 +659,7 @@ export default function Auth() {
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                       </svg>
-                      Continue with Google
+                      Tiếp tục với Google
                     </button>
                     <div 
                       id="google-signin-btn-signup"
@@ -679,17 +679,17 @@ export default function Auth() {
                 </div>
 
                 <div className="auth-divider">
-                  <span>or sign up with email</span>
+                  <span>hoặc đăng ký bằng email</span>
                 </div>
 
                 <div className="form-row-2">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="signup-name">Full Name</label>
+                    <label className="form-label" htmlFor="signup-name">Họ và tên</label>
                     <input
                       id="signup-name"
                       type="text"
                       className="form-input"
-                      placeholder="Nguyen Van A"
+                      placeholder="Nguyễn Văn A"
                       value={signupName}
                       onChange={e => setSignupName(e.target.value)}
                       required
@@ -698,7 +698,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label" htmlFor="signup-phone">Phone</label>
+                    <label className="form-label" htmlFor="signup-phone">Số điện thoại</label>
                     <input
                       id="signup-phone"
                       type="tel"
@@ -708,13 +708,13 @@ export default function Auth() {
                       onChange={e => setSignupPhone(e.target.value)}
                       required
                       pattern="0[0-9]{9}"
-                      title="Phone number must be exactly 10 digits and start with 0"
+                      title="Số điện thoại phải bao gồm đúng 10 số và bắt đầu bằng số 0"
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="signup-email">Email address</label>
+                  <label className="form-label" htmlFor="signup-email">Địa chỉ Email</label>
                   <input
                     id="signup-email"
                     type="email"
@@ -728,13 +728,13 @@ export default function Auth() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="signup-password">Password</label>
+                  <label className="form-label" htmlFor="signup-password">Mật khẩu</label>
                   <div className="input-wrapper">
                     <input
                       id="signup-password"
                       type={showPass ? 'text' : 'password'}
                       className="form-input"
-                      placeholder="At least 8 characters"
+                      placeholder="Tối thiểu 8 ký tự"
                       value={signupPass}
                       onChange={e => setSignupPass(e.target.value)}
                       required
@@ -751,18 +751,18 @@ export default function Auth() {
 
                 <button type="submit" className="btn btn-primary w-full" disabled={loading}>
                   {loading ? <span className="spinner" /> : null}
-                  {loading ? 'Creating Account…' : 'Create Free Account'}
+                  {loading ? 'Đang tạo tài khoản…' : 'Đăng ký miễn phí'}
                 </button>
 
                 <p className="auth-terms">
-                  By creating an account you agree to our{' '}
-                  <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                  Bằng việc tạo tài khoản, bạn đồng ý với{' '}
+                  <a href="#">Điều khoản dịch vụ</a> và <a href="#">Chính sách bảo mật</a> của chúng tôi.
                 </p>
 
                 <p className="auth-switch">
-                  Already have an account?{' '}
+                  Đã có tài khoản?{' '}
                   <button type="button" className="link-btn" onClick={() => handleTabChange('login')}>
-                    Sign in
+                    Đăng nhập
                   </button>
                 </p>
               </form>
@@ -789,7 +789,7 @@ export default function Auth() {
                     onChange={e => setClaimPhone(e.target.value)}
                     required
                     pattern="0[0-9]{9}"
-                    title="Phone number must be exactly 10 digits and start with 0"
+                    title="Số điện thoại phải bao gồm đúng 10 số và bắt đầu bằng số 0"
                   />
                 </div>
 
@@ -853,7 +853,7 @@ export default function Auth() {
             <div className="auth-overlay-panel auth-overlay-left">
               <Link to="/" className="auth-back">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                Back to Home
+                Về trang chủ
               </Link>
               
               <div className="auth-brand">
@@ -876,17 +876,34 @@ export default function Auth() {
                 <span>AutoWash<span className="gradient-text">Pro</span></span>
               </div>
 
-              <h1>Welcome Back!</h1>
-              <p>To keep connected with us please login with your personal info</p>
+              <h1>Chào mừng trở lại!</h1>
+              <p>Đăng nhập bằng thông tin của bạn để tiếp tục sử dụng dịch vụ</p>
+
+              <div style={{
+                width: '100%',
+                maxWidth: '300px',
+                height: '110px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                margin: '12px 0',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                border: '2px solid rgba(255, 255, 255, 0.35)'
+              }}>
+                <img
+                  src="https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=600&q=80"
+                  alt="AutoWash Experience"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
               
-              <button type="button" className="btn btn-overlay btn-lg" style={{ marginTop: '20px' }} onClick={() => handleTabChange('login')}>
-                Sign In
+              <button type="button" className="btn btn-overlay btn-lg" style={{ marginTop: '8px' }} onClick={() => handleTabChange('login')}>
+                Đăng nhập
               </button>
 
-              <div className="auth-features" style={{ marginTop: '40px', textAlign: 'left', width: '100%', maxWidth: '320px' }}>
+              <div className="auth-features" style={{ marginTop: '20px', textAlign: 'left', width: '100%', maxWidth: '300px' }}>
                 {[
-                  { icon: '🚀', text: 'Book in under 60 seconds' },
-                  { icon: '🛡️', text: 'Certified & insured technicians' },
+                  { icon: '🚀', text: 'Đặt lịch nhanh chóng dưới 60 giây' },
+                  { icon: '🛡️', text: 'Kỹ thuật viên chuyên nghiệp & tận tâm' },
                 ].map((f, i) => (
                   <div key={i} className="auth-feature-item" style={{ justifyContent: 'flex-start' }}>
                     <span>{f.icon}</span>
@@ -900,7 +917,7 @@ export default function Auth() {
             <div className="auth-overlay-panel auth-overlay-right">
               <Link to="/" className="auth-back">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                Back to Home
+                Về trang chủ
               </Link>
               
               <div className="auth-brand">
@@ -923,17 +940,34 @@ export default function Auth() {
                 <span>AutoWash<span className="gradient-text">Pro</span></span>
               </div>
 
-              <h1>Hello, Friend!</h1>
-              <p>Enter your personal details and start your journey with us</p>
+              <h1>Xin chào bạn!</h1>
+              <p>Đăng ký tài khoản để trải nghiệm công nghệ rửa xe hiện đại nhất</p>
+
+              <div style={{
+                width: '100%',
+                maxWidth: '300px',
+                height: '110px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                margin: '12px 0',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                border: '2px solid rgba(255, 255, 255, 0.35)'
+              }}>
+                <img
+                  src="https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=600&q=80"
+                  alt="AutoWash Pro Car Wash"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
               
-              <button type="button" className="btn btn-overlay btn-lg" style={{ marginTop: '20px' }} onClick={() => handleTabChange('signup')}>
-                Create Account
+              <button type="button" className="btn btn-overlay btn-lg" style={{ marginTop: '8px' }} onClick={() => handleTabChange('signup')}>
+                Tạo tài khoản
               </button>
 
-              <div className="auth-features" style={{ marginTop: '40px', textAlign: 'left', width: '100%', maxWidth: '320px' }}>
+              <div className="auth-features" style={{ marginTop: '20px', textAlign: 'left', width: '100%', maxWidth: '300px' }}>
                 {[
-                  { icon: '🌿', text: 'Eco-friendly products only' },
-                  { icon: '⭐', text: '4.9/5 from 12,000+ reviews' },
+                  { icon: '🌿', text: 'Dung dịch sinh học thân thiện môi trường' },
+                  { icon: '⭐', text: 'Đánh giá 4.9/5 từ hàng ngàn khách hàng' },
                 ].map((f, i) => (
                   <div key={i} className="auth-feature-item" style={{ justifyContent: 'flex-start' }}>
                     <span>{f.icon}</span>

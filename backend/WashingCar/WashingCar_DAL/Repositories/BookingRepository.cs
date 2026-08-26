@@ -22,6 +22,7 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
             .Include(b => b.SlotInventory)
             .Include(b => b.User)
             .Include(b => b.Vehicle)
+                .ThenInclude(v => v!.EngineCatalog)
             .Include(b => b.AssignedStaff)
             .FirstOrDefaultAsync(b => b.BookingId == bookingId, ct);
 
@@ -31,6 +32,7 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
             .Include(b => b.SlotInventory)
             .Include(b => b.User)
             .Include(b => b.Vehicle)
+                .ThenInclude(v => v!.EngineCatalog)
             .Include(b => b.AssignedStaff)
             .FirstOrDefaultAsync(b => b.CheckInQrCode == qrToken, ct);
 
@@ -40,6 +42,7 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
             .Include(b => b.SlotInventory)
             .Include(b => b.User)
             .Include(b => b.Vehicle)
+                .ThenInclude(v => v!.EngineCatalog)
             .Include(b => b.AssignedStaff)
             .FirstOrDefaultAsync(b => b.BookingCode == bookingCode, ct);
 
@@ -111,6 +114,7 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
             .Include(b => b.SlotInventory)
             .Include(b => b.User)
             .Include(b => b.Vehicle)
+                .ThenInclude(v => v!.EngineCatalog)
             .Include(b => b.AssignedStaff)
             .FirstOrDefaultAsync(b => b.BookingId == bookingId, ct);
 
@@ -120,6 +124,7 @@ public class BookingRepository(WashingCarDbContext db) : IBookingRepository
             .Include(b => b.SlotInventory)
             .Include(b => b.User)
             .Include(b => b.Vehicle)
+                .ThenInclude(v => v!.EngineCatalog)
             .Include(b => b.AssignedStaff)
             .FirstOrDefaultAsync(b => b.CheckInQrCode == qrToken, ct);
 

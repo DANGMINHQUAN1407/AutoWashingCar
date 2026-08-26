@@ -94,19 +94,14 @@
 }
 
 .auth-overlay {
-  background: var(--color-bg);
+  background: linear-gradient(135deg, rgba(15, 41, 66, 0.92), rgba(30, 64, 175, 0.88)), 
+              url('https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
   position: relative;
   left: -100%;
   height: 100%;
   width: 200%;
   transform: translateX(0);
   transition: transform 0.5s var(--ease);
-}
-
-/* Remove decorative glows */
-.auth-overlay::before,
-.auth-overlay::after {
-  display: none;
 }
 
 .right-panel-active .auth-overlay {
@@ -119,12 +114,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 48px;
+  padding: 0 40px;
   text-align: center;
   top: 0;
   height: 100%;
   width: 50%;
   transition: transform 0.5s var(--ease);
+  color: #ffffff;
 }
 
 .auth-overlay-left {
@@ -149,35 +145,35 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 0.5px;
-  color: var(--color-text-muted) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
   text-decoration: none;
   transition: color var(--t-fast) var(--ease);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .auth-back:hover {
-  color: var(--color-heading) !important;
+  color: #ffffff !important;
 }
 
 .auth-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-heading) !important;
-  letter-spacing: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff !important;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 }
 
 .auth-brand-icon {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   border-radius: 0px;
@@ -187,56 +183,65 @@
 }
 
 .auth-overlay-panel h1 {
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   line-height: 1.1;
-  margin-bottom: 16px;
-  color: var(--color-heading) !important;
+  margin-bottom: 10px;
+  color: #ffffff !important;
 }
 
 .auth-overlay-panel p {
-  font-size: 16px;
-  font-weight: 300;
-  color: var(--color-text) !important;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9) !important;
   line-height: 1.5;
-  max-width: 340px;
-  margin-bottom: 12px;
+  max-width: 320px;
+  margin-bottom: 10px;
 }
 
 .auth-features {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 32px;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 .auth-feature-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  font-weight: 300;
-  color: var(--color-text) !important;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* Overlay buttons */
 .btn-overlay {
-  background: transparent !important;
-  border: 1px solid var(--color-heading) !important;
-  color: var(--color-heading) !important;
-  box-shadow: none !important;
-  border-radius: 0px !important;
-  font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
+  background: #ffffff !important;
+  border: none !important;
+  color: #1e40af !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18) !important;
+  border-radius: 8px !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
+  height: 42px !important;
+  padding: 0 28px !important;
 }
 
 .btn-overlay:hover {
-  background: var(--color-heading) !important;
-  color: var(--color-bg) !important;
-  transform: none !important;
+  background: #f8fafc !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Auth card */
@@ -315,6 +320,25 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.auth-form .form-group {
+  width: 100%;
+}
+
+.auth-form .form-input,
+.auth-form .input-wrapper,
+.auth-form .input-wrapper .form-input {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.auth-form .form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 6px;
 }
 
 /* Form slide animations */

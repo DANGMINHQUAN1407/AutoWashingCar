@@ -83,7 +83,10 @@ public class PaymentRepository(WashingCarDbContext db) : IPaymentRepository
                                           && (p.Booking.CompletedAtUtc == null || p.PaidAtUtc < p.Booking.CompletedAtUtc), ct);
 
     public async Task<(List<Payment> Items, int TotalCount)> GetPagedAsync(
-        PaymentQuery query, Guid? ownerUserId, CancellationToken ct = default)
+        PaymentQuery query,
+        Guid? ownerUserId,
+        Guid? branchId = null,
+        CancellationToken ct = default)
     {
         var q = _db.Payments.AsNoTracking()
             .Include(p => p.Booking)
@@ -92,6 +95,8 @@ public class PaymentRepository(WashingCarDbContext db) : IPaymentRepository
 
         if (ownerUserId.HasValue)
             q = q.Where(p => p.Booking.UserId == ownerUserId.Value);
+        if (branchId.HasValue)
+            q = q.Where(p => p.Booking.BranchId == branchId.Value);
         if (query.BookingId.HasValue)
             q = q.Where(p => p.BookingId == query.BookingId.Value);
         if (query.Status.HasValue)

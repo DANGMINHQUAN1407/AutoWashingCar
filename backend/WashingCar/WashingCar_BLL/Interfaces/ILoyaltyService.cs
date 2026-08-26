@@ -22,7 +22,8 @@ public interface ILoyaltyService
     Task<int> GetCurrentPointsAsync(Guid userId, CancellationToken ct = default);
     Task<int> RedeemForBookingAsync(Guid userId, int points, Guid bookingId, CancellationToken ct = default);
 
-    /// <summary>Hoàn đúng số điểm đã ghi nhận trong ledger khi Pending booking tự hết hạn.</summary>
-    Task<int> ReleaseRedeemedPointsForBookingAsync(Guid userId, Guid bookingId, CancellationToken ct = default);
+    /// <summary>Hoàn đúng số điểm đã ghi nhận trong ledger khi booking bị hủy trước khi sử dụng điểm.</summary>
+    Task<int> ReleaseRedeemedPointsForBookingAsync(
+        Guid userId, Guid bookingId, string reason, CancellationToken ct = default);
     Task<int> EarnFromCancelledBookingAsync(Guid userId, decimal paidAmount, string bookingCode, Guid bookingId, CancellationToken ct = default);
 }

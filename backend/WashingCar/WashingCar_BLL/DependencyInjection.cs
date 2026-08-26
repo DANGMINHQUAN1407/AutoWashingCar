@@ -21,8 +21,10 @@ public static class DependencyInjection
                 services.AddScoped<IEmailService, EmailService>();
                 services.AddScoped<IAdminService, AdminService>();
                 services.AddScoped<IVehicleService, VehicleService>();
+                services.AddScoped<IVehicleTransferService, VehicleTransferService>();
         services.AddScoped<IVehicleCatalogService, VehicleCatalogService>();
                 services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+                services.AddScoped<IServicePricingService, ServicePricingService>();
                 services.AddScoped<IBranchService, BranchService>();
                 services.AddScoped<ISlotService, SlotService>();
                 services.AddScoped<IBookingService, BookingService>();
