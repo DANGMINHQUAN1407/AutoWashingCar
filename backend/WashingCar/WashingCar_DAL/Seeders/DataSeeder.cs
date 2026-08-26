@@ -23,6 +23,7 @@ public static class DataSeeder
         await SeedVehicleCatalogsAsync(db);
 
         // --- BƯỚC 2: SEED GÓI DỊCH VỤ VÀ ADD-ON ---
+        await EnsureServiceCatalogSchemaAsync(db);
         await SeedDefaultServicesAndAddOnsAsync(db);
 
         // --- BƯỚC 3: BACKFILL BẢNG GIÁ THEO LOẠI XE/ĐỘNG CƠ ---
@@ -311,6 +312,14 @@ public static class DataSeeder
         }
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsureServiceCatalogSchemaAsync(WashingCarDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.ServiceCatalogItem', 'VehicleType') IS NULL
+                ALTER TABLE [dbo].[ServiceCatalogItem] ADD [VehicleType] TINYINT NULL;
+            """);
     }
 
     private static async Task SeedServiceVehiclePricingAsync(WashingCarDbContext db)
