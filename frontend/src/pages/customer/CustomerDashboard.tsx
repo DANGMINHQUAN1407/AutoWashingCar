@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
-import AnimatedButton from '../../components/AnimatedButton'
 import '../Dashboard.css'
 
 export default function CustomerDashboard() {
@@ -79,27 +78,13 @@ export default function CustomerDashboard() {
       const bDate = b.slotDate || b.SlotDate || ''
       return new Date(aDate).getTime() - new Date(bDate).getTime()
     })
-    .slice(0, 3)
-    .map(b => {
-      const st = b.bookingStatus ?? b.BookingStatus
-      const date = b.slotDate || b.SlotDate || ''
-      const time = b.slotStartTime || b.SlotStartTime || ''
-      const amount = b.bookingFinalAmount ?? b.BookingFinalAmount ?? 0
-      
-      let statusStr = 'Chờ xác nhận'
-      if (st === 2) statusStr = 'Đã xác nhận'
-      else if (st === 3) statusStr = 'Đã Check-in'
-      else if (st === 4) statusStr = 'Đang rửa'
 
-      return {
-        id: b.bookingCode || b.BookingCode,
-        service: formatServiceSummary(b.serviceSummary || b.ServiceSummary),
-        date: `${date} ${time}`.trim() || 'Đã lên lịch',
-        status: statusStr,
-        car: b.licensePlate || b.LicensePlate || 'Phương tiện',
-        price: `${amount.toLocaleString('vi-VN')} đ`
-      }
-    })
+  const nextBooking = upcomingWashes.length > 0 ? upcomingWashes[0] : null
+  const nextDateStr = nextBooking?.slotDate || nextBooking?.SlotDate || ''
+  const nextTimeStr = nextBooking?.slotStartTime || nextBooking?.SlotStartTime || ''
+  const nextServiceStr = formatServiceSummary(nextBooking?.serviceSummary || nextBooking?.ServiceSummary)
+  const nextPlate = nextBooking?.licensePlate || nextBooking?.LicensePlate || 'Phương tiện'
+  const nextStation = nextBooking?.branchName || nextBooking?.BranchName || 'AutoWash Pro'
 
   const pastWashes = completedBookings
     .sort((a, b) => {
@@ -108,130 +93,250 @@ export default function CustomerDashboard() {
       return new Date(bDate).getTime() - new Date(aDate).getTime()
     })
     .slice(0, 5)
-    .map(b => {
-      const amount = b.bookingFinalAmount ?? b.BookingFinalAmount ?? 0
-      const date = b.createdAtUtc || b.CreatedAtUtc
-      return {
-        id: b.bookingCode || b.BookingCode,
-        service: formatServiceSummary(b.serviceSummary || b.ServiceSummary),
-        date: date ? new Date(date).toLocaleDateString('vi-VN') : 'Đã hoàn thành',
-        status: 'Hoàn thành',
-        car: b.licensePlate || b.LicensePlate || 'Phương tiện',
-        price: `${amount.toLocaleString('vi-VN')} đ`
-      }
-    })
 
   return (
-    <div className="portal-page">
-      <div className="dash-header">
+    <div className="portal-page" style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      {/* Header Section */}
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2>Xin chào, {firstName} 👋</h2>
-          <p>Dưới đây là thông tin và hoạt động chăm sóc xe của bạn hôm nay.</p>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '-0.5px' }}>
+            XIN CHÀO, {firstName} 👋
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '6px', margin: 0 }}>
+            Dưới đây là thông tin và hoạt động chăm sóc xe của bạn hôm nay.
+          </p>
         </div>
-        <div className="dash-header-actions">
-          <Link to="/customer/bookings?startBooking=true">
-            <AnimatedButton variant="primary">Đặt lịch rửa xe</AnimatedButton>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link
+            to="/customer/vehicles"
+            style={{
+              background: '#ffffff',
+              color: '#0284c7',
+              border: '1.5px solid #0284c7',
+              borderRadius: '10px',
+              padding: '10px 18px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
+          >
+            QUẢN LÝ XE →
           </Link>
-          <Link to="/customer/vehicles">
-            <AnimatedButton variant="secondary">Quản lý xe</AnimatedButton>
+          <Link
+            to="/customer/bookings?startBooking=true"
+            style={{
+              background: '#0284c7',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '10px 20px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)'
+            }}
+          >
+            ĐẶT LỊCH RỬA XE →
           </Link>
         </div>
       </div>
 
-      <div className="dash-section">
-        <div className="dash-section-header">
-          <h3>Tổng quan</h3>
-        </div>
-        <div className="dash-stats">
-          <div className="dash-stat-card">
-            <div className="dash-stat-top">
-              <span className="stat-title">LƯỢT RỬA XE</span>
-              <div className="dash-stat-icon-badge dash-stat-icon-badge--blue">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 11 2 11.5 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-              </div>
-            </div>
-            <div className="stat-val">{loading ? '...' : totalWashes}</div>
+      {/* KPI Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
+        {/* Card 1: Lượt rửa */}
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+            🚗
           </div>
-
-          <Link to="/customer/loyalty" className="dash-stat-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="dash-stat-top">
-              <span className="stat-title">HẠNG ({loading ? '...' : tierName.toUpperCase()})</span>
-              <div className="dash-stat-icon-badge dash-stat-icon-badge--amber">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              LƯỢT RỬA XE
             </div>
-            <div className="stat-val">{loading ? '...' : `${currentPoints.toLocaleString()} điểm`}</div>
-          </Link>
-
-          <div className="dash-stat-card">
-            <div className="dash-stat-top">
-              <span className="stat-title">TIẾT KIỆM NĂM NAY</span>
-              <div className="dash-stat-icon-badge dash-stat-icon-badge--green">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+              {loading ? '...' : totalWashes}
             </div>
-            <div className="stat-val">{loading ? '...' : `${Number(savedThisYear).toLocaleString('vi-VN')} đ`}</div>
+          </div>
+        </div>
+
+        {/* Card 2: Hạng */}
+        <Link to="/customer/loyalty" style={{ textDecoration: 'none', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.12)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+            ⭐
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              HẠNG ({tierName.toUpperCase()})
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+              {loading ? '...' : currentPoints.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>điểm</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Card 3: Tiết kiệm */}
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+            💰
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              TIẾT KIỆM NĂM NAY
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+              {loading ? '...' : Number(savedThisYear).toLocaleString('vi-VN')} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>đ</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Lịch hẹn sắp tới */}
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+            📅
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              LỊCH HẸN SẮP TỚI
+            </div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+              {nextDateStr ? (
+                <>
+                  {new Date(nextDateStr).toLocaleDateString('vi-VN')}
+                  {nextTimeStr && <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, display: 'block' }}>{nextTimeStr.substring(0, 5)}</span>}
+                </>
+              ) : (
+                <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>Chưa có lịch</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="dash-section">
-        <div className="dash-section-header">
-          <h3>Lịch hẹn sắp tới</h3>
-          <Link to="/customer/bookings" className="dash-link">Xem tất cả</Link>
-        </div>
-        <div className="booking-list">
-          {upcomingWashes.length === 0 ? (
-            <div style={{ color: 'var(--color-text-muted)', padding: '16px 0', fontSize: '0.9rem' }}>
-              Bạn không có lịch hẹn nào sắp tới.
-            </div>
-          ) : (
-            upcomingWashes.map(b => (
-              <div key={b.id} className="booking-card active-booking">
-                <div className="booking-status-indicator" />
-                <div className="booking-main">
-                  <div className="booking-header">
-                    <h4>{b.service}</h4>
-                    <span className="badge badge-primary">{b.status}</span>
+      {/* Main Content Grid: Left Upcoming + Right History */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '24px', alignItems: 'stretch' }}>
+        {/* Left: Upcoming Appointment Card */}
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Lịch Hẹn</h2>
+            {nextBooking && (
+              <span style={{ background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', fontWeight: 700, fontSize: '0.75rem', padding: '4px 10px', borderRadius: '20px' }}>
+                ĐÃ LÊN LỊCH
+              </span>
+            )}
+          </div>
+
+          {nextBooking ? (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', marginBottom: 'auto', position: 'relative', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px', textTransform: 'uppercase' }}>
+                {nextServiceStr}
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>📅</span>
+                  <div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Thời gian</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{nextDateStr} - {nextTimeStr.substring(0, 5)}</div>
                   </div>
-                  <div className="booking-details">
-                    <span><strong>Thời gian:</strong> {b.date}</span>
-                    <span><strong>Biển số:</strong> {b.car}</span>
-                    <span><strong>Tổng cộng:</strong> {b.price}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>🚗</span>
+                  <div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Biển số xe</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{nextPlate}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>📍</span>
+                  <div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Địa điểm</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{nextStation}</div>
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="dash-section">
-        <div className="dash-section-header">
-          <h3>Lịch sử gần đây</h3>
-        </div>
-        <div className="booking-list">
-          {pastWashes.length === 0 ? (
-            <div style={{ color: 'var(--color-text-muted)', padding: '16px 0', fontSize: '0.9rem' }}>
-              Chưa có lịch sử rửa xe nào.
             </div>
           ) : (
-            pastWashes.map(b => (
-              <div key={b.id} className="booking-card">
-                <div className="booking-main">
-                  <div className="booking-header">
-                    <h4>{b.service}</h4>
-                    <span className="badge badge-success">{b.status}</span>
-                  </div>
-                  <div className="booking-details">
-                    <span><strong>Thời gian:</strong> {b.date}</span>
-                    <span><strong>Biển số:</strong> {b.car}</span>
-                    <span><strong>Tổng cộng:</strong> {b.price}</span>
-                  </div>
-                </div>
-              </div>
-            ))
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', marginBottom: 'auto' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🚗</div>
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>Bạn chưa có lịch hẹn nào sắp tới.</p>
+            </div>
           )}
+
+          <Link
+            to="/customer/bookings"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: '18px',
+              padding: '12px',
+              borderRadius: '10px',
+              background: '#f1f5f9',
+              color: '#0284c7',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              border: '1px solid #e2e8f0',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Xem chi tiết
+          </Link>
+        </div>
+
+        {/* Right: Recent History Table */}
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Lịch Sử Gần Đây</h2>
+            <Link to="/customer/bookings" style={{ color: '#0284c7', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Xem tất cả
+            </Link>
+          </div>
+
+          <div style={{ overflowX: 'auto', flex: 1 }}>
+            {pastWashes.length === 0 ? (
+              <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                Chưa có lịch sử đơn rửa xe hoàn thành nào.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <th style={{ padding: '14px 20px', fontWeight: 700 }}>Dịch vụ</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 700 }}>Ngày</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 700 }}>Biển số</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 700, textAlign: 'right' }}>Tổng tiền</th>
+                    <th style={{ padding: '14px 20px', fontWeight: 700, textAlign: 'center' }}>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastWashes.map(b => {
+                    const amount = b.bookingFinalAmount ?? b.BookingFinalAmount ?? 0
+                    const date = b.createdAtUtc || b.CreatedAtUtc || b.slotDate || b.SlotDate
+                    const dateStr = date ? new Date(date).toLocaleDateString('vi-VN') : 'Hoàn thành'
+                    const svc = formatServiceSummary(b.serviceSummary || b.ServiceSummary)
+                    const plate = b.licensePlate || b.LicensePlate || 'Phương tiện'
+
+                    return (
+                      <tr key={b.bookingId || b.BookingId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '16px 20px', fontWeight: 600, color: '#0f172a' }}>{svc}</td>
+                        <td style={{ padding: '16px 16px', color: '#64748b' }}>{dateStr}</td>
+                        <td style={{ padding: '16px 16px', color: '#0f172a', fontWeight: 500 }}>{plate}</td>
+                        <td style={{ padding: '16px 16px', textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>
+                          {Number(amount).toLocaleString('vi-VN')} đ
+                        </td>
+                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                          <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                            HOÀN THÀNH
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -161,6 +161,10 @@ export default function CustomerBookings() {
   const [addonPage, setAddonPage] = useState(1);
   const ADDON_PAGE_SIZE = 6;
 
+  // Slot pagination in Wizard Step 4
+  const [slotPage, setSlotPage] = useState(1);
+  const SLOT_PAGE_SIZE = 6;
+
   // Dynamic pricing & booking output
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
@@ -428,6 +432,7 @@ export default function CustomerBookings() {
     setSelectedBranchId('');
     setSelectedServiceIds([]);
     setSelectedSlotId('');
+    setSlotPage(1);
     setQuote(null);
     setNewBooking(null);
     setSelectedUserVoucherId('');
@@ -565,6 +570,7 @@ export default function CustomerBookings() {
     };
     fetchSlots();
     setSelectedSlotId('');
+    setSlotPage(1);
   }, [selectedBranchId, selectedDate]);
 
   // Fetch available vouchers when branch changes in wizard
@@ -1583,105 +1589,135 @@ export default function CustomerBookings() {
 
           {/* STEP 3: SELECT SERVICES & DATE/TIME SLOT */}
           {wizardStep === 3 && (
-            <div>
-              <h3>Bước 3: Dịch vụ &amp; Giờ hẹn</h3>
-              <p style={{ color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                Vui lòng chọn các dịch vụ cần thực hiện và chọn khung giờ còn trống.
-              </p>
-
-              {/* Vehicle & Pricing Info Banner */}
-              {(() => {
-                const currentVeh = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
-                const currentPlate = currentVeh?.LicensePlate || currentVeh?.licensePlate || '';
-                const currentBrand = currentVeh?.BrandCatalogName || currentVeh?.brandCatalogName || currentVeh?.Brand || currentVeh?.brand || '';
-                const currentType = currentVeh?.VehicleType ?? currentVeh?.vehicleType ?? 2;
-                const currentImg = currentVeh?.PrimaryImageUrl || currentVeh?.primaryImageUrl || '';
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: 'var(--color-surface-alt, rgba(255,255,255,0.04))',
-                      border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
-                      borderRadius: '12px',
-                      padding: '12px 18px',
-                      marginBottom: '22px',
-                      gap: '12px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      {currentImg ? (
-                        <img
-                          src={currentImg}
-                          alt={currentPlate}
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '8px',
-                            objectFit: 'cover',
-                            border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
-                            flexShrink: 0,
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.05)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.6rem',
-                            border: '1px solid var(--color-border-dim, rgba(255,255,255,0.1))',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {currentType === 1 ? '🏍️' : currentType === 3 ? '🚚' : '🚗'}
-                        </div>
-                      )}
-                      <div>
-                        <div style={{ fontWeight: 700, color: 'var(--color-heading)', fontSize: '0.95rem' }}>
-                          Bảng giá áp dụng cho: {getVehicleLabel(currentType)} {currentPlate ? `[${currentPlate}]` : ''}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                          {currentBrand ? `${currentBrand} · ` : ''}Đơn giá và thời lượng dịch vụ đã tự động tối ưu hóa cho loại phương tiện này.
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setWizardStep(2)}
-                      style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                    >
-                      🔄 Đổi xe khác
-                    </button>
-                  </div>
-                );
-              })()}
-
-              {/* Service Search Bar */}
-              <div style={{ marginBottom: '18px' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="🔍 Tìm kiếm nhanh dịch vụ (ví dụ: rửa bọt tuyết, tẩy ố, dưỡng bóng, xông tinh dầu...)"
-                  value={serviceSearchQuery}
-                  onChange={e => {
-                    setServiceSearchQuery(e.target.value);
-                    setAddonPage(1);
-                  }}
-                  style={{ width: '100%', fontSize: '0.9rem', padding: '10px 14px' }}
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  Bước 3: Dịch vụ &amp; Giờ hẹn
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.92rem', margin: 0 }}>
+                  Vui lòng chọn các dịch vụ cần thực hiện và chọn khung giờ còn trống.
+                </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: '28px', alignItems: 'start' }}>
-                {/* Services list (Left) */}
-                <div>
+              {/* Main Layout Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(320px, 1fr)', gap: '24px', alignItems: 'start' }}>
+                {/* Left Column (Services) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Vehicle Info Card */}
+                  {(() => {
+                    const selVehicle = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
+                    const currentPlate = selVehicle ? (selVehicle.LicensePlate || selVehicle.licensePlate) : '';
+                    const currentType = selVehicle ? Number(selVehicle.VehicleType ?? selVehicle.vehicleType ?? 2) : 2;
+                    const currentBrand = selVehicle ? (selVehicle.BrandCatalogName || selVehicle.brandCatalogName || selVehicle.Brand || selVehicle.brand) : '';
+                    const currentImg = selVehicle ? (selVehicle.PrimaryImageUrl || selVehicle.primaryImageUrl) : '';
+
+                    return (
+                      <div
+                        style={{
+                          background: 'rgba(2, 132, 199, 0.06)',
+                          border: '1.5px solid rgba(2, 132, 199, 0.2)',
+                          borderRadius: '16px',
+                          padding: '16px 20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
+                          {currentImg ? (
+                            <img
+                              src={currentImg}
+                              alt={currentPlate}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '10px',
+                                objectFit: 'cover',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                flexShrink: 0,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '10px',
+                                background: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.6rem',
+                                border: '1px solid rgba(2, 132, 199, 0.2)',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                              }}
+                            >
+                              {currentType === 1 ? '🏍️' : currentType === 3 ? '🚚' : '🚗'}
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              Bảng giá áp dụng cho: {getVehicleLabel(currentType)} {currentPlate ? `[${currentPlate}]` : ''}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
+                              {currentBrand ? `${currentBrand} · ` : ''}Đơn giá và thời lượng dịch vụ đã tự động tối ưu hóa cho loại phương tiện này.
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              ✨ Chỉ hiển thị dịch vụ phù hợp với loại phương tiện này
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setWizardStep(2)}
+                          style={{
+                            background: '#ffffff',
+                            color: '#0284c7',
+                            border: '1px solid #0284c7',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            padding: '8px 14px',
+                            fontSize: '0.85rem',
+                            whiteSpace: 'nowrap',
+                            position: 'relative',
+                            zIndex: 2,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          🔄 Đổi xe khác
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Search Bar */}
+                  <div>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="🔍 Tìm kiếm nhanh dịch vụ (ví dụ: rửa bọt tuyết, tẩy ố, dưỡng bóng, xông tinh dầu...)"
+                      value={serviceSearchQuery}
+                      onChange={e => {
+                        setServiceSearchQuery(e.target.value);
+                        setAddonPage(1);
+                      }}
+                      style={{
+                        width: '100%',
+                        fontSize: '0.92rem',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                      }}
+                    />
+                  </div>
+
                   {(() => {
                     const query = serviceSearchQuery.trim().toLowerCase();
                     const allMain = services.filter(s => (s.servicePackageType ?? 1) !== 2);
@@ -1707,13 +1743,9 @@ export default function CustomerBookings() {
 
                     const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
                     const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
-                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
-                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
 
                     const selectMainPackage = (svc: BranchService) => {
                       setSelectedServiceIds(prev => {
-                        // Premium loai tru moi add-on; Standard giu lai add-on dang chon
                         const keptAddOns = (svc.servicePackageType ?? 1) === 3
                           ? []
                           : prev.filter(id => allAddOns.some(a => a.serviceId === id));
@@ -1730,281 +1762,485 @@ export default function CustomerBookings() {
                       );
                     };
 
-                    const currentVehicle = vehicles.find(v => (v.VehicleId || v.vehicleId) === selectedVehicleId);
-
                     return (
                       <>
-                        {currentVehicle && (
-                          <div style={{ 
-                            padding: '10px 14px', 
-                            background: 'var(--color-primary-dim, rgba(2, 132, 199, 0.08))', 
-                            border: '1px solid var(--color-border-dim)', 
-                            borderRadius: '8px', 
-                            marginBottom: '16px',
-                            fontSize: '0.88rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: '8px'
-                          }}>
-                            <span>
-                              🚗 Phương tiện đang chọn: <strong>{currentVehicle.LicensePlate || currentVehicle.licensePlate}</strong> (
-                              {(currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 1 ? '🏍️ Xe máy' :
-                               (currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 2 ? '🚗 Ô tô / Xe hơi' :
-                               (currentVehicle.VehicleType ?? currentVehicle.vehicleType) === 3 ? '🚚 Xe tải' : 'Phương tiện'}
-                              )
-                            </span>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                              ✨ Chỉ hiển thị dịch vụ phù hợp loại xe này
-                            </span>
+                        {/* Main Service Section */}
+                        <section style={{
+                          background: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          border: '1.5px solid #e2e8f0',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                              Gói Dịch Vụ Chính <span style={{ fontWeight: 400, fontSize: '0.9rem', color: '#64748b' }}>({mainPackages.length} gói)</span>
+                            </h2>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Chọn một gói dịch vụ chính</p>
                           </div>
-                        )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px' }}>
-                          <h4 style={{ margin: 0 }}>Gói Dịch Vụ Chính</h4>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>({mainPackages.length} gói)</span>
-                        </div>
-
-                        {mainPackages.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                            {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào phù hợp với loại xe của bạn.'}
-                          </p>
-                        ) : (
-                          <div className="wizard-service-list">
-                            {mainPackages.map(s => {
-                              const isSelected = selectedServiceIds.includes(s.serviceId);
-                              return (
-                                <div
-                                  key={s.serviceId}
-                                  className={`wizard-service-item ${isSelected ? 'selected' : ''}`}
-                                  onClick={() => selectMainPackage(s)}
-                                >
-                                  <div className="wizard-service-checkbox" style={{ borderRadius: '50%' }} />
-                                  <div className="wizard-service-info">
-                                    <h5>
-                                      {s.serviceName}
-                                      {s.vehicleType && (
-                                        <span className="badge" style={{ 
-                                          marginLeft: '6px', 
-                                          fontSize: '0.72rem',
-                                          background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' :
-                                                     s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                          color: s.vehicleType === 1 ? '#2563eb' :
-                                                 s.vehicleType === 2 ? '#059669' : '#d97706',
-                                          border: '1px solid currentColor'
-                                        }}>
-                                          {s.vehicleType === 1 ? '🏍️ Xe máy' : s.vehicleType === 2 ? '🚗 Ô tô' : '🚚 Xe tải'}
-                                        </span>
-                                      )}
-                                      {(s.servicePackageType ?? 1) === 3 && (
-                                        <span className="badge badge-warning" style={{ marginLeft: '6px' }}>
-                                          Trọn gói
-                                        </span>
-                                      )}
-                                    </h5>
-                                    <p>⏱️ Thời gian: {s.durationMinutes} phút</p>
-                                    {s.description && (
-                                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                                        {s.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="wizard-service-price">{formatVND(s.basePrice)}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '8px' }}>
-                          <h4 style={{ margin: 0 }}>Dịch Vụ Bổ Sung (Add-ons)</h4>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>({filteredAddOns.length} dịch vụ)</span>
-                        </div>
-
-                        {isPremiumSelected ? (
-                          <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
-                            Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
-                          </div>
-                        ) : filteredAddOns.length === 0 ? (
-                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                            {query ? 'Không tìm thấy dịch vụ bổ sung phù hợp từ khóa.' : 'Chi nhánh này chưa có dịch vụ bổ sung nào.'}
-                          </p>
-                        ) : (
-                          <>
-                            <div className="wizard-service-list">
-                              {paginatedAddOns.map(s => {
+                          {mainPackages.length === 0 ? (
+                            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                              {query ? 'Không tìm thấy gói chính phù hợp từ khóa.' : 'Chi nhánh này chưa có gói dịch vụ chính nào phù hợp với loại xe của bạn.'}
+                            </p>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+                              {mainPackages.map(s => {
                                 const isSelected = selectedServiceIds.includes(s.serviceId);
                                 return (
                                   <div
                                     key={s.serviceId}
-                                    className={`wizard-service-item ${isSelected ? 'selected' : ''} ${!selectedMain ? 'disabled' : ''}`}
-                                    style={!selectedMain ? { opacity: 0.55 } : undefined}
-                                    onClick={() => selectedMain && toggleAddOn(s)}
+                                    onClick={() => selectMainPackage(s)}
+                                    style={{
+                                      position: 'relative',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      padding: '16px',
+                                      borderRadius: '14px',
+                                      cursor: 'pointer',
+                                      border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                      background: isSelected ? '#eff6ff' : '#ffffff',
+                                      boxShadow: isSelected ? '0 4px 12px rgba(2, 132, 199, 0.12)' : '0 1px 3px rgba(0,0,0,0.03)',
+                                      transition: 'all 0.2s ease',
+                                    }}
                                   >
-                                    <div className="wizard-service-checkbox" />
-                                    <div className="wizard-service-info">
-                                      <h5>{s.serviceName}</h5>
-                                      <p>⏱️ +{s.durationMinutes} phút</p>
+                                    {/* Radio indicator */}
+                                    <div style={{ position: 'absolute', right: '14px', top: '14px', color: isSelected ? '#0284c7' : '#cbd5e1' }}>
+                                      <span style={{ fontSize: '1.2rem' }}>{isSelected ? '🔘' : '⚪'}</span>
                                     </div>
-                                    <div className="wizard-service-price">+{formatVND(s.basePrice)}</div>
+
+                                    <div style={{ paddingRight: '28px', marginBottom: '8px' }}>
+                                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{s.serviceName}</h4>
+                                    </div>
+
+                                    {/* Badges */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                      {s.vehicleType && (
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '3px 8px',
+                                          borderRadius: '20px',
+                                          background: '#f1f5f9',
+                                          color: '#334155',
+                                          border: '1px solid #cbd5e1'
+                                        }}>
+                                          {s.vehicleType === 1 ? '🏍️ XE MÁY' : s.vehicleType === 2 ? '🚗 Ô TÔ' : '🚚 XE TẢI'}
+                                        </span>
+                                      )}
+                                      <span style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        padding: '3px 8px',
+                                        borderRadius: '20px',
+                                        background: '#f1f5f9',
+                                        color: '#475569',
+                                        border: '1px solid #e2e8f0'
+                                      }}>
+                                        ⏱️ {s.durationMinutes} phút
+                                      </span>
+                                      {(s.servicePackageType ?? 1) === 3 && (
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '3px 8px',
+                                          borderRadius: '20px',
+                                          background: 'rgba(2, 132, 199, 0.08)',
+                                          color: '#0284c7',
+                                          border: '1px solid rgba(2, 132, 199, 0.2)'
+                                        }}>
+                                          Trọn gói
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 14px', flex: 1 }}>
+                                      {s.description || 'Gói dịch vụ tiêu chuẩn chuyên nghiệp.'}
+                                    </p>
+
+                                    <div style={{ marginTop: 'auto', textAlign: 'right', fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>
+                                      {formatVND(s.basePrice)}
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
+                          )}
+                        </section>
 
-                            {/* Add-ons Pagination */}
-                            {filteredAddOns.length > ADDON_PAGE_SIZE && (
-                              <div style={{ marginTop: '16px' }}>
-                                <Pagination
-                                  currentPage={addonPage}
-                                  totalPages={totalAddonPages}
-                                  totalCount={filteredAddOns.length}
-                                  itemName="dịch vụ bổ sung"
-                                  onPageChange={setAddonPage}
-                                />
+                        {/* Add-on Service Section */}
+                        <section style={{
+                          background: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          border: '1.5px solid #e2e8f0',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                              Dịch Vụ Bổ Sung (Add-ons) <span style={{ fontWeight: 400, fontSize: '0.9rem', color: '#64748b' }}>({filteredAddOns.length} dịch vụ)</span>
+                            </h2>
+                          </div>
+
+                          {isPremiumSelected ? (
+                            <div className="confirm-modal-warning" style={{ fontSize: '0.85rem' }}>
+                              Gói trọn gói đã bao gồm toàn bộ dịch vụ bổ sung, bạn không cần chọn thêm.
+                            </div>
+                          ) : filteredAddOns.length === 0 ? (
+                            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                              {query ? 'Không tìm thấy dịch vụ bổ sung phù hợp từ khóa.' : 'Chi nhánh này chưa có dịch vụ bổ sung nào.'}
+                            </p>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {paginatedAddOns.map(s => {
+                                  const isSelected = selectedServiceIds.includes(s.serviceId);
+                                  return (
+                                    <div
+                                      key={s.serviceId}
+                                      onClick={() => selectedMain && toggleAddOn(s)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        borderRadius: '12px',
+                                        border: isSelected ? '1.5px solid #0284c7' : '1.5px solid #e2e8f0',
+                                        background: isSelected ? '#eff6ff' : '#ffffff',
+                                        cursor: selectedMain ? 'pointer' : 'not-allowed',
+                                        opacity: selectedMain ? 1 : 0.6,
+                                        transition: 'all 0.18s ease',
+                                      }}
+                                    >
+                                      {/* Checkbox */}
+                                      <div style={{
+                                        width: '22px',
+                                        height: '22px',
+                                        borderRadius: '6px',
+                                        border: isSelected ? '2px solid #0284c7' : '2px solid #cbd5e1',
+                                        background: isSelected ? '#0284c7' : '#ffffff',
+                                        color: '#ffffff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: '14px',
+                                        flexShrink: 0,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 800
+                                      }}>
+                                        {isSelected && '✓'}
+                                      </div>
+
+                                      <div style={{ flex: 1 }}>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>{s.serviceName}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
+                                          <span>⏱️ +{s.durationMinutes} phút</span>
+                                        </div>
+                                      </div>
+
+                                      <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0284c7' }}>
+                                        +{formatVND(s.basePrice)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            )}
-                          </>
-                        )}
 
-                        {!selectedMain && allAddOns.length > 0 && !isPremiumSelected && (
-                          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
-                            💡 Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
-                          </p>
-                        )}
+                              {/* Add-ons Pagination */}
+                              {filteredAddOns.length > ADDON_PAGE_SIZE && (
+                                <div style={{ marginTop: '16px' }}>
+                                  <Pagination
+                                    currentPage={addonPage}
+                                    totalPages={totalAddonPages}
+                                    totalCount={filteredAddOns.length}
+                                    itemName="dịch vụ bổ sung"
+                                    onPageChange={setAddonPage}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          )}
 
-                        {/* Thanh tổng kết cập nhật theo thời gian thực */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: '12px',
-                            marginTop: '20px',
-                            padding: '12px 16px',
-                            borderRadius: '10px',
-                            border: '1px solid var(--color-border-dim)',
-                            background: 'var(--color-surface-alt, rgba(255,255,255,0.03))',
-                          }}
-                        >
-                          <span style={{ color: 'var(--color-text-muted)' }}>
-                            ⏱️ Ước tính: <strong>{estimatedMinutes}</strong> phút
-                          </span>
-                          <span style={{ color: 'var(--color-heading)' }}>
-                            Tạm tính: <strong>{formatVND(estimatedPrice)}</strong>
-                          </span>
-                        </div>
+                          {!selectedMain && allAddOns.length > 0 && !isPremiumSelected && (
+                            <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '10px' }}>
+                              💡 Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
+                            </p>
+                          )}
+                        </section>
                       </>
                     );
                   })()}
                 </div>
 
-                {/* Date & Time Slot selection (Right) */}
-                <div style={{
-                  background: 'var(--color-surface, #ffffff)',
-                  border: '1.5px solid var(--color-border-dim, #e2e8f0)',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                  position: 'sticky',
-                  top: '20px'
-                }}>
-                  <h4
-                    style={{
-                      borderBottom: '1px solid var(--color-border-dim, #e2e8f0)',
-                      paddingBottom: '10px',
-                      marginBottom: '14px',
-                      fontSize: '1.05rem',
-                      fontWeight: 700,
+                {/* Right Column (Appointment Panel - Sticky) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '80px', zIndex: 10 }}>
+                  {/* Card 1: Khung giờ hẹn */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    border: '1.5px solid #e2e8f0',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      background: '#f8fafc',
+                      padding: '14px 18px',
+                      borderBottom: '1px solid #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    📅 Khung giờ hẹn
-                  </h4>
-                  <div className="form-group" style={{ marginBottom: '18px' }}>
-                    <label className="form-label" style={{ fontWeight: 600, marginBottom: '6px' }}>Chọn ngày hẹn</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={selectedDate}
-                      onChange={e => setSelectedDate(e.target.value)}
-                      min={getLocalDateString()}
-                      style={{ width: '100%', fontSize: '0.95rem' }}
-                    />
-                  </div>
-
-                  <label className="form-label" style={{ fontWeight: 600, marginBottom: '8px', display: 'block' }}>Khung giờ còn trống</label>
-                  {slots.length === 0 ? (
-                    <div
-                      style={{
-                        padding: '16px',
-                        background: 'rgba(241, 245, 249, 0.6)',
-                        borderRadius: '10px',
-                        textAlign: 'center',
-                        fontSize: '0.88rem',
-                        color: 'var(--color-text-muted)',
-                        marginTop: '8px',
-                      }}
-                    >
-                      Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                      gap: '8px',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      color: '#0f172a'
+                    }}>
+                      📅 Khung giờ hẹn
                     </div>
-                  ) : (
-                    <div className="slots-time-grid">
-                      {slots.map(slot => {
-                        const isSelected = selectedSlotId === slot.slotInventoryId;
-                        const isFull = slot.availableCount <= 0;
-                        const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
-                        const isDisable = isFull || isPast;
+
+                    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                      {/* Date Picker */}
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                          CHỌN NGÀY HẸN
+                        </label>
+                        <input
+                          type="date"
+                          className="form-input"
+                          value={selectedDate}
+                          onChange={e => setSelectedDate(e.target.value)}
+                          min={getLocalDateString()}
+                          style={{ width: '100%', fontSize: '0.95rem', borderRadius: '10px', padding: '10px 14px' }}
+                        />
+                      </div>
+
+                      {/* Time Slots */}
+                      {(() => {
+                        const totalSlotPages = Math.ceil(slots.length / SLOT_PAGE_SIZE) || 1;
+                        const pagedSlots = slots.slice((slotPage - 1) * SLOT_PAGE_SIZE, slotPage * SLOT_PAGE_SIZE);
+
                         return (
-                          <div
-                            key={slot.slotInventoryId}
-                            className={`slot-chip-item ${isSelected ? 'selected' : ''} ${isDisable ? 'disabled' : ''}`}
-                            onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
-                          >
-                            <span className="slot-chip-time">
-                              {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
-                            </span>
-                            <span className="slot-chip-meta">
-                              {isPast
-                                ? 'Đã qua'
-                                : isFull
-                                  ? 'Đã đầy'
-                                  : `Còn ${slot.availableCount} chỗ`}
-                            </span>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', margin: 0 }}>
+                                KHUNG GIỜ CÒN TRỐNG
+                              </label>
+                              {slots.length > 0 && (
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                  {slots.length} khung giờ
+                                </span>
+                              )}
+                            </div>
+                            {slots.length === 0 ? (
+                              <div
+                                style={{
+                                  padding: '16px',
+                                  background: '#f8fafc',
+                                  borderRadius: '10px',
+                                  textAlign: 'center',
+                                  fontSize: '0.88rem',
+                                  color: '#64748b',
+                                  border: '1px dashed #cbd5e1'
+                                }}
+                              >
+                                Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác.
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                  {pagedSlots.map(slot => {
+                                    const isSelected = selectedSlotId === slot.slotInventoryId;
+                                    const isFull = slot.availableCount <= 0;
+                                    const isPast = isSlotInPast(slot.slotDate, slot.slotStartTime);
+                                    const isDisable = isFull || isPast;
+                                    return (
+                                      <button
+                                        key={slot.slotInventoryId}
+                                        type="button"
+                                        disabled={isDisable}
+                                        onClick={() => !isDisable && setSelectedSlotId(slot.slotInventoryId)}
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          padding: '10px 8px',
+                                          borderRadius: '10px',
+                                          cursor: isDisable ? 'not-allowed' : 'pointer',
+                                          border: isSelected ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
+                                          background: isSelected ? '#eff6ff' : isDisable ? '#f8fafc' : '#ffffff',
+                                          color: isSelected ? '#0284c7' : isDisable ? '#94a3b8' : '#0f172a',
+                                          opacity: isDisable ? 0.5 : 1,
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                      >
+                                        <span style={{ fontSize: '0.95rem', fontWeight: 700, textDecoration: isDisable ? 'line-through' : 'none' }}>
+                                          {slot.slotStartTime ? slot.slotStartTime.substring(0, 5) : '00:00'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', marginTop: '2px', color: isDisable ? '#ef4444' : isSelected ? '#0284c7' : '#64748b', fontWeight: 500 }}>
+                                          {isPast
+                                            ? 'Đã qua'
+                                            : isFull
+                                              ? 'Đã đầy'
+                                              : `Còn ${slot.availableCount} chỗ`}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Slot Pagination */}
+                                {slots.length > SLOT_PAGE_SIZE && (
+                                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage <= 1}
+                                      onClick={() => setSlotPage(p => Math.max(1, p - 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage <= 1 ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage <= 1 ? '#94a3b8' : '#334155',
+                                        cursor: slotPage <= 1 ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      ← Trước
+                                    </button>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                                      Trang {slotPage} / {totalSlotPages}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={slotPage >= totalSlotPages}
+                                      onClick={() => setSlotPage(p => Math.min(totalSlotPages, p + 1))}
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        background: slotPage >= totalSlotPages ? '#f1f5f9' : '#ffffff',
+                                        color: slotPage >= totalSlotPages ? '#94a3b8' : '#334155',
+                                        cursor: slotPage >= totalSlotPages ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      Sau →
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         );
-                      })}
+                      })()}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: '30px',
-                  borderTop: '1px solid var(--color-border-dim)',
-                  paddingTop: '20px',
-                }}
-              >
-                <AnimatedButton type="button" variant="ghost" onClick={() => setWizardStep(2)} showArrow={false}>
-                  ← Quay lại
-                </AnimatedButton>
-                <AnimatedButton
-                  type="button"
-                  variant="primary"
-                  disabled={
-                    !services.some(
-                      s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
-                    ) || !selectedSlotId
-                  }
-                  onClick={() => setWizardStep(4)}
-                >
-                  Xem báo giá &amp; Xác nhận →
-                </AnimatedButton>
+                  {/* Card 2: Tóm tắt đặt lịch */}
+                  {(() => {
+                    const allMain = services.filter(s => (s.servicePackageType ?? 1) !== 2);
+                    const allAddOns = services.filter(s => (s.servicePackageType ?? 1) === 2);
+                    const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
+                    const selectedAddOns = allAddOns.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
+                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+
+                    return (
+                      <div style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        border: '1.5px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        padding: '18px'
+                      }}>
+                        <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', margin: '0 0 14px' }}>
+                          TÓM TẮT ĐẶT LỊCH
+                        </h3>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Dịch vụ chính:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {selectedMain ? `${selectedMain.serviceName} (${formatVND(selectedMain.basePrice)})` : 'Chưa chọn'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Dịch vụ bổ sung:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {selectedAddOns.length > 0 ? `${selectedAddOns.length} dịch vụ` : '0 dịch vụ'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b' }}>Thời gian dự kiến:</span>
+                            <span style={{ fontWeight: 600, color: '#0f172a', textAlign: 'right' }}>
+                              {estimatedMinutes > 0 ? `${estimatedMinutes} phút` : '0 phút'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>Tạm tính:</span>
+                          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7' }}>
+                            {formatVND(estimatedPrice)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Actions Buttons */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => setWizardStep(2)}
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        background: '#ffffff'
+                      }}
+                    >
+                      ← Quay lại
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={
+                        !services.some(
+                          s => selectedServiceIds.includes(s.serviceId) && (s.servicePackageType ?? 1) !== 2
+                        ) || !selectedSlotId
+                      }
+                      onClick={() => setWizardStep(4)}
+                      style={{
+                        flex: 2,
+                        padding: '12px',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                      }}
+                    >
+                      Tiếp tục →
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

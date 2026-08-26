@@ -65,7 +65,7 @@ export default function CustomerLoyalty() {
   const nextMinPoints = nextTier?.minPoints ?? nextTier?.MinPoints ?? 0
   const pointsRange = nextMinPoints - minPoints
   const progressPercent = pointsRange > 0 
-    ? Math.min(100, Math.max(0, ((currentPoints - minPoints) / pointsRange) * 100))
+    ? Math.min(100, Math.max(0, ((lifetimePoints - minPoints) / pointsRange) * 100))
     : 100
 
   // Determine card style based on tier name

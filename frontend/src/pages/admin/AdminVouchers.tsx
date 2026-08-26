@@ -305,7 +305,19 @@ export default function AdminVouchers() {
                 <div className="branch-title-area">
                   <h3>{v.voucherCode}</h3>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {!v.branchId && <span className="badge badge-primary branch-code-badge" style={{background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)'}}>Toàn hệ thống</span>}
+                    {v.voucherType === 3 ? (
+                      <span className="badge badge-primary branch-code-badge" style={{background: 'rgba(234,179,8,0.15)', color: '#d97706', border: '1px solid rgba(234,179,8,0.3)'}}>
+                        ⭐ Đổi điểm theo hạng
+                      </span>
+                    ) : !v.branchId ? (
+                      <span className="badge badge-primary branch-code-badge" style={{background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)'}}>
+                        🌐 Toàn hệ thống
+                      </span>
+                    ) : (
+                      <span className="badge branch-code-badge" style={{background: 'rgba(59,130,246,0.1)', color: '#2563eb'}}>
+                        🏢 {v.branchName || 'Chi nhánh'}
+                      </span>
+                    )}
                     <span className={`badge branch-code-badge ${v.approvalStatus === 1 ? 'badge-warning' : v.approvalStatus === 2 ? 'badge-success' : 'badge-danger'}`}>
                       {APPROVAL_LABELS[v.approvalStatus] ?? '—'}
                     </span>

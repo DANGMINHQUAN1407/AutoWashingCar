@@ -780,70 +780,194 @@ export default function CustomerVehicles() {
             );
           })()}
 
-          <div className="vehicle-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {vehicles.length === 0 ? (
-              <div className="vehicle-empty card">
-                Bạn chưa đăng ký phương tiện nào. Nhấn "+ Thêm xe mới" để bắt đầu.
-              </div>
-            ) : filteredVehicles.length === 0 ? (
-              <div className="vehicle-empty card" style={{ textAlign: 'center', padding: '30px' }}>
-                Không tìm thấy phương tiện nào phù hợp với bộ lọc.
-              </div>
-            ) : paginatedVehicles.map((vehicle, index) => {
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
+            {paginatedVehicles.map((vehicle, index) => {
               const plate = vehicle.LicensePlate || vehicle.licensePlate || 'N/A'
               const brand = vehicle.BrandCatalogName || vehicle.brandCatalogName || vehicle.Brand || vehicle.brand || 'Khác'
               const vehicleType = vehicle.VehicleType ?? vehicle.vehicleType ?? 2
+              const modelStr = vehicle.Model || vehicle.model ? `${vehicle.Model || vehicle.model}` : ''
+              const yearStr = vehicle.ManufactureYear || vehicle.manufactureYear ? ` (${vehicle.ManufactureYear || vehicle.manufactureYear})` : ''
+              const engineStr = vehicle.EngineCatalogName ?? vehicle.engineCatalogName ?? engineTypeLabel(vehicle.EngineType ?? vehicle.engineType ?? undefined)
+              const bodyStr = vehicle.BodyStyleCatalogName ?? vehicle.bodyStyleCatalogName ?? bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle ?? undefined)
+              const conditionStr = vehicle.VehicleCondition || vehicle.vehicleCondition || 'Tiêu chuẩn'
+
               return (
-                <div key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`} className="vehicle-card-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-border-dim)', borderRadius: 'var(--radius-md)' }}>
-                  <div className="vehicle-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                      {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
-                        <img
-                          src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || undefined}
-                          alt={plate}
-                          style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid var(--color-border-dim)' }}
-                        />
-                      ) : (
-                        <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', border: '1px solid var(--color-border-dim)' }}>
-                          {vehicleType === 1 ? '🏍️' : vehicleType === 3 ? '🚚' : '🚗'}
-                        </div>
-                      )}
-                      <div>
-                        <div className="vehicle-card-title" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{plate}</div>
-                        <div className="vehicle-card-meta" style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                          {brand} {vehicle.Model || vehicle.model ? `- ${vehicle.Model || vehicle.model}` : ''}
-                          {vehicle.ManufactureYear || vehicle.manufactureYear ? ` (${vehicle.ManufactureYear || vehicle.manufactureYear})` : ''}
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
-                          <span>⚙️ {vehicle.EngineCatalogName ?? vehicle.engineCatalogName ?? engineTypeLabel(vehicle.EngineType ?? vehicle.engineType ?? undefined)}</span>
-                          <span>🚙 {vehicle.BodyStyleCatalogName ?? vehicle.bodyStyleCatalogName ?? bodyStyleLabel(vehicle.BodyStyle ?? vehicle.bodyStyle ?? undefined)}</span>
-                          <span>Phân hạng: <strong style={{ color: 'var(--color-primary)' }}>{vehicle.VehicleCondition || vehicle.vehicleCondition || 'Tiêu chuẩn'}</strong></span>
-                        </div>
+                <div
+                  key={vehicle.VehicleId || vehicle.vehicleId || `${plate}-${index}`}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '20px',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {/* Top Right Action Buttons */}
+                  <div style={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '6px', zIndex: 2 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleVehicleEditStart(vehicle)}
+                      disabled={vehicleLoading}
+                      title="Chỉnh sửa"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: '#f1f5f9',
+                        border: '1px solid #e2e8f0',
+                        color: '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVehicleToDelete(vehicle)}
+                      disabled={vehicleLoading}
+                      title="Xóa xe"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: '#f1f5f9',
+                        border: '1px solid #e2e8f0',
+                        color: '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+
+                  {/* Header: Icon & Plate */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px', paddingRight: '70px' }}>
+                    {vehicle.PrimaryImageUrl || vehicle.primaryImageUrl ? (
+                      <img
+                        src={vehicle.PrimaryImageUrl || vehicle.primaryImageUrl || undefined}
+                        alt={plate}
+                        style={{ width: '48px', height: '48px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '12px',
+                          background: 'rgba(2, 132, 199, 0.08)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.5rem',
+                          flexShrink: 0,
+                          border: '1px solid rgba(2, 132, 199, 0.15)'
+                        }}
+                      >
+                        {vehicleType === 1 ? '🏍️' : vehicleType === 3 ? '🚚' : '🚗'}
                       </div>
+                    )}
+                    <div>
+                      <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{plate}</h4>
+                      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '2px 0 0' }}>
+                        {brand} {modelStr} {yearStr}
+                      </p>
                     </div>
-                    <div className="vehicle-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className={`badge ${getVehicleTypeClass(vehicleType)}`}>{vehicleTypeLabel(vehicleType)}</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm vehicle-edit-btn"
-                        onClick={() => handleVehicleEditStart(vehicle)}
-                        disabled={vehicleLoading}
-                      >
-                        Chỉnh sửa
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm vehicle-remove-btn"
-                        onClick={() => setVehicleToDelete(vehicle)}
-                        disabled={vehicleLoading}
-                      >
-                        Xóa
-                      </button>
+                  </div>
+
+                  {/* Specs Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px', background: '#f8fafc', padding: '12px', borderRadius: '10px', fontSize: '0.82rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Nhiên liệu</span>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{engineStr}</span>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Kiểu dáng</span>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{bodyStr}</span>
+                    </div>
+                  </div>
+
+                  {/* Badges Footer */}
+                  <div style={{ marginTop: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className={`badge ${getVehicleTypeClass(vehicleType)}`} style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px' }}>
+                      {vehicleTypeLabel(vehicleType)}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.1)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      {conditionStr}
+                    </span>
                   </div>
                 </div>
               )
             })}
+
+            {/* Empty / Add New Card Action */}
+            <div
+              onClick={() => {
+                setEditingVehicleId(null)
+                setVehicleForm({
+                  licensePlate: '',
+                  vehicleType: 2 as VehicleType,
+                  brand: '',
+                  brandCatalogId: '',
+                  model: '',
+                  manufactureYear: '',
+                  engineType: '' as '' | number,
+                  bodyStyle: '' as '' | number,
+                  engineCatalogId: '',
+                  bodyStyleCatalogId: '',
+                })
+                setShowVehicleForm(true)
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '30px 20px',
+                borderRadius: '16px',
+                border: '2px dashed #cbd5e1',
+                background: '#f8fafc',
+                cursor: 'pointer',
+                minHeight: '220px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.4rem',
+                  color: '#0284c7',
+                  marginBottom: '12px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                }}
+              >
+                +
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0284c7' }}>
+                + THÊM XE MỚI
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0', textAlign: 'center' }}>
+                Đăng ký thêm xe máy hoặc ô tô vào tài khoản
+              </p>
+            </div>
           </div>
 
           <Pagination
