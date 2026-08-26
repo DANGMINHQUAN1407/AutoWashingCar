@@ -47,7 +47,6 @@ export interface Booking {
 }
 
 export interface BookingQuoteRequest {
-  VehicleId?: string;
   SlotInventoryId: string;
   VehicleId?: string;
   vehicleId?: string;

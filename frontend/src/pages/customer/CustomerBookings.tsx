@@ -625,7 +625,6 @@ export default function CustomerBookings() {
       setErrorMsg(null);
       try {
         const payload: any = {
-          VehicleId: selectedVehicleId,
           SlotInventoryId: selectedSlotId,
           VehicleId: selectedVehicleId || undefined,
           Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
@@ -967,7 +966,6 @@ export default function CustomerBookings() {
     setVoucherError(null);
     try {
       const testQuote = await api.getBookingQuote({
-        VehicleId: selectedVehicleId,
         SlotInventoryId: selectedSlotId,
         VehicleId: selectedVehicleId || undefined,
         Services: selectedServiceIds.map(id => ({ ServiceCatalogItemId: id, Quantity: 1 })),
@@ -1795,15 +1793,6 @@ export default function CustomerBookings() {
 
                     const selectedMain = allMain.find(s => selectedServiceIds.includes(s.serviceId)) || null;
                     const isPremiumSelected = (selectedMain?.servicePackageType ?? 0) === 3;
-                    const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
-                    const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-                    const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
-                    const quotedSubtotal = quote?.subtotal ?? quote?.Subtotal;
-                    const estimatedTotal = quotedSubtotal ?? estimatedPrice;
-                    const surchargeBreakdown = getVehicleSurchargeBreakdown(
-                      quote,
-                      quote?.vehicleCondition ?? quote?.VehicleCondition
-                    );
 
                     const selectMainPackage = (svc: BranchService) => {
                       setSelectedServiceIds(prev => {
@@ -2020,46 +2009,6 @@ export default function CustomerBookings() {
                               )}
                             </>
                           )}
-
-                        {/* Thanh tổng kết cập nhật theo thời gian thực */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: '12px',
-                            marginTop: '20px',
-                            padding: '12px 16px',
-                            borderRadius: '10px',
-                            border: '1px solid var(--color-border-dim)',
-                            background: 'var(--color-surface-alt, rgba(255,255,255,0.03))',
-                          }}
-                        >
-                          <span style={{ color: 'var(--color-text-muted)' }}>
-                            ⏱️ Ước tính: <strong>{estimatedMinutes}</strong> phút
-                          </span>
-                          <span style={{ color: 'var(--color-heading)' }}>
-                            Tạm tính: <strong>{quoteLoading && selectedSlotId ? 'Đang tính...' : formatVND(estimatedTotal)}</strong>
-                          </span>
-                        </div>
-                        {surchargeBreakdown.length > 0 && (
-                          <div
-                            style={{
-                              marginTop: '8px',
-                              padding: '8px 12px',
-                              borderRadius: '8px',
-                              border: '1px dashed var(--color-border-dim)',
-                              color: 'var(--color-text-muted)',
-                              fontSize: '0.84rem',
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {surchargeBreakdown.map(item => (
-                              <div key={item.label}>
-                                Ghi chú: Phụ thu {item.label.toLowerCase()} ({formatVND(item.amount)})
-                              </div>
-                            ))}
-                          </div>
-                        )}
                           {!selectedMain && allAddOns.length > 0 && !isPremiumSelected && (
                             <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '10px' }}>
                               💡 Vui lòng chọn một gói dịch vụ chính trước khi thêm dịch vụ bổ sung.
@@ -2247,6 +2196,12 @@ export default function CustomerBookings() {
                     const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
                     const estimatedMinutes = selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
                     const estimatedPrice = selectedServices.reduce((sum, s) => sum + (s.basePrice || 0), 0);
+                    const quotedSubtotal = quote?.subtotal ?? quote?.Subtotal;
+                    const estimatedTotal = quotedSubtotal ?? estimatedPrice;
+                    const surchargeBreakdown = getVehicleSurchargeBreakdown(
+                      quote,
+                      quote?.vehicleCondition ?? quote?.VehicleCondition
+                    );
 
                     return (
                       <div style={{
@@ -2283,11 +2238,36 @@ export default function CustomerBookings() {
                           </div>
                         </div>
 
-                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>Tạm tính:</span>
-                          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7' }}>
-                            {formatVND(estimatedPrice)}
-                          </span>
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                            <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>Tạm tính:</span>
+                            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', textAlign: 'right' }}>
+                              {quoteLoading && selectedSlotId ? 'Đang tính...' : formatVND(estimatedTotal)}
+                            </span>
+                          </div>
+
+                          {surchargeBreakdown.length > 0 && (
+                            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {surchargeBreakdown.map(item => (
+                                <div
+                                  key={item.label}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    gap: '12px',
+                                    color: '#64748b',
+                                    fontSize: '0.82rem',
+                                    lineHeight: 1.35,
+                                  }}
+                                >
+                                  <span>Ghi chú: Phụ thu {item.label.toLowerCase()}</span>
+                                  <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                                    +{formatVND(item.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
