@@ -47,8 +47,10 @@ function MapEventsHandler({
   })
 
   useEffect(() => {
-    map.setView(center, map.getZoom())
-  }, [center, map])
+    if (center && !isNaN(center[0]) && !isNaN(center[1]) && (center[0] !== 0 || center[1] !== 0)) {
+      map.flyTo(center, Math.max(map.getZoom(), 15), { animate: true, duration: 0.8 })
+    }
+  }, [center[0], center[1], map])
 
   return null
 }
@@ -77,6 +79,99 @@ const provincesList = subVN.getProvinces().map((p: any) => ({
   rawName: p.name,
   name: cleanProvinceName(p.name)
 })).sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'))
+
+function normalizeVietnamese(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim()
+}
+
+const CITY_ALIASES: Record<string, string[]> = {
+  "Đồng Nai": ["dong nai", "bien hoa", "long khanh", "nhon trach", "long thanh", "trang bom", "vinh cuu", "dinh quan", "tan phu", "thong nhat", "cam my", "tan van"],
+  "Bình Dương": ["binh duong", "thu dau mot", "di an", "thuan an", "ben cat", "tan uyen", "bac tan uyen", "bau bang", "dau tieng", "phu giao"],
+  "Hồ Chí Minh": ["ho chi minh", "tp hcm", "tphcm", "tp.hcm", "tp. ho chi minh", "sai gon", "saigon", "quan 1", "quan 2", "quan 3", "quan 4", "quan 5", "quan 6", "quan 7", "quan 8", "quan 9", "quan 10", "quan 11", "quan 12", "binh thanh", "thu duc", "go vap", "phu nhuan", "tan binh", "tan phu", "binh tan", "nha be", "hoc mon", "cu chi", "binh chanh", "can gio"],
+  "Hà Nội": ["ha noi", "tp ha noi", "tp. ha noi", "hn", "hoan kiem", "ba dinh", "dong da", "hai ba trung", "cau giay", "tay ho", "thanh xuan", "hoang mai", "long bien", "nam tu liem", "bac tu liem", "ha dong", "son tay"],
+  "Đà Nẵng": ["da nang", "tp da nang", "tp. da nang", "hai chau", "thanh khe", "son tra", "ngu hanh son", "lien chieu", "cam le", "hoa vang"],
+  "Hải Phòng": ["hai phong", "tp hai phong", "hong bang", "ngo quyen", "le chan", "hai an", "kien an", "do son", "duong kinh"],
+  "Cần Thơ": ["can tho", "tp can tho", "ninh kieu", "binh thuy", "cai rang", "o mon", "thot not"],
+  "Bà Rịa - Vũng Tàu": ["ba ria", "vung tau", "ba ria - vung tau", "ba ria vung tau"],
+  "Thừa Thiên Huế": ["thua thien hue", "hue", "tp hue"],
+  "Lâm Đồng": ["lam dong", "da lat", "bao loc", "duc trong", "di linh"],
+  "Khánh Hòa": ["khanh hoa", "nha trang", "cam ranh", "ninh hoa"],
+}
+
+function findMatchingProvince(rawText: string): string | null {
+  if (!rawText) return null
+  const normRaw = normalizeVietnamese(rawText)
+
+  // Check direct match with provinces
+  for (const p of provincesList) {
+    const normP = normalizeVietnamese(p.name)
+    if (normRaw.includes(normP) || normP.includes(normRaw)) {
+      return p.name
+    }
+  }
+
+  // Check matching aliases
+  for (const [cityName, aliases] of Object.entries(CITY_ALIASES)) {
+    if (aliases.some(a => normRaw.includes(normalizeVietnamese(a)))) {
+      const match = provincesList.find((p: any) => p.name === cityName || normalizeVietnamese(p.name) === normalizeVietnamese(cityName))
+      if (match) return match.name
+    }
+  }
+
+  return null
+}
+
+function isAddressMatchingCity(address: string, city: string): boolean {
+  if (!address || !city) return true
+  const normAddress = normalizeVietnamese(address)
+  const normCity = normalizeVietnamese(city)
+
+  // 1. Direct match with city name
+  if (normAddress.includes(normCity)) {
+    return true
+  }
+
+  // 2. Check aliases of the selected city
+  const selectedAliases = CITY_ALIASES[city]?.map(normalizeVietnamese) || []
+  const matchesSelectedAlias = selectedAliases.some(alias => normAddress.includes(alias))
+  if (matchesSelectedAlias) {
+    return true
+  }
+
+  // 3. Check if address explicitly conflicts with another city's main name or exclusive aliases
+  for (const [otherCity, aliases] of Object.entries(CITY_ALIASES)) {
+    if (otherCity === city) continue
+    const normOtherCity = normalizeVietnamese(otherCity)
+    if (normAddress.includes(normOtherCity)) {
+      return false
+    }
+    const otherNormAliases = aliases.map(normalizeVietnamese).filter(a => a.length >= 4)
+    for (const a of otherNormAliases) {
+      if (normAddress.includes(a)) {
+        return false
+      }
+    }
+  }
+
+  // 4. Check other standard provinces from subVN
+  const otherProvinces = provincesList
+    .map((p: any) => ({ name: p.name, norm: normalizeVietnamese(p.name) }))
+    .filter((p: { name: string; norm: string }) => p.norm !== normCity && p.norm.length > 3)
+
+  for (const other of otherProvinces) {
+    if (normAddress.includes(other.norm)) {
+      return false
+    }
+  }
+
+  return true
+}
 
 export default function AdminBranches() {
   // Filter States
@@ -150,6 +245,36 @@ export default function AdminBranches() {
     }
   }, [searchTimer])
 
+  const triggerAutoGeocodeWithCity = async (addressText: string, cityText: string) => {
+    const val = addressText.trim()
+    if (val.length < 3) return
+
+    try {
+      const query = cityText ? `${val}, ${cityText}, Vietnam` : `${val}, Vietnam`
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=vn&accept-language=vi`
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'AutoWashingCar-AdminPanel-App'
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          const first = data[0]
+          if (first.lat && first.lon) {
+            setBranchForm(prev => ({
+              ...prev,
+              latitude: String(parseFloat(first.lat).toFixed(6)),
+              longitude: String(parseFloat(first.lon).toFixed(6))
+            }))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-geocoding:', err)
+    }
+  }
+
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setBranchForm(prev => ({ ...prev, address: val }))
@@ -169,8 +294,8 @@ export default function AdminBranches() {
 
     const timer = setTimeout(async () => {
       try {
-        const query = branchForm.city ? `${val.trim()}, ${branchForm.city}` : val.trim()
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=vn&accept-language=vi`
+        const query = branchForm.city ? `${val.trim()}, ${branchForm.city}, Vietnam` : `${val.trim()}, Vietnam`
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=vn&accept-language=vi`
         
         const res = await fetch(url, {
           headers: {
@@ -179,7 +304,25 @@ export default function AdminBranches() {
         })
         if (res.ok) {
           const data = await res.json()
-          setAddressSuggestions(Array.isArray(data) ? data : [])
+          if (Array.isArray(data) && data.length > 0) {
+            setAddressSuggestions(data)
+            // Auto update coordinates and city to top match immediately
+            const topMatch = data[0]
+            if (topMatch.lat && topMatch.lon) {
+              const addrObj = topMatch.address || {}
+              const rawProvince = addrObj.province || addrObj.state || addrObj.city || addrObj.region || ''
+              const matchedCity = findMatchingProvince(rawProvince) || findMatchingProvince(topMatch.display_name || '')
+
+              setBranchForm(prev => ({
+                ...prev,
+                city: matchedCity || prev.city,
+                latitude: String(parseFloat(topMatch.lat).toFixed(6)),
+                longitude: String(parseFloat(topMatch.lon).toFixed(6))
+              }))
+            }
+          } else {
+            setAddressSuggestions([])
+          }
         } else {
           setAddressSuggestions([])
         }
@@ -201,11 +344,20 @@ export default function AdminBranches() {
       .replace(/,\s*Việt Nam$/i, '')
       .replace(/,\s*Vietnam$/i, '')
 
+    const newLat = s.lat ? String(parseFloat(s.lat).toFixed(6)) : ''
+    const newLng = s.lon ? String(parseFloat(s.lon).toFixed(6)) : ''
+
+    // Detect province/city from chosen suggestion
+    const addrObj = s.address || {}
+    const rawProvince = addrObj.province || addrObj.state || addrObj.city || addrObj.region || ''
+    const matchedCity = findMatchingProvince(rawProvince) || findMatchingProvince(cleanedAddress)
+
     setBranchForm(prev => ({
       ...prev,
       address: cleanedAddress,
-      latitude: s.lat ? String(s.lat) : '',
-      longitude: s.lon ? String(s.lon) : ''
+      city: matchedCity || prev.city,
+      latitude: newLat || prev.latitude,
+      longitude: newLng || prev.longitude
     }))
     setAddressSuggestions([])
     setShowSuggestions(false)
@@ -221,7 +373,7 @@ export default function AdminBranches() {
 
     // 2. Fetch address via reverse geocoding
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=vi`
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'AutoWashingCar-AdminPanel-App'
@@ -234,10 +386,16 @@ export default function AdminBranches() {
           .replace(/,\s*\d+,\s*Việt Nam$/i, '')
           .replace(/,\s*Việt Nam$/i, '')
           .replace(/,\s*Vietnam$/i, '')
+
+        // Detect province/city from reverse geocoded address
+        const addrObj = data.address || {}
+        const rawProvince = addrObj.province || addrObj.state || addrObj.city || addrObj.region || ''
+        const matchedCity = findMatchingProvince(rawProvince) || findMatchingProvince(cleanedAddress)
         
         setBranchForm(prev => ({
           ...prev,
-          address: cleanedAddress
+          address: cleanedAddress,
+          city: matchedCity || prev.city
         }))
       }
     } catch (err) {
@@ -245,32 +403,8 @@ export default function AdminBranches() {
     }
   }
 
-  const triggerAutoGeocode = async () => {
-    const val = branchForm.address.trim()
-    if (val.length < 3) return
-
-    try {
-      const query = branchForm.city ? `${val}, ${branchForm.city}` : val
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=vn&accept-language=vi`
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'AutoWashingCar-AdminPanel-App'
-        }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data) && data.length > 0) {
-          const first = data[0]
-          setBranchForm(prev => ({
-            ...prev,
-            latitude: first.lat ? String(parseFloat(first.lat).toFixed(6)) : prev.latitude,
-            longitude: first.lon ? String(parseFloat(first.lon).toFixed(6)) : prev.longitude
-          }))
-        }
-      }
-    } catch (err) {
-      console.error('Error auto-geocoding:', err)
-    }
+  const triggerAutoGeocode = () => {
+    triggerAutoGeocodeWithCity(branchForm.address, branchForm.city)
   }
 
   // Services Modal state
@@ -598,6 +732,31 @@ export default function AdminBranches() {
     try {
       const lat = branchForm.latitude ? parseFloat(branchForm.latitude) : undefined
       const lng = branchForm.longitude ? parseFloat(branchForm.longitude) : undefined
+
+      // Validate Required fields
+      if (!branchForm.name.trim()) {
+        throw new Error('Vui lòng nhập tên chi nhánh.')
+      }
+      if (!branchForm.city) {
+        throw new Error('Vui lòng chọn Tỉnh / Thành phố.')
+      }
+      if (!branchForm.address.trim()) {
+        throw new Error('Vui lòng nhập địa chỉ chi nhánh.')
+      }
+
+      // Validate Address matches selected City/Province
+      if (!isAddressMatchingCity(branchForm.address, branchForm.city)) {
+        throw new Error('Địa chỉ không khớp với Tỉnh/Thành phố đã chọn. Vui lòng kiểm tra lại.')
+      }
+
+      // Validate Phone: exactly 10 digits starting with 0
+      const cleanPhone = branchForm.phone.trim().replace(/\D/g, '')
+      if (!cleanPhone) {
+        throw new Error('Vui lòng nhập số điện thoại.')
+      }
+      if (!/^0\d{9}$/.test(cleanPhone)) {
+        throw new Error('Số điện thoại không hợp lệ. Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0 (Ví dụ: 0901234567 hoặc 0281234567).')
+      }
 
       // Validate Latitude and Longitude ranges
       if (lat !== undefined && !isNaN(lat) && (lat < -90 || lat > 90)) {
@@ -1025,18 +1184,29 @@ export default function AdminBranches() {
 
       {/* ── Add / Edit Location Modal ── */}
       {(modalMode === 'create' || modalMode === 'edit') && (
-        <div className="confirm-modal-overlay" onClick={() => !branchFormLoading && setModalMode(null)}>
-          <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '580px', textAlign: 'left', alignItems: 'stretch' }}>
-            <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
+        <div 
+          className="confirm-modal-overlay" 
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto', padding: '40px 16px 60px', zIndex: 1050 }}
+          onClick={() => !branchFormLoading && setModalMode(null)}
+        >
+          <div 
+            className="confirm-modal-card card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '620px', width: '100%', textAlign: 'left', alignItems: 'stretch', margin: '0 auto', padding: '28px 32px', borderRadius: '16px' }}
+          >
+            <div 
+              className="vehicle-form-header" 
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}
+            >
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>{modalMode === 'edit' ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh mới'}</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)', fontWeight: 800 }}>{modalMode === 'edit' ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh mới'}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                   {modalMode === 'edit' ? 'Cập nhật tên, địa chỉ, liên hệ và giờ mở cửa.' : 'Tạo địa điểm chi nhánh rửa xe mới trong hệ thống.'}
                 </p>
               </div>
               <button 
                 type="button" 
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}
                 onClick={() => setModalMode(null)}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1139,15 +1309,16 @@ export default function AdminBranches() {
                       const selectedCity = e.target.value;
                       setAddressSuggestions([]);
                       setShowSuggestions(false);
-                      setBranchForm(prev => {
-                        const coords = CITY_COORDINATES[selectedCity] || { lat: '', lng: '' };
-                        return {
-                          ...prev,
-                          city: selectedCity,
-                          latitude: coords.lat,
-                          longitude: coords.lng
-                        };
-                      });
+                      const coords = CITY_COORDINATES[selectedCity] || { lat: '', lng: '' };
+                      setBranchForm(prev => ({
+                        ...prev,
+                        city: selectedCity,
+                        latitude: coords.lat,
+                        longitude: coords.lng
+                      }));
+                      if (branchForm.address.trim()) {
+                        triggerAutoGeocodeWithCity(branchForm.address, selectedCity);
+                      }
                     }}
                   >
                     <option value="">-- Chọn Tỉnh / Thành phố --</option>
@@ -1165,10 +1336,11 @@ export default function AdminBranches() {
                     id="branch-phone"
                     className="form-input"
                     required
-                    placeholder="VD: 0281234567"
+                    placeholder="VD: 0901234567"
+                    maxLength={10}
                     value={branchForm.phone}
                     disabled={branchFormLoading}
-                    onChange={e => setBranchForm(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={e => setBranchForm(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                   />
                 </div>
               </div>
@@ -1359,18 +1531,26 @@ export default function AdminBranches() {
 
       {/* ── Configure Services Modal ── */}
       {modalMode === 'services' && selectedBranch && (
-        <div className="confirm-modal-overlay" onClick={() => !savingServices && setModalMode(null)}>
-          <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', textAlign: 'left', alignItems: 'stretch' }}>
+        <div 
+          className="confirm-modal-overlay" 
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto', padding: '40px 16px 60px', zIndex: 1050 }}
+          onClick={() => !savingServices && setModalMode(null)}
+        >
+          <div 
+            className="confirm-modal-card card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '620px', width: '100%', textAlign: 'left', alignItems: 'stretch', margin: '0 auto', padding: '28px 32px', borderRadius: '16px' }}
+          >
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Cấu hình Dịch vụ rửa xe</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)', fontWeight: 800 }}>Cấu hình Dịch vụ rửa xe</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                   Bật hoặc tắt các gói dịch vụ được phục vụ tại <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
                 </p>
               </div>
               <button 
                 type="button" 
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}
                 onClick={() => setModalMode(null)}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1477,22 +1657,28 @@ export default function AdminBranches() {
         </div>
       )}
 
-
-
       {/* Manage Branch Staff Modal */}
       {modalMode === 'staff' && selectedBranch && (
-        <div className="confirm-modal-overlay" onClick={() => setModalMode(null)}>
-          <div className="confirm-modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', textAlign: 'left', alignItems: 'stretch' }}>
+        <div 
+          className="confirm-modal-overlay" 
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto', padding: '40px 16px 60px', zIndex: 1050 }}
+          onClick={() => setModalMode(null)}
+        >
+          <div 
+            className="confirm-modal-card card" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '620px', width: '100%', textAlign: 'left', alignItems: 'stretch', margin: '0 auto', padding: '28px 32px', borderRadius: '16px' }}
+          >
             <div className="vehicle-form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-dim)', paddingBottom: '16px', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)' }}>Danh sách Nhân viên chi nhánh</h3>
+                <h3 style={{ fontSize: '1.35rem', color: 'var(--color-heading)', fontWeight: 800 }}>Danh sách Nhân viên chi nhánh</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                   Quản lý nhân sự được phân công tại <strong style={{ color: 'var(--color-primary)' }}>{selectedBranch.name}</strong>.
                 </p>
               </div>
               <button 
                 type="button" 
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}
                 onClick={() => setModalMode(null)}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

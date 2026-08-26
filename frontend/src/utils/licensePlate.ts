@@ -32,7 +32,24 @@ export function getLicensePlateError(value: string, vehicleType: number, manufac
   if (!compact) return 'Vui lòng nhập biển số xe.'
 
   if (compact.length < 6) {
-    return 'Biển số xe quá ngắn. Ví dụ: 51F-123.45 hoặc 59A1-123.45'
+    return 'Biển số xe quá ngắn. Ví dụ: 51F-123.45 (Ô tô) hoặc 59A1-123.45 (Xe máy)'
+  }
+
+  const seriesEnd = getSeriesEnd(compact, vehicleType)
+  const prefix = compact.slice(0, seriesEnd)
+  const numberPart = compact.slice(seriesEnd)
+
+  if (numberPart.length < 4) {
+    return 'Biển số xe chưa đủ chữ số (cần 4 hoặc 5 số). Ví dụ: 59A1-123.45 hoặc 51F-123.45'
+  }
+
+  if (numberPart.length > 6) {
+    return 'Biển số xe có quá nhiều chữ số (tối đa 5 số). Ví dụ: 59A1-123.45 hoặc 51F-123.45'
+  }
+
+  // Với xe máy biển 5 số có kèm số trong seri (ví dụ: 51F1, 59A1): Bắt buộc phải có đủ 5 số
+  if (vehicleType === MOTORBIKE && seriesEnd === 4 && /\d/.test(prefix[3]) && numberPart.length !== 5) {
+    return 'Biển số xe máy 5 số (ví dụ: 51F1) cần đủ 5 chữ số (Ví dụ: 51F1-123.45).'
   }
 
   const valid = vehicleType === MOTORBIKE
@@ -42,8 +59,6 @@ export function getLicensePlateError(value: string, vehicleType: number, manufac
   if (!valid) return LICENSE_PLATE_ERROR
 
   // Cross-check: Biển 4 số chỉ được cấp cho xe sản xuất từ 2010 trở về trước
-  const seriesEnd = getSeriesEnd(compact, vehicleType)
-  const numberPart = compact.slice(seriesEnd)
   const isFourDigits = numberPart.length === 4
   const yearNum = manufactureYear ? Number(manufactureYear) : null
 
