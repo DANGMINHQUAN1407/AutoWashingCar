@@ -1183,7 +1183,18 @@ export async function createWalkInBooking(data: {
   SlotInventoryId: string
   Services: Array<{ ServiceCatalogItemId: string; Quantity: number }>
   ExistingVehicleId?: string
-  NewVehicle?: { LicensePlate: string; VehicleType: number; Brand?: string; BrandCatalogId?: string }
+  NewVehicle?: {
+    LicensePlate: string
+    VehicleType: number
+    Brand?: string
+    BrandCatalogId?: string
+    Model?: string
+    ManufactureYear?: number
+    EngineType?: number
+    BodyStyle?: number
+    EngineCatalogId?: string
+    BodyStyleCatalogId?: string
+  }
   UserVoucherId?: string
   VoucherCode?: string
 }): Promise<Booking> {

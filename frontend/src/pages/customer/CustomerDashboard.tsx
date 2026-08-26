@@ -86,13 +86,17 @@ export default function CustomerDashboard() {
   const nextPlate = nextBooking?.licensePlate || nextBooking?.LicensePlate || 'Phương tiện'
   const nextStation = nextBooking?.branchName || nextBooking?.BranchName || 'AutoWash Pro'
 
-  const pastWashes = completedBookings
-    .sort((a, b) => {
-      const aDate = a.createdAtUtc || a.CreatedAtUtc || ''
-      const bDate = b.createdAtUtc || b.CreatedAtUtc || ''
-      return new Date(bDate).getTime() - new Date(aDate).getTime()
-    })
-    .slice(0, 5)
+  const [historyPage, setHistoryPage] = useState(1)
+  const historyPageSize = 5
+
+  const sortedWashes = [...completedBookings].sort((a, b) => {
+    const aDate = a.createdAtUtc || a.CreatedAtUtc || a.slotDate || a.SlotDate || ''
+    const bDate = b.createdAtUtc || b.CreatedAtUtc || b.slotDate || b.SlotDate || ''
+    return new Date(bDate).getTime() - new Date(aDate).getTime()
+  })
+  const totalHistoryPages = Math.max(1, Math.ceil(sortedWashes.length / historyPageSize))
+  const currentHistoryPage = Math.min(Math.max(1, historyPage), totalHistoryPages)
+  const pagedWashes = sortedWashes.slice((currentHistoryPage - 1) * historyPageSize, currentHistoryPage * historyPageSize)
 
   return (
     <div className="portal-page" style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -289,52 +293,119 @@ export default function CustomerDashboard() {
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Lịch Sử Gần Đây</h2>
             <Link to="/customer/bookings" style={{ color: '#0284c7', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
-              Xem tất cả
+              Xem tất cả ({sortedWashes.length})
             </Link>
           </div>
 
           <div style={{ overflowX: 'auto', flex: 1 }}>
-            {pastWashes.length === 0 ? (
+            {sortedWashes.length === 0 ? (
               <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
                 Chưa có lịch sử đơn rửa xe hoàn thành nào.
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    <th style={{ padding: '14px 20px', fontWeight: 700 }}>Dịch vụ</th>
-                    <th style={{ padding: '14px 16px', fontWeight: 700 }}>Ngày</th>
-                    <th style={{ padding: '14px 16px', fontWeight: 700 }}>Biển số</th>
-                    <th style={{ padding: '14px 16px', fontWeight: 700, textAlign: 'right' }}>Tổng tiền</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 700, textAlign: 'center' }}>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pastWashes.map(b => {
-                    const amount = b.bookingFinalAmount ?? b.BookingFinalAmount ?? 0
-                    const date = b.createdAtUtc || b.CreatedAtUtc || b.slotDate || b.SlotDate
-                    const dateStr = date ? new Date(date).toLocaleDateString('vi-VN') : 'Hoàn thành'
-                    const svc = formatServiceSummary(b.serviceSummary || b.ServiceSummary)
-                    const plate = b.licensePlate || b.LicensePlate || 'Phương tiện'
+              <>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <th style={{ padding: '14px 20px', fontWeight: 700 }}>Dịch vụ</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 700 }}>Ngày</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 700 }}>Biển số</th>
+                      <th style={{ padding: '14px 16px', fontWeight: 700, textAlign: 'right' }}>Tổng tiền</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 700, textAlign: 'center' }}>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedWashes.map(b => {
+                      const amount = b.bookingFinalAmount ?? b.BookingFinalAmount ?? 0
+                      const date = b.createdAtUtc || b.CreatedAtUtc || b.slotDate || b.SlotDate
+                      const dateStr = date ? new Date(date).toLocaleDateString('vi-VN') : 'Hoàn thành'
+                      const svc = formatServiceSummary(b.serviceSummary || b.ServiceSummary)
+                      const plate = b.licensePlate || b.LicensePlate || 'Phương tiện'
 
-                    return (
-                      <tr key={b.bookingId || b.BookingId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px 20px', fontWeight: 600, color: '#0f172a' }}>{svc}</td>
-                        <td style={{ padding: '16px 16px', color: '#64748b' }}>{dateStr}</td>
-                        <td style={{ padding: '16px 16px', color: '#0f172a', fontWeight: 500 }}>{plate}</td>
-                        <td style={{ padding: '16px 16px', textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>
-                          {Number(amount).toLocaleString('vi-VN')} đ
-                        </td>
-                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                          <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                            HOÀN THÀNH
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                      return (
+                        <tr key={b.bookingId || b.BookingId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '16px 20px', fontWeight: 600, color: '#0f172a' }}>{svc}</td>
+                          <td style={{ padding: '16px 16px', color: '#64748b' }}>{dateStr}</td>
+                          <td style={{ padding: '16px 16px', color: '#0f172a', fontWeight: 500 }}>{plate}</td>
+                          <td style={{ padding: '16px 16px', textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>
+                            {Number(amount).toLocaleString('vi-VN')} đ
+                          </td>
+                          <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                              HOÀN THÀNH
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Pagination Controls */}
+                {totalHistoryPages > 1 && (
+                  <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', background: '#fafbfc', flexWrap: 'wrap', gap: 10 }}>
+                    <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                      Hiển thị <strong>{(currentHistoryPage - 1) * historyPageSize + 1} - {Math.min(currentHistoryPage * historyPageSize, sortedWashes.length)}</strong> trên tổng số <strong>{sortedWashes.length}</strong> đơn
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button
+                        onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                        disabled={currentHistoryPage === 1}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: currentHistoryPage === 1 ? '#f1f5f9' : '#ffffff',
+                          color: currentHistoryPage === 1 ? '#94a3b8' : '#0f172a',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: currentHistoryPage === 1 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        ‹ Trước
+                      </button>
+
+                      {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setHistoryPage(page)}
+                          style={{
+                            minWidth: 32,
+                            height: 32,
+                            padding: '0 8px',
+                            borderRadius: '6px',
+                            border: page === currentHistoryPage ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                            background: page === currentHistoryPage ? '#0284c7' : '#ffffff',
+                            color: page === currentHistoryPage ? '#ffffff' : '#0f172a',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      <button
+                        onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
+                        disabled={currentHistoryPage === totalHistoryPages}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: currentHistoryPage === totalHistoryPages ? '#f1f5f9' : '#ffffff',
+                          color: currentHistoryPage === totalHistoryPages ? '#94a3b8' : '#0f172a',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: currentHistoryPage === totalHistoryPages ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        Sau ›
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

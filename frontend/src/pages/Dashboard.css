@@ -629,10 +629,13 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   z-index: 1000;
   animation: fadeIn var(--t-fast) var(--ease) both;
   overflow-y: auto;
-  padding: 40px 20px;
+  padding: 50px 20px 60px;
 }
 
 .confirm-modal-card {
@@ -650,7 +653,7 @@
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  margin: auto;
+  margin: 0 auto;
 }
 
 .confirm-modal-icon {

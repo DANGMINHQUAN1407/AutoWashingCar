@@ -6,37 +6,57 @@ import BookingStatsReport from '../../components/BookingStatsReport'
 import '../manager/ManagerDashboard.css'
 import './AdminDashboard.css'
 
-function getWaveTrendChartData(revenueWeeks: number[] = [], weeklyAmounts: number[] = []) {
-  const pcts = revenueWeeks && revenueWeeks.length > 0 ? revenueWeeks : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  const amts = weeklyAmounts && weeklyAmounts.length > 0 ? weeklyAmounts : pcts.map(() => 0)
-  const n = pcts.length
+interface DailyTrendItem {
+  dateStr: string
+  dayLabel: string
+  amount: number
+}
+
+function getWaveTrendChartData(items: DailyTrendItem[]) {
+  const safeItems = items && items.length > 0 ? items : [
+    { dateStr: '2026-08-20', dayLabel: '20/08', amount: 0 },
+    { dateStr: '2026-08-21', dayLabel: '21/08', amount: 0 },
+    { dateStr: '2026-08-22', dayLabel: '22/08', amount: 0 },
+    { dateStr: '2026-08-23', dayLabel: '23/08', amount: 0 },
+    { dateStr: '2026-08-24', dayLabel: '24/08', amount: 0 },
+    { dateStr: '2026-08-25', dayLabel: '25/08', amount: 0 },
+    { dateStr: '2026-08-26', dayLabel: '26/08', amount: 0 }
+  ]
+  const n = safeItems.length
+  const maxAmt = Math.max(100000, ...safeItems.map(item => item.amount))
   
   const width = 680
   const height = 200
-  const padLeft = 55
-  const padRight = 20
-  const padTop = 32
+  const padLeft = 60
+  const padRight = 30
+  const padTop = 36
   const padBottom = 28
   
   const innerW = width - padLeft - padRight
   const innerH = height - padTop - padBottom
 
   let peakIdx = 0
-  let maxPct = -1
-  const points = pcts.map((pct, i) => {
-    const x = padLeft + (i / (n - 1)) * innerW
-    const clamped = Math.max(0, Math.min(100, pct))
-    const y = padTop + (1 - (clamped > 0 ? Math.max(12, Math.min(88, clamped)) : 0) / 100) * innerH
-    if (clamped > maxPct) {
-      maxPct = clamped
+  let currentMax = -1
+  const points = safeItems.map((item, i) => {
+    const x = padLeft + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2)
+    const ratio = maxAmt > 0 ? item.amount / maxAmt : 0
+    const clamped = Math.max(0, Math.min(1, ratio))
+    const y = padTop + (1 - (clamped > 0 ? Math.max(0.12, Math.min(0.88, clamped)) : 0)) * innerH
+    if (item.amount > currentMax) {
+      currentMax = item.amount
       peakIdx = i
     }
-    const amt = amts[i] ?? 0
-    const label = amt >= 1000000 ? `${(amt / 1000000).toFixed(1)}M` : amt > 0 ? `${(amt / 1000).toFixed(0)}k` : '0 đ'
-    return { x, y, pct: clamped, amt, label, weekLabel: `Tuần ${i + 1}`, isPeak: false }
+    const amt = item.amount
+    const label = amt >= 1000000 
+      ? `${(amt / 1000000).toFixed(1)}M` 
+      : amt > 0 
+        ? `${(amt / 1000).toFixed(0)}k` 
+        : '0 đ'
+
+    return { x, y, amt, label, dayLabel: item.dayLabel, dateStr: item.dateStr, isPeak: false }
   })
 
-  if (points[peakIdx]) {
+  if (points[peakIdx] && currentMax > 0) {
     points[peakIdx].isPeak = true
   }
 
@@ -50,7 +70,7 @@ function getWaveTrendChartData(revenueWeeks: number[] = [], weeklyAmounts: numbe
 
   const areaPath = `${linePath} L ${points[n - 1].x} ${height - padBottom} L ${points[0].x} ${height - padBottom} Z`
 
-  return { points, linePath, areaPath, width, height, padLeft, padRight, padTop, padBottom, innerH, peakPoint: points[peakIdx] }
+  return { points, linePath, areaPath, width, height, padLeft, padRight, padTop, padBottom, innerH, maxAmt, peakPoint: points[peakIdx] }
 }
 
 export default function AdminDashboard() {
@@ -59,24 +79,67 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Bộ lọc xu hướng doanh thu theo ngày
+  const [trendFromDate, setTrendFromDate] = useState('2026-08-20')
+  const [trendToDate, setTrendToDate] = useState('2026-08-26')
+  const [dailyTrendItems, setDailyTrendItems] = useState<DailyTrendItem[]>([])
+
   useEffect(() => {
     async function load() {
       try {
         setLoading(true)
-        const [branchRes, dashboardStats, usersRes] = await Promise.all([
+        const [branchRes, dashboardStats, usersRes, bookingStatsRes] = await Promise.all([
           getBranches({ pageSize: 100 }).catch(() => null),
           getAdminDashboardStats().catch(() => null),
-          getUsers({ pageSize: 100 }).catch(() => null)
+          getUsers({ pageSize: 100 }).catch(() => null),
+          getAdminBookingStats({ groupBy: 1, fromDate: trendFromDate, toDate: trendToDate }).catch(() => null)
         ])
         setBranches(branchRes?.items ?? (Array.isArray(branchRes) ? branchRes : []))
         setStats(dashboardStats)
         setUsers(usersRes?.items ?? [])
+        buildDailyTrend(bookingStatsRes ?? [], trendFromDate, trendToDate)
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [trendFromDate, trendToDate])
+
+  const buildDailyTrend = (bookingStats: any[], fromStr: string, toStr: string) => {
+    const start = new Date(fromStr)
+    const end = new Date(toStr)
+    const items: DailyTrendItem[] = []
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+      setDailyTrendItems([])
+      return
+    }
+
+    const current = new Date(start)
+    while (current <= end) {
+      const yyyy = current.getFullYear()
+      const mm = String(current.getMonth() + 1).padStart(2, '0')
+      const dd = String(current.getDate()).padStart(2, '0')
+      const dateKey = `${yyyy}-${mm}-${dd}`
+      const dayLabel = `${dd}/${mm}`
+
+      const matched = bookingStats.find((s: any) => {
+        const pStart = String(s.periodStart ?? '')
+        const pLabel = String(s.periodLabel ?? '')
+        return pStart.startsWith(dateKey) || pLabel === `${dd}/${mm}/${yyyy}` || pLabel.startsWith(`${dd}/${mm}`)
+      })
+
+      items.push({
+        dateStr: dateKey,
+        dayLabel,
+        amount: matched ? Number(matched.totalAmount || matched.onlineAmount + matched.walkInAmount || 0) : 0
+      })
+
+      current.setDate(current.getDate() + 1)
+    }
+
+    setDailyTrendItems(items)
+  }
 
   const customerCount = stats?.totalCustomers ?? users.filter((u) => String(u.role).toLowerCase().includes('customer')).length
   const totalBookings = stats?.totalBookings ?? stats?.activeOrders ?? 0
@@ -219,23 +282,47 @@ export default function AdminDashboard() {
 
       {/* Main Bento Grid: Xu hướng doanh thu (Wave Curve) + Trạng thái lịch hẹn */}
       <section className="adm-main-grid">
-        {/* Left Card: Xu hướng doanh thu theo tháng / tuần */}
+        {/* Left Card: Xu hướng doanh thu theo ngày */}
         <div className="adm-trend-card">
-          <div className="adm-trend-header">
+          <div className="adm-trend-header" style={{ flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h3 className="adm-trend-title">Xu hướng doanh thu</h3>
-              <span className="adm-trend-tag">Đang hiển thị: Toàn thời gian</span>
+              <span className="adm-trend-tag">
+                Đang hiển thị: Theo từng ngày ({dailyTrendItems[0]?.dayLabel ?? '20/08'} - {dailyTrendItems[dailyTrendItems.length - 1]?.dayLabel ?? '26/08'})
+              </span>
             </div>
-            <div className="adm-trend-legend" style={{ marginBottom: 0 }}>
-              <span className="adm-trend-legend-dot" />
-              <span>Doanh thu tuần & tháng</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Từ:</span>
+                <input
+                  type="date"
+                  value={trendFromDate}
+                  onChange={e => setTrendFromDate(e.target.value)}
+                  className="form-input"
+                  style={{ height: 32, padding: '2px 8px', fontSize: '0.8rem', width: 125 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Đến:</span>
+                <input
+                  type="date"
+                  value={trendToDate}
+                  onChange={e => setTrendToDate(e.target.value)}
+                  className="form-input"
+                  style={{ height: 32, padding: '2px 8px', fontSize: '0.8rem', width: 125 }}
+                />
+              </div>
+              <div className="adm-trend-legend" style={{ marginBottom: 0, marginLeft: 4 }}>
+                <span className="adm-trend-legend-dot" />
+                <span>Doanh thu ngày</span>
+              </div>
             </div>
           </div>
 
           {/* Smooth Wave Chart */}
           <div className="adm-wave-container">
             {(() => {
-              const { points, linePath, areaPath, width, height, padLeft, padRight, padTop, innerH } = getWaveTrendChartData(stats?.revenueWeeks, stats?.revenueWeeklyAmounts)
+              const { points, linePath, areaPath, width, height, padLeft, padRight, padTop, innerH, maxAmt } = getWaveTrendChartData(dailyTrendItems)
               return (
                 <svg 
                   viewBox={`0 0 ${width} ${height}`} 
@@ -261,7 +348,7 @@ export default function AdminDashboard() {
                   {/* Y-axis horizontal grid lines */}
                   {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
                     const y = padTop + ratio * innerH
-                    const tickVal = Math.round(systemRev * (1 - ratio))
+                    const tickVal = Math.round(maxAmt * (1 - ratio))
                     const formattedTick = tickVal >= 1000000
                       ? `${(tickVal / 1000000).toLocaleString('vi-VN')} tr`
                       : `${(tickVal / 1000).toLocaleString('vi-VN')} k`
@@ -316,9 +403,9 @@ export default function AdminDashboard() {
                       {pt.isPeak && (
                         <g>
                           <rect 
-                            x={pt.x - 26} 
+                            x={pt.x - 28} 
                             y={pt.y - 32} 
-                            width="52" 
+                            width="56" 
                             height="24" 
                             rx="5" 
                             fill="#0f172a" 
@@ -349,7 +436,7 @@ export default function AdminDashboard() {
                         fontWeight="600" 
                         fill="#64748b"
                       >
-                        {pt.weekLabel}
+                        {pt.dayLabel}
                       </text>
                     </g>
                   ))}
@@ -359,21 +446,28 @@ export default function AdminDashboard() {
           </div>
 
           {/* Bottom 3 Summary Boxes */}
-          <div className="adm-trend-summary-row">
-            <div className="adm-summary-box">
-              <div className="adm-summary-box-label">Tổng doanh thu</div>
-              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
-            </div>
-            <div className="adm-summary-box">
-              <div className="adm-summary-box-label">Trung bình theo tháng</div>
-              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
-            </div>
-            <div className="adm-summary-box">
-              <div className="adm-summary-box-label">Doanh thu cao nhất</div>
-              <div className="adm-summary-box-val">₫{systemRev.toLocaleString('vi-VN')}</div>
-              <div className="adm-summary-box-sub">Tháng {new Date().getMonth() + 1}, {new Date().getFullYear()}</div>
-            </div>
-          </div>
+          {(() => {
+            const dailySum = dailyTrendItems.reduce((acc, curr) => acc + curr.amount, 0)
+            const dailyAvg = dailyTrendItems.length > 0 ? Math.round(dailySum / dailyTrendItems.length) : 0
+            const peakItem = dailyTrendItems.reduce((max, curr) => (curr.amount > (max?.amount ?? -1) ? curr : max), dailyTrendItems[0])
+            return (
+              <div className="adm-trend-summary-row">
+                <div className="adm-summary-box">
+                  <div className="adm-summary-box-label">Tổng doanh thu kỳ này</div>
+                  <div className="adm-summary-box-val">₫{dailySum.toLocaleString('vi-VN')}</div>
+                </div>
+                <div className="adm-summary-box">
+                  <div className="adm-summary-box-label">Trung bình mỗi ngày</div>
+                  <div className="adm-summary-box-val">₫{dailyAvg.toLocaleString('vi-VN')}</div>
+                </div>
+                <div className="adm-summary-box">
+                  <div className="adm-summary-box-label">Doanh thu cao nhất</div>
+                  <div className="adm-summary-box-val">₫{(peakItem?.amount ?? 0).toLocaleString('vi-VN')}</div>
+                  <div className="adm-summary-box-sub">Ngày {peakItem?.dayLabel ?? ''}</div>
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Right Card: Trạng thái lịch hẹn */}
