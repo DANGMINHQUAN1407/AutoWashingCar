@@ -27,7 +27,7 @@ export function licensePlatePlaceholder(vehicleType: number) {
   return vehicleType === MOTORBIKE ? 'Ví dụ: 59A1-123.45 hoặc 59A1-2345' : 'Ví dụ: 51F-123.45 hoặc 30K-123.45'
 }
 
-export function getLicensePlateError(value: string, vehicleType: number, manufactureYear?: number | string | null) {
+export function getLicensePlateError(value: string, vehicleType: number, _manufactureYear?: number | string | null) {
   const compact = compactLicensePlate(value)
   if (!compact) return 'Vui lòng nhập biển số xe.'
 
@@ -36,20 +36,14 @@ export function getLicensePlateError(value: string, vehicleType: number, manufac
   }
 
   const seriesEnd = getSeriesEnd(compact, vehicleType)
-  const prefix = compact.slice(0, seriesEnd)
   const numberPart = compact.slice(seriesEnd)
 
   if (numberPart.length < 4) {
-    return 'Biển số xe chưa đủ chữ số (cần 4 hoặc 5 số). Ví dụ: 59A1-123.45 hoặc 51F-123.45'
+    return 'Biển số xe chưa đủ chữ số (cần 4 hoặc 5 số). Ví dụ: 59A1-2345 hoặc 51F-123.45'
   }
 
   if (numberPart.length > 6) {
-    return 'Biển số xe có quá nhiều chữ số (tối đa 5 số). Ví dụ: 59A1-123.45 hoặc 51F-123.45'
-  }
-
-  // Với xe máy biển 5 số có kèm số trong seri (ví dụ: 51F1, 59A1): Bắt buộc phải có đủ 5 số
-  if (vehicleType === MOTORBIKE && seriesEnd === 4 && /\d/.test(prefix[3]) && numberPart.length !== 5) {
-    return 'Biển số xe máy 5 số (ví dụ: 51F1) cần đủ 5 chữ số (Ví dụ: 51F1-123.45).'
+    return 'Biển số xe có quá nhiều chữ số (tối đa 5 số).'
   }
 
   const valid = vehicleType === MOTORBIKE
@@ -57,14 +51,6 @@ export function getLicensePlateError(value: string, vehicleType: number, manufac
     : /^\d{2}[A-Z]{1,2}\d{4,6}$/.test(compact)
 
   if (!valid) return LICENSE_PLATE_ERROR
-
-  // Cross-check: Biển 4 số chỉ được cấp cho xe sản xuất từ 2010 trở về trước
-  const isFourDigits = numberPart.length === 4
-  const yearNum = manufactureYear ? Number(manufactureYear) : null
-
-  if (isFourDigits && yearNum && yearNum > 2010) {
-    return `Biển số 4 số chỉ áp dụng cho xe sản xuất từ năm 2010 trở về trước. Xe sản xuất năm ${yearNum} bắt buộc dùng biển 5 số (Ví dụ: 59A1-123.45 hoặc 51F-123.45).`
-  }
 
   return null
 }
