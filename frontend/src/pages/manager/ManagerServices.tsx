@@ -6,10 +6,10 @@ import { extractErrorMessage } from '../../utils/errorUtils'
 import '../Dashboard.css'
 
 const VEHICLE_TYPE_PRICING_RULES: Record<string, { min: number; max: number; label: string; text: string }> = {
-  '1': { min: 10000, max: 100000, label: 'Xe máy', text: '10.000 đ – 100.000 đ' },
-  '2': { min: 30000, max: 300000, label: 'Ô tô / Xe hơi', text: '30.000 đ – 300.000 đ' },
-  '3': { min: 50000, max: 500000, label: 'Xe tải', text: '50.000 đ – 500.000 đ' },
-  '': { min: 10000, max: 500000, label: 'Phương tiện', text: '10.000 đ – 500.000 đ' },
+  '1': { min: 10000, max: 100000, label: 'Xe máy (Thấp nhất)', text: '10.000 đ – 100.000 đ' },
+  '2': { min: 30000, max: 300000, label: 'Ô tô / Xe hơi (Trung bình)', text: '30.000 đ – 300.000 đ' },
+  '3': { min: 50000, max: 500000, label: 'Xe tải (Cao nhất)', text: '50.000 đ – 500.000 đ' },
+  '': { min: 10000, max: 500000, label: 'Mọi loại xe (Dịch vụ bổ sung)', text: '10.000 đ – 500.000 đ' },
 }
 
 export default function ManagerServices() {
@@ -21,7 +21,7 @@ export default function ManagerServices() {
   const [error, setError] = useState('')
 
   // Filter state
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('all') // 'all', '1', '2', '3'
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('all') // 'all', 'addon', '1', '2', '3'
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -33,7 +33,8 @@ export default function ManagerServices() {
     Description: '',
     BasePrice: '',
     DurationMinutes: '',
-    VehicleType: '2', // Mặc định Ô tô (2)
+    VehicleType: '', // '' = Mọi loại xe (Dịch vụ bổ sung)
+    ServicePackageType: '1', // 1=Standard, 2=AddOn, 3=Premium
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -79,11 +80,12 @@ export default function ManagerServices() {
         Description: service.description || '',
         BasePrice: service.basePrice.toString(),
         DurationMinutes: service.durationMinutes.toString(),
-        VehicleType: service.vehicleType ? String(service.vehicleType) : '1',
+        VehicleType: service.vehicleType ? String(service.vehicleType) : '',
+        ServicePackageType: service.servicePackageType ? String(service.servicePackageType) : '1',
       })
     } else {
       setEditingId(null)
-      setFormData({ Name: '', Description: '', BasePrice: '', DurationMinutes: '', VehicleType: '1' })
+      setFormData({ Name: '', Description: '', BasePrice: '', DurationMinutes: '', VehicleType: '', ServicePackageType: '1' })
     }
     setIsModalOpen(true)
   }
@@ -97,7 +99,7 @@ export default function ManagerServices() {
     e.preventDefault()
 
     // Kiểm tra giới hạn mức giá theo loại xe
-    const rule = VEHICLE_TYPE_PRICING_RULES[formData.VehicleType] || VEHICLE_TYPE_PRICING_RULES['1']
+    const rule = VEHICLE_TYPE_PRICING_RULES[formData.VehicleType] || VEHICLE_TYPE_PRICING_RULES['']
     const price = Number(formData.BasePrice)
     if (price < rule.min || price > rule.max) {
       alert(`Giá niêm yết cho ${rule.label} phải nằm trong khoảng từ ${rule.min.toLocaleString('vi-VN')} đ đến ${rule.max.toLocaleString('vi-VN')} đ.`)
@@ -111,7 +113,8 @@ export default function ManagerServices() {
         Description: formData.Description,
         BasePrice: price,
         DurationMinutes: Number(formData.DurationMinutes),
-        VehicleType: formData.VehicleType ? Number(formData.VehicleType) : 1,
+        VehicleType: formData.VehicleType ? Number(formData.VehicleType) : null,
+        ServicePackageType: Number(formData.ServicePackageType) || 1,
       }
       
       if (editingId) {
@@ -144,6 +147,7 @@ export default function ManagerServices() {
 
   const filteredServices = services.filter(s => {
     if (vehicleTypeFilter === 'all') return true
+    if (vehicleTypeFilter === 'addon') return s.servicePackageType === 2 || !s.vehicleType
     if (vehicleTypeFilter === '1') return s.vehicleType === 1
     if (vehicleTypeFilter === '2') return s.vehicleType === 2
     if (vehicleTypeFilter === '3') return s.vehicleType === 3
@@ -168,9 +172,10 @@ export default function ManagerServices() {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {[
           { key: 'all', label: 'Tất cả dịch vụ' },
-          { key: '2', label: '🚗 Ô tô / Xe hơi' },
-          { key: '1', label: '🏍️ Xe máy' },
-          { key: '3', label: '🚚 Xe tải' },
+          { key: 'addon', label: '🔸 Dịch vụ bổ sung' },
+          { key: '1', label: '🏍️ Xe máy (Giá thấp nhất)' },
+          { key: '2', label: '🚗 Ô tô / Xe hơi (Giá trung bình)' },
+          { key: '3', label: '🚚 Xe tải (Giá cao nhất)' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -213,21 +218,43 @@ export default function ManagerServices() {
                       {s.isActive ? 'Hoạt động' : 'Tạm dừng'}
                     </span>
                     
-                    {/* Badge loại xe */}
-                    <span className="badge" style={{ 
-                      background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' :
-                                 s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' :
-                                 s.vehicleType === 3 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(100, 116, 139, 0.12)',
-                      color: s.vehicleType === 1 ? '#2563eb' :
-                             s.vehicleType === 2 ? '#059669' :
-                             s.vehicleType === 3 ? '#d97706' : '#64748b',
-                      border: '1px solid currentColor',
-                      fontWeight: 600,
-                    }}>
-                      {s.vehicleType === 1 ? '🏍️ Xe máy' :
-                       s.vehicleType === 2 ? '🚗 Ô tô' :
-                       s.vehicleType === 3 ? '🚚 Xe tải' : '🌐 Mọi loại xe'}
-                    </span>
+                    {/* Badge phân loại & loại xe */}
+                    {s.servicePackageType === 2 || !s.vehicleType ? (
+                      <span className="badge" style={{ 
+                        background: 'rgba(236, 72, 153, 0.12)', 
+                        color: '#db2777', 
+                        border: '1px solid currentColor', 
+                        fontWeight: 600 
+                      }}>
+                        🔸 Dịch vụ bổ sung
+                      </span>
+                    ) : (
+                      <>
+                        <span className="badge" style={{ 
+                          background: s.servicePackageType === 3 ? 'rgba(168, 85, 247, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                          color: s.servicePackageType === 3 ? '#9333ea' : '#2563eb',
+                          border: '1px solid currentColor',
+                          fontWeight: 600,
+                        }}>
+                          {s.servicePackageType === 3 ? '🌟 Gói Combo' : '🔹 Gói chính'}
+                        </span>
+
+                        <span className="badge" style={{ 
+                          background: s.vehicleType === 1 ? 'rgba(59, 130, 246, 0.12)' :
+                                     s.vehicleType === 2 ? 'rgba(16, 185, 129, 0.12)' :
+                                     s.vehicleType === 3 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                          color: s.vehicleType === 1 ? '#2563eb' :
+                                 s.vehicleType === 2 ? '#059669' :
+                                 s.vehicleType === 3 ? '#d97706' : '#64748b',
+                          border: '1px solid currentColor',
+                          fontWeight: 600,
+                        }}>
+                          {s.vehicleType === 1 ? '🏍️ Xe máy' :
+                           s.vehicleType === 2 ? '🚗 Ô tô' :
+                           s.vehicleType === 3 ? '🚚 Xe tải' : ''}
+                        </span>
+                      </>
+                    )}
 
                     <span className={`service-tier-tag ${
                       s.basePrice < 150000 ? 'service-tier-tag--basic' :
@@ -303,31 +330,63 @@ export default function ManagerServices() {
                   required
                   value={formData.Name} 
                   onChange={e => setFormData({...formData, Name: e.target.value})} 
-                  placeholder="Ví dụ: Rửa xe máy bọt tuyết, Rửa ô tô cao cấp..."
+                  placeholder="Ví dụ: Rửa xe máy bọt tuyết, Dưỡng bóng lốp xe..."
                   style={{ width: '100%' }}
                 />
               </div>
 
-              {/* Dropdown chọn loại xe áp dụng */}
+              {/* Dropdown chọn Phân loại gói dịch vụ */}
               <div className="form-group">
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#0f172a' }}>
-                  Loại phương tiện áp dụng <span style={{color: 'red'}}>*</span>
+                  Phân loại gói dịch vụ <span style={{color: 'red'}}>*</span>
                 </label>
                 <select
                   className="form-input"
                   required
-                  value={formData.VehicleType}
-                  onChange={e => setFormData({ ...formData, VehicleType: e.target.value })}
+                  value={formData.ServicePackageType}
+                  onChange={e => {
+                    const newType = e.target.value
+                    setFormData({
+                      ...formData,
+                      ServicePackageType: newType,
+                      VehicleType: newType === '2' ? '' : (formData.VehicleType || '2'),
+                    })
+                  }}
                   style={{ width: '100%', cursor: 'pointer' }}
                 >
-                  <option value="1">🏍️ Xe máy (30.000 đ – 100.000 đ)</option>
-                  <option value="2">🚗 Ô tô / Xe hơi (100.000 đ – 300.000 đ)</option>
-                  <option value="3">🚚 Xe tải (300.000 đ – 500.000 đ)</option>
+                  <option value="1">🔹 Gói chính cơ bản (Standard - Rửa xe tiêu chuẩn)</option>
+                  <option value="2">🔸 Dịch vụ bổ sung (Add-on - Dưỡng lốp, khử mùi, tẩy ố...)</option>
+                  <option value="3">🌟 Gói Combo trọn gói (Premium - Đã bao gồm nhiều dịch vụ)</option>
                 </select>
                 <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '6px' }}>
-                  💡 Giới hạn giá cho <strong>{currentRule.label}</strong>: <strong style={{ color: 'var(--color-primary, #0284c7)' }}>{currentRule.text}</strong>
+                  {formData.ServicePackageType === '2'
+                    ? '💡 Dịch vụ bổ sung sẽ tự động áp dụng chung cho tất cả các loại xe khi đặt lịch.'
+                    : '💡 Gói chính/Combo là gói rửa chính, áp dụng riêng biệt cho từng loại xe cụ thể.'}
                 </div>
               </div>
+
+              {/* Dropdown chọn loại xe áp dụng - chỉ hiện khi không phải AddOn */}
+              {formData.ServicePackageType !== '2' && (
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#0f172a' }}>
+                    Loại phương tiện áp dụng <span style={{color: 'red'}}>*</span>
+                  </label>
+                  <select
+                    className="form-input"
+                    required
+                    value={formData.VehicleType || '2'}
+                    onChange={e => setFormData({ ...formData, VehicleType: e.target.value })}
+                    style={{ width: '100%', cursor: 'pointer' }}
+                  >
+                    <option value="1">🏍️ Xe máy (10.000 đ – 100.000 đ - Giá thấp nhất)</option>
+                    <option value="2">🚗 Ô tô / Xe hơi (30.000 đ – 300.000 đ - Giá trung bình)</option>
+                    <option value="3">🚚 Xe tải (50.000 đ – 500.000 đ - Giá cao nhất)</option>
+                  </select>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '6px' }}>
+                    💡 Giới hạn giá cho <strong>{currentRule.label}</strong>: <strong style={{ color: 'var(--color-primary, #0284c7)' }}>{currentRule.text}</strong>
+                  </div>
+                </div>
+              )}
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">

@@ -3,7 +3,7 @@ import * as api from '../../services/api'
 import type { BranchService } from '../../types/branch'
 import type { Slot } from '../../types/slot'
 import type { Booking } from '../../types/booking'
-import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
+import { compactLicensePlate, formatLicensePlateInput, getLicensePlateError, getManufactureYearError, licensePlatePlaceholder, licensePlateHint } from '../../utils/licensePlate'
 import { extractErrorMessage } from '../../utils/errorUtils'
 import './Staff.css'
 
@@ -254,9 +254,19 @@ export default function StaffCustomers() {
     ? newType 
     : (customer?.vehicles?.find(v => v.vehicleId === selectedVehicleId)?.vehicleType ?? newType ?? 2)
 
-  const newPlateError = (addNew && newPlate && newPlate.trim().length >= 3)
-    ? getLicensePlateError(newPlate, newType, newYear ? Number(newYear) : undefined)
-    : null
+  const isDuplicatePlate = Boolean(
+    addNew &&
+    newPlate.trim() &&
+    customer?.vehicles?.some(v => compactLicensePlate(v.licensePlate) === compactLicensePlate(newPlate))
+  )
+
+  const newYearError = (addNew && newYear.trim()) ? getManufactureYearError(newYear) : null
+
+  const newPlateError = (() => {
+    if (!addNew || !newPlate || newPlate.trim().length < 3) return null
+    if (isDuplicatePlate) return 'Biển số xe này đã có trong danh sách xe của khách hàng!'
+    return getLicensePlateError(newPlate, newType, newYear ? Number(newYear) : undefined)
+  })()
 
   const safeBodyStyles = Array.isArray(bodyStyleCatalogs) ? bodyStyleCatalogs : []
   const filteredBodyStyles = safeBodyStyles.filter(cat => {
@@ -350,8 +360,9 @@ export default function StaffCustomers() {
     }
     if (!slotId) { setError('Vui lòng chọn một khung giờ.'); return }
     if (!addNew && !selectedVehicleId) { setError('Vui lòng chọn hoặc thêm phương tiện.'); return }
-    if (addNew && !newPlate.trim()) { setError('Vui lòng nhập biển số xe.'); return }
     if (addNew) {
+      if (isDuplicatePlate) { setError('Biển số xe này đã có trong danh sách xe của khách hàng!'); return }
+      if (newYearError) { setError(newYearError); return }
       const plateError = getLicensePlateError(newPlate, newType, newYear ? Number(newYear) : undefined)
       if (plateError) { setError(plateError); return }
     }
@@ -596,7 +607,7 @@ export default function StaffCustomers() {
                       </label>
                       <input 
                         className="form-input" 
-                        placeholder={licensePlatePlaceholder(newType)} 
+                        placeholder={licensePlatePlaceholder(newType, newYear)} 
                         value={newPlate} 
                         onCompositionStart={() => setIsNewPlateComposing(true)} 
                         onCompositionEnd={e => { const value = e.currentTarget.value; setIsNewPlateComposing(false); setNewPlate(formatLicensePlateInput(value, newType)) }} 
@@ -610,16 +621,16 @@ export default function StaffCustomers() {
                           fontWeight: 600,
                           letterSpacing: '0.04em',
                           boxSizing: 'border-box',
-                          borderColor: (newPlateError && !newPlateError.includes('2010')) ? '#ef4444' : undefined,
+                          borderColor: newPlateError ? '#ef4444' : undefined,
                         }} 
                       />
-                      {newPlateError && !newPlateError.includes('2010') ? (
+                      {newPlateError ? (
                         <div style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span>⚠️</span> {newPlateError}
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
-                          💡 Chuẩn biển 5 số: 51F-123.45 hoặc 30K-123.45
+                          {licensePlateHint(newType, newYear)}
                         </div>
                       )}
                     </div>
@@ -713,12 +724,12 @@ export default function StaffCustomers() {
                             height: 40,
                             fontSize: '0.85rem',
                             boxSizing: 'border-box',
-                            borderColor: (newPlateError && newPlateError.includes('2010')) ? '#ef4444' : undefined,
+                            borderColor: newYearError ? '#ef4444' : undefined,
                           }}
                         />
-                        {newPlateError && newPlateError.includes('2010') && (
-                          <div style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span>⚠️</span> {newPlateError}
+                        {newYearError && (
+                          <div style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                            <span>⚠️</span> {newYearError}
                           </div>
                         )}
                       </div>

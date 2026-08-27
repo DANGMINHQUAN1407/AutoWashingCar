@@ -9,7 +9,7 @@ import AnimatedButton from '../../components/AnimatedButton';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import StatusBadge, { type BadgeType } from '../../components/StatusBadge';
-import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate';
+import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder, licensePlateHint } from '../../utils/licensePlate';
 import '../Dashboard.css';
 
 const CUSTOM_BRAND_VALUE = '__custom__';
@@ -663,7 +663,7 @@ export default function CustomerBookings() {
     setQuickVehicleLoading(true);
     setErrorMsg(null);
     try {
-      const plateError = getLicensePlateError(quickPlate, quickType);
+      const plateError = getLicensePlateError(quickPlate, quickType, quickYear ? Number(quickYear) : undefined);
       if (plateError) {
         setErrorMsg(plateError);
         return;
@@ -1405,9 +1405,12 @@ export default function CustomerBookings() {
                             const value = e.currentTarget.value;
                             setQuickPlate(isQuickPlateComposing ? value : formatLicensePlateInput(value, quickType));
                           }}
-                          placeholder={licensePlatePlaceholder(quickType)}
+                          placeholder={licensePlatePlaceholder(quickType, quickYear)}
                           required
                         />
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+                          {licensePlateHint(quickType, quickYear)}
+                        </div>
                       </div>
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.8rem' }}>

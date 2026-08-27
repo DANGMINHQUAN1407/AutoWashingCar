@@ -31,21 +31,27 @@ public static partial class LicensePlatePolicy
     }
 
     /// <summary>
-    /// Kiểm tra tương thích giữa biển số và năm sản xuất:
-    /// Biển số 4 số (cũ) chỉ được cấp trước 06/12/2010, nên chỉ áp dụng cho xe sản xuất từ 2010 trở về trước.
-    /// Xe sản xuất từ năm 2011 trở đi bắt buộc phải đăng ký biển 5 số (có dấu chấm .xx).
+    /// Kiểm tra tương thích giữa biển số và năm sản xuất.
+    /// Xe sản xuất từ năm 2011 trở đi (>= 2011) bắt buộc dùng biển 5 số.
+    /// Xe sản xuất từ 2010 trở về trước (<= 2010) cho phép cả biển 4 số và 5 số.
     /// </summary>
     public static void ValidateManufactureYear(string canonicalPlate, int? manufactureYear)
     {
         if (!manufactureYear.HasValue) return;
 
-        // Biển 4 số là biển không chứa dấu chấm '.' ngăn cách
-        if (!canonicalPlate.Contains('.'))
+        var currentYear = DateTime.UtcNow.Year;
+        if (manufactureYear.Value < 1950 || manufactureYear.Value > currentYear + 1)
         {
-            if (manufactureYear.Value > 2010)
-            {
-                throw AppException.BadRequest($"Biển số 4 số ({canonicalPlate}) chỉ áp dụng cho xe sản xuất từ năm 2010 trở về trước. Xe sản xuất năm {manufactureYear.Value} bắt buộc phải sử dụng biển số 5 số (Ví dụ: 59A1-123.45 hoặc 51F-123.45).");
-            }
+            throw AppException.BadRequest($"Năm sản xuất không hợp lệ (hợp lệ từ 1950 đến {currentYear + 1}).");
+        }
+
+        var parts = canonicalPlate.Split('-');
+        if (parts.Length < 2) return;
+
+        var numberDigits = string.Concat(parts.Last().Where(char.IsDigit));
+        if (manufactureYear.Value >= 2011 && numberDigits.Length == 4)
+        {
+            throw AppException.BadRequest("Xe sản xuất từ năm 2011 bắt buộc sử dụng biển 5 số (VD: 51F1-123.45 hoặc 51F-123.45).");
         }
     }
 
@@ -65,7 +71,7 @@ public static partial class LicensePlatePolicy
     private static string Compact(string raw)
     {
         var compact = SeparatorRegex().Replace(raw, "");
-        if (compact.Length is < 7 or > 10)
+        if (compact.Length is < 7 or > 9)
             throw AppException.BadRequest(InvalidMessage);
 
         return compact;
@@ -97,7 +103,7 @@ public static partial class LicensePlatePolicy
 
     private static string FormatCanonical(string province, string series, string number)
     {
-        var formattedNumber = number.Length is 5 or 6
+        var formattedNumber = number.Length == 5
             ? $"{number[..3]}.{number[3..]}"
             : number;
         return $"{province}{series}-{formattedNumber}";
@@ -106,9 +112,9 @@ public static partial class LicensePlatePolicy
     [GeneratedRegex(@"[\.-]+", RegexOptions.CultureInvariant)]
     private static partial Regex SeparatorRegex();
 
-    [GeneratedRegex(@"^(?<province>\d{2})(?<series>[A-Z][A-Z0-9]{1,2}?)(?<number>\d{5}|\d{4}|\d{6})$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?<province>\d{2})(?<series>[A-Z][A-Z0-9]{1,2}?)(?<number>\d{5}|\d{4})$", RegexOptions.CultureInvariant)]
     private static partial Regex MotorbikeRegex();
 
-    [GeneratedRegex(@"^(?<province>\d{2})(?<series>[A-Z]{1,2})(?<number>\d{5}|\d{4}|\d{6})$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?<province>\d{2})(?<series>[A-Z]{1,2})(?<number>\d{5}|\d{4})$", RegexOptions.CultureInvariant)]
     private static partial Regex CarOrTruckRegex();
 }

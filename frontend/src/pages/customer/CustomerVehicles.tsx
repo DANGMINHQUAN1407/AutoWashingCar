@@ -4,7 +4,7 @@ import { extractErrorMessage } from '../../utils/errorUtils'
 import AnimatedButton from '../../components/AnimatedButton'
 import ConfirmModal from '../../components/ConfirmModal'
 import Pagination from '../../components/Pagination'
-import { formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder } from '../../utils/licensePlate'
+import { compactLicensePlate, formatLicensePlateInput, getLicensePlateError, licensePlatePlaceholder, licensePlateHint } from '../../utils/licensePlate'
 import '../Dashboard.css'
 
 const CUSTOM_BRAND_VALUE = '__custom__'
@@ -508,8 +508,17 @@ export default function CustomerVehicles() {
           </div>
 
           {showVehicleForm && (() => {
+            const isDuplicatePlate = Boolean(
+              vehicleForm.licensePlate.trim() &&
+              vehicles.some(v => 
+                (!editingVehicleId || (v.vehicleId !== editingVehicleId && (v as any).VehicleId !== editingVehicleId)) &&
+                compactLicensePlate(v.licensePlate || (v as any).LicensePlate) === compactLicensePlate(vehicleForm.licensePlate)
+              )
+            )
             const currentPlateError = vehicleForm.licensePlate.trim()
-              ? getLicensePlateError(vehicleForm.licensePlate, vehicleForm.vehicleType, vehicleForm.manufactureYear)
+              ? (isDuplicatePlate 
+                  ? 'Biển số xe này đã có trong danh sách phương tiện của bạn!' 
+                  : getLicensePlateError(vehicleForm.licensePlate, vehicleForm.vehicleType, vehicleForm.manufactureYear))
               : null
             const isPlateValid = vehicleForm.licensePlate.trim().length > 0 && !currentPlateError
 
@@ -554,7 +563,7 @@ export default function CustomerVehicles() {
                         licensePlate: formatLicensePlateInput(value, prev.vehicleType),
                       }))
                     }}
-                    placeholder={licensePlatePlaceholder(vehicleForm.vehicleType)}
+                    placeholder={licensePlatePlaceholder(vehicleForm.vehicleType, vehicleForm.manufactureYear)}
                     required
                     minLength={6}
                     maxLength={20}
@@ -571,9 +580,7 @@ export default function CustomerVehicles() {
                     </div>
                   )}
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                    {vehicleForm.vehicleType === 1
-                      ? '💡 Chuẩn biển 5 số xe máy: 59A1-123.45 (hoặc 4 số cũ: 59A1-2345)'
-                      : '💡 Chuẩn biển 5 số ô tô: 51F-123.45 hoặc 30K-123.45'}
+                    {licensePlateHint(vehicleForm.vehicleType, vehicleForm.manufactureYear)}
                   </div>
                 </div>
                 <div className="form-group">

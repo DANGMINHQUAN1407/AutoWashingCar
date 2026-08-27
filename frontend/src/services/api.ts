@@ -133,7 +133,7 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
   if (authToken) {
     headers.set('Authorization', `Bearer ${authToken}`);
   }
-  
+
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -150,10 +150,10 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
     }
     throw new Error(errorMsg);
   }
-  
+
   // Return empty object if no body
   if (res.status === 204) return {};
-  
+
   return res.json().catch(() => ({}));
 }
 
@@ -168,12 +168,12 @@ export async function login(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Login failed');
   }
-  
+
   return res.json();
 }
 
@@ -184,12 +184,12 @@ export async function register(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Registration failed');
   }
-  
+
   return res.json();
 }
 
@@ -200,12 +200,12 @@ export async function claimGuestAccount(data: { PhoneNumber: string; Email: stri
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Claim account failed');
   }
-  
+
   return res.json();
 }
 
@@ -216,12 +216,12 @@ export async function googleLogin(idToken: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ IdToken: idToken }),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Google login failed');
   }
-  
+
   return res.json();
 }
 
@@ -317,12 +317,12 @@ export async function forgotPassword(data: { Email: string }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Failed to send reset instructions');
   }
-  
+
   return res.status === 204 ? {} : res.json().catch(() => ({}));
 }
 
@@ -393,12 +393,12 @@ export async function resetPassword(data: { Token: string, NewPassword: string }
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(text || 'Failed to reset password');
   }
-  
+
   return res.status === 204 ? {} : res.json().catch(() => ({}));
 }
 
@@ -436,7 +436,7 @@ export async function getUsers(params?: {
   if (params?.isActive !== undefined) searchParams.set('IsActive', String(params.isActive))
   if (params?.search) searchParams.set('Search', params.search)
   if (params?.phoneNumber) searchParams.set('PhoneNumber', params.phoneNumber)
-  
+
   const qs = searchParams.toString()
   const res = await fetchWithAuth(`/api/admin/users${qs ? `?${qs}` : ''}`)
   const data = unwrapData<{
@@ -451,7 +451,7 @@ export async function getUsers(params?: {
     totalPages?: number
     TotalPages?: number
   }>(res)
-  
+
   const rawItems = data?.items ?? data?.Items ?? unwrapPagedItems<Record<string, unknown>>(res)
   const items = rawItems.map((u: any) => ({
     userId: u.userId ?? u.UserId ?? u.id ?? u.Id,
@@ -463,12 +463,12 @@ export async function getUsers(params?: {
     createdAtUtc: u.createdAtUtc ?? u.CreatedAtUtc,
     branchId: u.branchId ?? u.BranchId ?? undefined,
   }))
-  
+
   const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
   const pageSize = data?.pageSize ?? data?.PageSize ?? params?.pageSize ?? 10
   const pageNumber = data?.pageNumber ?? data?.PageNumber ?? params?.page ?? 1
   const totalPages = data?.totalPages ?? data?.TotalPages ?? Math.max(1, Math.ceil(totalCount / pageSize))
-  
+
   return { items, totalCount, pageNumber, pageSize, totalPages }
 }
 
@@ -652,8 +652,8 @@ export function normalizeServiceCatalogItem(s: any): ServiceCatalogItem {
   const vType = s?.vehicleType ?? s?.VehicleType ?? null
   const vTypeName = s?.vehicleTypeName ?? s?.VehicleTypeName ?? (
     vType === 1 ? 'Xe máy' :
-    vType === 2 ? 'Ô tô' :
-    vType === 3 ? 'Xe tải' : 'Tất cả loại xe'
+      vType === 2 ? 'Ô tô' :
+        vType === 3 ? 'Xe tải' : 'Tất cả loại xe'
   )
   return {
     serviceCatalogItemId: s?.serviceCatalogItemId ?? s?.ServiceCatalogItemId ?? s?.id ?? s?.Id ?? '',
@@ -690,7 +690,7 @@ export async function getServiceCatalog(params?: {
   if (params?.vehicleType) searchParams.set('VehicleType', String(params.vehicleType))
   if (params?.engineCatalogId) searchParams.set('EngineCatalogId', params.engineCatalogId)
   if (params?.branchId) searchParams.set('BranchId', params.branchId)
-  
+
   const qs = searchParams.toString()
   const res = await fetchWithAuth(`/api/service-catalog${qs ? `?${qs}` : ''}`)
   const data = unwrapData<{
@@ -705,15 +705,15 @@ export async function getServiceCatalog(params?: {
     totalPages?: number
     TotalPages?: number
   }>(res)
-  
+
   const rawItems = data?.items ?? data?.Items ?? unwrapPagedItems<Record<string, unknown>>(res)
   const items = rawItems.map(normalizeServiceCatalogItem)
-  
+
   const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
   const pageSize = data?.pageSize ?? data?.PageSize ?? params?.pageSize ?? 10
   const pageNumber = data?.pageNumber ?? data?.PageNumber ?? params?.page ?? 1
   const totalPages = data?.totalPages ?? data?.TotalPages ?? Math.max(1, Math.ceil(totalCount / pageSize))
-  
+
   return { items, totalCount, pageNumber, pageSize, totalPages }
 }
 
@@ -723,6 +723,8 @@ export async function createServiceCatalog(data: {
   BasePrice: number
   DurationMinutes: number
   VehicleType?: number | null
+  ServicePackageType?: number
+  ParentServiceCatalogItemId?: string | null
 }): Promise<ServiceCatalogItem> {
   const payload = await fetchWithAuth('/api/service-catalog', {
     method: 'POST',
@@ -739,6 +741,8 @@ export async function updateServiceCatalog(id: string, data: {
   BasePrice: number
   DurationMinutes: number
   VehicleType?: number | null
+  ServicePackageType?: number
+  ParentServiceCatalogItemId?: string | null
 }): Promise<ServiceCatalogItem> {
   const payload = await fetchWithAuth(`/api/service-catalog/${id}`, {
     method: 'PUT',
@@ -778,7 +782,7 @@ export async function getSlots(params?: {
   if (params?.fromDate) searchParams.set('FromDate', params.fromDate)
   if (params?.toDate) searchParams.set('ToDate', params.toDate)
   if (params?.branchId) searchParams.set('BranchId', params.branchId)
-  
+
   const qs = searchParams.toString()
   const res = await fetchWithAuth(`/api/slots${qs ? `?${qs}` : ''}`)
   const data = unwrapData<{
@@ -793,15 +797,15 @@ export async function getSlots(params?: {
     totalPages?: number
     TotalPages?: number
   }>(res)
-  
+
   const rawItems = data?.items ?? data?.Items ?? unwrapPagedItems<Record<string, unknown>>(res)
   const items = rawItems.map(normalizeSlot)
-  
+
   const totalCount = data?.totalCount ?? data?.TotalCount ?? items.length
   const pageSize = data?.pageSize ?? data?.PageSize ?? params?.pageSize ?? 50
   const pageNumber = data?.pageNumber ?? data?.PageNumber ?? params?.page ?? 1
   const totalPages = data?.totalPages ?? data?.TotalPages ?? Math.max(1, Math.ceil(totalCount / pageSize))
-  
+
   return { items, totalCount, pageNumber, pageSize, totalPages }
 }
 
@@ -1355,30 +1359,30 @@ export type VoucherItem = {
 
 function normalizeVoucher(raw: any): VoucherItem {
   return {
-    voucherId:          String(raw?.voucherId          ?? raw?.VoucherId          ?? ''),
-    voucherCode:        String(raw?.voucherCode        ?? raw?.VoucherCode        ?? ''),
-    voucherType:        Number(raw?.voucherType        ?? raw?.VoucherType        ?? 1),
-    voucherTypeName:    String(raw?.voucherTypeName    ?? raw?.VoucherTypeName    ?? ''),
-    discountType:       Number(raw?.discountType       ?? raw?.DiscountType       ?? 1),
-    discountTypeName:   String(raw?.discountTypeName   ?? raw?.DiscountTypeName   ?? ''),
-    discountValue:      Number(raw?.discountValue      ?? raw?.DiscountValue      ?? 0),
-    minOrderAmount:     raw?.minOrderAmount    != null ? Number(raw.minOrderAmount)    : raw?.MinOrderAmount    != null ? Number(raw.MinOrderAmount)    : undefined,
-    maxDiscountAmount:  raw?.maxDiscountAmount != null ? Number(raw.maxDiscountAmount) : raw?.MaxDiscountAmount != null ? Number(raw.MaxDiscountAmount) : undefined,
-    quantity:           Number(raw?.quantity           ?? raw?.Quantity           ?? 0),
-    usedCount:          Number(raw?.usedCount          ?? raw?.UsedCount          ?? 0),
-    startUtc:           String(raw?.startUtc           ?? raw?.StartUtc           ?? ''),
-    endUtc:             String(raw?.endUtc             ?? raw?.EndUtc             ?? ''),
-    isActive:           Boolean(raw?.isActive          ?? raw?.IsActive           ?? false),
-    approvalStatus:     Number(raw?.approvalStatus     ?? raw?.ApprovalStatus     ?? 1),
-    branchId:           raw?.branchId      ?? raw?.BranchId      ?? undefined,
-    branchName:         raw?.branchName    ?? raw?.BranchName    ?? undefined,
-    createdByUserId:    String(raw?.createdByUserId    ?? raw?.CreatedByUserId    ?? ''),
-    createdByUserName:  String(raw?.createdByUserName  ?? raw?.CreatedByUserName  ?? ''),
-    approvedByUserId:   raw?.approvedByUserId   ?? raw?.ApprovedByUserId   ?? undefined,
+    voucherId: String(raw?.voucherId ?? raw?.VoucherId ?? ''),
+    voucherCode: String(raw?.voucherCode ?? raw?.VoucherCode ?? ''),
+    voucherType: Number(raw?.voucherType ?? raw?.VoucherType ?? 1),
+    voucherTypeName: String(raw?.voucherTypeName ?? raw?.VoucherTypeName ?? ''),
+    discountType: Number(raw?.discountType ?? raw?.DiscountType ?? 1),
+    discountTypeName: String(raw?.discountTypeName ?? raw?.DiscountTypeName ?? ''),
+    discountValue: Number(raw?.discountValue ?? raw?.DiscountValue ?? 0),
+    minOrderAmount: raw?.minOrderAmount != null ? Number(raw.minOrderAmount) : raw?.MinOrderAmount != null ? Number(raw.MinOrderAmount) : undefined,
+    maxDiscountAmount: raw?.maxDiscountAmount != null ? Number(raw.maxDiscountAmount) : raw?.MaxDiscountAmount != null ? Number(raw.MaxDiscountAmount) : undefined,
+    quantity: Number(raw?.quantity ?? raw?.Quantity ?? 0),
+    usedCount: Number(raw?.usedCount ?? raw?.UsedCount ?? 0),
+    startUtc: String(raw?.startUtc ?? raw?.StartUtc ?? ''),
+    endUtc: String(raw?.endUtc ?? raw?.EndUtc ?? ''),
+    isActive: Boolean(raw?.isActive ?? raw?.IsActive ?? false),
+    approvalStatus: Number(raw?.approvalStatus ?? raw?.ApprovalStatus ?? 1),
+    branchId: raw?.branchId ?? raw?.BranchId ?? undefined,
+    branchName: raw?.branchName ?? raw?.BranchName ?? undefined,
+    createdByUserId: String(raw?.createdByUserId ?? raw?.CreatedByUserId ?? ''),
+    createdByUserName: String(raw?.createdByUserName ?? raw?.CreatedByUserName ?? ''),
+    approvedByUserId: raw?.approvedByUserId ?? raw?.ApprovedByUserId ?? undefined,
     approvedByUserName: raw?.approvedByUserName ?? raw?.ApprovedByUserName ?? undefined,
-    approvedAtUtc:      raw?.approvedAtUtc      ?? raw?.ApprovedAtUtc      ?? undefined,
-    createdAtUtc:       String(raw?.createdAtUtc       ?? raw?.CreatedAtUtc       ?? ''),
-    requiredPoints:     Number(raw?.requiredPoints     ?? raw?.RequiredPoints     ?? 0),
+    approvedAtUtc: raw?.approvedAtUtc ?? raw?.ApprovedAtUtc ?? undefined,
+    createdAtUtc: String(raw?.createdAtUtc ?? raw?.CreatedAtUtc ?? ''),
+    requiredPoints: Number(raw?.requiredPoints ?? raw?.RequiredPoints ?? 0),
   }
 }
 
@@ -1439,7 +1443,7 @@ export async function getMyVouchers(query?: UserVoucherQuery): Promise<{ items: 
   if (query?.voucherStatus !== undefined) params.set('VoucherStatus', String(query.voucherStatus))
   if (query?.branchId) params.set('BranchId', query.branchId)
   if (query?.userId) params.set('UserId', query.userId)
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/vouchers/my-vouchers${qs ? `?${qs}` : ''}`)
   const data = unwrapData<any>(res)
@@ -1568,23 +1572,23 @@ export type UserVoucherItem = {
 
 function normalizeUserVoucher(raw: any): UserVoucherItem {
   return {
-    userVoucherId:     String(raw?.userVoucherId     ?? raw?.UserVoucherId     ?? ''),
-    userId:            String(raw?.userId            ?? raw?.UserId            ?? ''),
-    voucherId:         String(raw?.voucherId         ?? raw?.VoucherId         ?? ''),
-    voucherCode:       String(raw?.voucherCode       ?? raw?.VoucherCode       ?? ''),
-    voucherType:       Number(raw?.voucherType       ?? raw?.VoucherType       ?? 1),
-    voucherTypeName:   String(raw?.voucherTypeName   ?? raw?.VoucherTypeName   ?? ''),
-    discountType:      Number(raw?.discountType      ?? raw?.DiscountType      ?? 1),
-    discountTypeName:  String(raw?.discountTypeName  ?? raw?.DiscountTypeName  ?? ''),
-    discountValue:     Number(raw?.discountValue     ?? raw?.DiscountValue     ?? 0),
-    minOrderAmount:    raw?.minOrderAmount    != null ? Number(raw.minOrderAmount)    : raw?.MinOrderAmount    != null ? Number(raw.MinOrderAmount)    : undefined,
+    userVoucherId: String(raw?.userVoucherId ?? raw?.UserVoucherId ?? ''),
+    userId: String(raw?.userId ?? raw?.UserId ?? ''),
+    voucherId: String(raw?.voucherId ?? raw?.VoucherId ?? ''),
+    voucherCode: String(raw?.voucherCode ?? raw?.VoucherCode ?? ''),
+    voucherType: Number(raw?.voucherType ?? raw?.VoucherType ?? 1),
+    voucherTypeName: String(raw?.voucherTypeName ?? raw?.VoucherTypeName ?? ''),
+    discountType: Number(raw?.discountType ?? raw?.DiscountType ?? 1),
+    discountTypeName: String(raw?.discountTypeName ?? raw?.DiscountTypeName ?? ''),
+    discountValue: Number(raw?.discountValue ?? raw?.DiscountValue ?? 0),
+    minOrderAmount: raw?.minOrderAmount != null ? Number(raw.minOrderAmount) : raw?.MinOrderAmount != null ? Number(raw.MinOrderAmount) : undefined,
     maxDiscountAmount: raw?.maxDiscountAmount != null ? Number(raw.maxDiscountAmount) : raw?.MaxDiscountAmount != null ? Number(raw.MaxDiscountAmount) : undefined,
-    voucherStatus:     Number(raw?.voucherStatus     ?? raw?.VoucherStatus     ?? 1),
+    voucherStatus: Number(raw?.voucherStatus ?? raw?.VoucherStatus ?? 1),
     voucherStatusName: String(raw?.voucherStatusName ?? raw?.VoucherStatusName ?? ''),
-    redeemedPoints:    Number(raw?.redeemedPoints    ?? raw?.RedeemedPoints    ?? 0),
-    redeemedAtUtc:     String(raw?.redeemedAtUtc     ?? raw?.RedeemedAtUtc     ?? ''),
-    expiredAtUtc:      raw?.expiredAtUtc ?? raw?.ExpiredAtUtc ?? undefined,
-    usedAtUtc:         raw?.usedAtUtc    ?? raw?.UsedAtUtc    ?? undefined,
+    redeemedPoints: Number(raw?.redeemedPoints ?? raw?.RedeemedPoints ?? 0),
+    redeemedAtUtc: String(raw?.redeemedAtUtc ?? raw?.RedeemedAtUtc ?? ''),
+    expiredAtUtc: raw?.expiredAtUtc ?? raw?.ExpiredAtUtc ?? undefined,
+    usedAtUtc: raw?.usedAtUtc ?? raw?.UsedAtUtc ?? undefined,
   }
 }
 
@@ -1609,22 +1613,22 @@ export type AvailableVoucherItem = {
 
 function normalizeAvailableVoucher(raw: any): AvailableVoucherItem {
   return {
-    voucherId:         String(raw?.voucherId         ?? raw?.VoucherId         ?? ''),
-    voucherCode:       String(raw?.voucherCode       ?? raw?.VoucherCode       ?? ''),
-    voucherType:       Number(raw?.voucherType       ?? raw?.VoucherType       ?? 1),
-    voucherTypeName:   String(raw?.voucherTypeName   ?? raw?.VoucherTypeName   ?? ''),
-    discountType:      Number(raw?.discountType      ?? raw?.DiscountType      ?? 1),
-    discountTypeName:  String(raw?.discountTypeName  ?? raw?.DiscountTypeName  ?? ''),
-    discountValue:     Number(raw?.discountValue     ?? raw?.DiscountValue     ?? 0),
-    minOrderAmount:    raw?.minOrderAmount    != null ? Number(raw.minOrderAmount)    : raw?.MinOrderAmount    != null ? Number(raw.MinOrderAmount)    : undefined,
+    voucherId: String(raw?.voucherId ?? raw?.VoucherId ?? ''),
+    voucherCode: String(raw?.voucherCode ?? raw?.VoucherCode ?? ''),
+    voucherType: Number(raw?.voucherType ?? raw?.VoucherType ?? 1),
+    voucherTypeName: String(raw?.voucherTypeName ?? raw?.VoucherTypeName ?? ''),
+    discountType: Number(raw?.discountType ?? raw?.DiscountType ?? 1),
+    discountTypeName: String(raw?.discountTypeName ?? raw?.DiscountTypeName ?? ''),
+    discountValue: Number(raw?.discountValue ?? raw?.DiscountValue ?? 0),
+    minOrderAmount: raw?.minOrderAmount != null ? Number(raw.minOrderAmount) : raw?.MinOrderAmount != null ? Number(raw.MinOrderAmount) : undefined,
     maxDiscountAmount: raw?.maxDiscountAmount != null ? Number(raw.maxDiscountAmount) : raw?.MaxDiscountAmount != null ? Number(raw.MaxDiscountAmount) : undefined,
-    quantity:          Number(raw?.quantity          ?? raw?.Quantity          ?? 0),
-    usedCount:         Number(raw?.usedCount          ?? raw?.UsedCount          ?? 0),
-    startUtc:          String(raw?.startUtc          ?? raw?.StartUtc          ?? ''),
-    endUtc:            String(raw?.endUtc            ?? raw?.EndUtc            ?? ''),
-    branchId:          raw?.branchId      ?? raw?.BranchId      ?? undefined,
-    branchName:        raw?.branchName    ?? raw?.BranchName    ?? undefined,
-    requiredPoints:    Number(raw?.requiredPoints    ?? raw?.RequiredPoints    ?? 0),
+    quantity: Number(raw?.quantity ?? raw?.Quantity ?? 0),
+    usedCount: Number(raw?.usedCount ?? raw?.UsedCount ?? 0),
+    startUtc: String(raw?.startUtc ?? raw?.StartUtc ?? ''),
+    endUtc: String(raw?.endUtc ?? raw?.EndUtc ?? ''),
+    branchId: raw?.branchId ?? raw?.BranchId ?? undefined,
+    branchName: raw?.branchName ?? raw?.BranchName ?? undefined,
+    requiredPoints: Number(raw?.requiredPoints ?? raw?.RequiredPoints ?? 0),
   }
 }
 
@@ -1675,7 +1679,7 @@ export async function getReviews(query?: ReviewQuery): Promise<ReviewPageResult>
   if (query?.staffId) params.set('StaffId', query.staffId)
   if (query?.serviceCatalogItemId) params.set('ServiceCatalogItemId', query.serviceCatalogItemId)
   if (query?.reviewType !== undefined) params.set('ReviewType', String(query.reviewType))
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/reviews${qs ? `?${qs}` : ''}`)
   const data = unwrapData<any>(res)
@@ -1700,7 +1704,7 @@ export async function getReviewsForModeration(query?: ReviewQuery): Promise<Revi
   if (query?.staffId) params.set('StaffId', query.staffId)
   if (query?.serviceCatalogItemId) params.set('ServiceCatalogItemId', query.serviceCatalogItemId)
   if (query?.reviewType !== undefined) params.set('ReviewType', String(query.reviewType))
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/reviews/moderation${qs ? `?${qs}` : ''}`)
   const data = unwrapData<any>(res)
@@ -1721,7 +1725,7 @@ export async function getMyReviews(query?: ReviewQuery): Promise<ReviewPageResul
   if (query?.search) params.set('Search', query.search)
   if (query?.branchId) params.set('BranchId', query.branchId)
   if (query?.reviewType !== undefined) params.set('ReviewType', String(query.reviewType))
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/reviews/my${qs ? `?${qs}` : ''}`)
   const data = unwrapData<any>(res)
@@ -1808,7 +1812,7 @@ export async function getAdminBookingStats(query: BookingStatsQuery): Promise<Bo
   if (query.toDate) params.set('ToDate', query.toDate)
   params.set('GroupBy', String(query.groupBy))
   if (query.branchId) params.set('BranchId', query.branchId)
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/reports/booking-stats?${qs}`)
   const data = unwrapData<any>(res) ?? []
@@ -1820,7 +1824,7 @@ export async function getManagerBookingStats(query: BookingStatsQuery): Promise<
   if (query.fromDate) params.set('FromDate', query.fromDate)
   if (query.toDate) params.set('ToDate', query.toDate)
   params.set('GroupBy', String(query.groupBy))
-  
+
   const qs = params.toString()
   const res = await fetchWithAuth(`/api/reports/branch-booking-stats?${qs}`)
   const data = unwrapData<any>(res) ?? []
